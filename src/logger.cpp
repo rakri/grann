@@ -1,13 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <cstring>
-#include <iostream>
 
 #ifdef EXEC_ENV_OLS
 #include "ANNLoggingImpl.hpp"
 #endif
 
+#include "common_includes.h"
 #include "logger_impl.h"
 #include "windows_customizations.h"
 

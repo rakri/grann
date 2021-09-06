@@ -2,6 +2,16 @@
 // Licensed under the MIT license.
 #pragma once
 
+#include <map>
+#include <sstream>
+#include <stack>
+#include <string>
+#include <unordered_map>
+#include "tsl/robin_set.h"
+#include "tsl/robin_map.h"
+#include <omp.h>
+#include "timer.h"
+#include "boost/dynamic_bitset.hpp"
 #include <algorithm>
 #include <cassert>
 #include <chrono>
@@ -17,6 +27,17 @@
 #include <sys/stat.h>
 #include <time.h>
 #include <vector>
+#include <mutex>
+
+
+
+
+//#include "distance.h"
+//#include "neighbor.h"
+#include "parameters.h"
+
+#include "windows_customizations.h"
+
 
 // from aligned_file_reader.h
 #define MAX_IO_DEPTH 128
@@ -47,3 +68,12 @@ typedef uint16_t _u16;
 typedef int16_t  _s16;
 typedef uint8_t  _u8;
 typedef int8_t   _s8;
+
+
+
+// USEFUL MACROS FOR VAMANA
+#define VAMANA_SLACK_FACTOR 1.3
+
+#define ESTIMATE_VAMANA_RAM_USAGE(size, dim, datasize, degree) \
+  (1.30 * (((double) size * dim) * datasize +           \
+           ((double) size * degree) * sizeof(unsigned) * VAMANA_SLACK_FACTOR))

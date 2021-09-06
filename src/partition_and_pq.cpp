@@ -3,33 +3,7 @@
 
 #include <math_utils.h>
 #include <omp.h>
-#include <algorithm>
-#include <chrono>
-#include <cmath>
-#include <cstdio>
-#include <ctime>
-#include <iostream>
-#include <iomanip>
-#include <iterator>
-#include <map>
-#include <set>
-#include <sstream>
-#include <string>
-#include "logger.h"
-#include "exceptions.h"
-#include "index.h"
-#include "parameters.h"
-#include "tsl/robin_set.h"
 #include "utils.h"
-
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <time.h>
-#include <typeinfo>
-#include <tsl/robin_map.h>
-
-#include <cassert>
-#include "memory_mapper.h"
 #include "partition_and_pq.h"
 #ifdef _WINDOWS
 #include <xmmintrin.h>

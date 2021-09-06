@@ -3,25 +3,10 @@
 
 #pragma once
 
-#include <cassert>
-#include <map>
-#include <sstream>
-#include <stack>
-#include <string>
-#include <unordered_map>
-#include "tsl/robin_set.h"
-
+#include "utils.h"
 #include "distance.h"
 #include "neighbor.h"
-#include "parameters.h"
-#include "utils.h"
-#include "windows_customizations.h"
 
-#define VAMANA_SLACK_FACTOR 1.3
-
-#define ESTIMATE_VAMANA_RAM_USAGE(size, dim, datasize, degree) \
-  (1.30 * (((double) size * dim) * datasize +           \
-           ((double) size * degree) * sizeof(unsigned) * VAMANA_SLACK_FACTOR))
 
 namespace grann {
   template<typename T, typename TagT = int>

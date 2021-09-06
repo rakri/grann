@@ -1,40 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <algorithm>
-#include <bitset>
-#include <boost/dynamic_bitset.hpp>
-#include <cassert>
-#include <chrono>
-#include <cmath>
-#include <cstdio>
-#include <ctime>
-#include <fstream>
-#include <iostream>
-#include <iterator>
-#include <map>
-#include <numeric>
-#include <omp.h>
-#include <random>
-#include <set>
-#include <sstream>
-#include <string>
-#include "tsl/robin_set.h"
-
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <time.h>
-
-#include "logger.h"
-#include "exceptions.h"
-#include "index.h"
-#include "math_utils.h"
-#include "memory_mapper.h"
-#include "parameters.h"
-#include "partition_and_pq.h"
-#include "timer.h"
 #include "utils.h"
-#include "windows_customizations.h"
+#include "index.h"
+
 #ifdef _WINDOWS
 #include <xmmintrin.h>
 #endif

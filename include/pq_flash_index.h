@@ -2,21 +2,15 @@
 // Licensed under the MIT license.
 
 #pragma once
-#include <cassert>
-#include <sstream>
-#include <stack>
-#include <string>
-#include "tsl/robin_map.h"
-#include "tsl/robin_set.h"
+
+#include "utils.h"
 
 #include "aligned_file_reader.h"
 #include "concurrent_queue.h"
-#include "neighbor.h"
-#include "parameters.h"
 #include "percentile_stats.h"
 #include "pq_table.h"
-#include "utils.h"
-#include "windows_customizations.h"
+#include "distance.h"
+#include "neighbor.h"
 
 
 #define MAX_N_CMPS 16384

@@ -2,18 +2,8 @@
 // Licensed under the MIT license.
 
 #pragma once
-#include <cassert>
-#include <sstream>
-#include <stack>
-#include <string>
-#include <unordered_map>
-
-#include "neighbor.h"
-#include "parameters.h"
-#include "tsl/robin_set.h"
 #include "utils.h"
 
-#include "windows_customizations.h"
 
 template<typename T>
 void gen_random_slice(const std::string base_file,

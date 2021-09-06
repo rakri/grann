@@ -3,22 +3,10 @@
 
 #include "logger.h"
 #include "pq_flash_index.h"
-#include <malloc.h>
 #include "percentile_stats.h"
 
-#include <omp.h>
-#include <atomic>
-#include <chrono>
-#include <cmath>
-#include <iterator>
-#include <thread>
-#include "distance.h"
-#include "exceptions.h"
-#include "parameters.h"
-#include "timer.h"
 #include "utils.h"
 
-#include "tsl/robin_set.h"
 
 #ifdef _WINDOWS
 #ifdef USE_BING_INFRA

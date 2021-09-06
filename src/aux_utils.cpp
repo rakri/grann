@@ -1,14 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <algorithm>
-#include <atomic>
-#include <cassert>
-#include <fstream>
-#include <iostream>
-#include <set>
-#include <string>
-#include <vector>
+
+#include "utils.h"
 
 #include "logger.h"
 #include "aux_utils.h"
@@ -19,7 +13,6 @@
 #include "partition_and_pq.h"
 #include "percentile_stats.h"
 #include "pq_flash_index.h"
-#include "utils.h"
 
 namespace grann {
 
