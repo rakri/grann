@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 #pragma once
-#include "common_includes.h"
+#include "essentials.h"
 #ifdef __APPLE__
 #else
 #include <malloc.h>
@@ -27,9 +27,6 @@ typedef int FileHandle;
 
 
 namespace grann {
-  static const size_t MAX_SIZE_OF_STREAMBUF = 2LL * 1024 * 1024 * 1024;
-
-  enum Metric { L2 = 0, INNER_PRODUCT = 1, FAST_L2 = 2, PQ = 3 };
 
   inline void alloc_aligned(void** ptr, size_t size, size_t align) {
     *ptr = nullptr;
@@ -55,24 +52,7 @@ namespace grann {
 #endif
   }
 
-  inline void GenRandom(std::mt19937& rng, unsigned* addr, unsigned size,
-                        unsigned N) {
-    for (unsigned i = 0; i < size; ++i) {
-      addr[i] = rng() % (N - size);
-    }
-
-    std::sort(addr, addr + size);
-    for (unsigned i = 1; i < size; ++i) {
-      if (addr[i] <= addr[i - 1]) {
-        addr[i] = addr[i - 1] + 1;
-      }
-    }
-    unsigned off = rng() % N;
-    for (unsigned i = 0; i < size; ++i) {
-      addr[i] = (addr[i] + off) % N;
-    }
-  }
-
+  
   // get_bin_metadata functions START
   inline void get_bin_metadata_impl(std::basic_istream<char>& reader,
                                     size_t& nrows, size_t& ncols) {
@@ -83,17 +63,6 @@ namespace grann {
     ncols = ncols_32;
   }
 
-#ifdef EXEC_ENV_OLS
-  inline void get_bin_metadata(MemoryMappedFiles& files,
-                               const std::string& bin_file, size_t& nrows,
-                               size_t& ncols) {
-    grann::cout << "Getting metadata for file: " << bin_file << std::endl;
-    auto                     fc = files.getContent(bin_file);
-    auto                     cb = ContentBuf((char*) fc._content, fc._size);
-    std::basic_istream<char> reader(&cb);
-    get_bin_metadata_impl(reader, nrows, ncols);
-  }
-#endif
 
   inline void get_bin_metadata(const std::string& bin_file, size_t& nrows,
                                size_t& ncols) {
@@ -149,39 +118,6 @@ namespace grann {
     //    grann::cout << "Finished reading bin file." << std::endl;
   }
 
-#ifdef EXEC_ENV_OLS
-  template<typename T>
-  inline void load_bin(MemoryMappedFiles& files, const std::string& bin_file,
-                       T*& data, size_t& npts, size_t& dim) {
-    grann::cout << "Reading bin file " << bin_file.c_str() << " ..."
-                  << std::endl;
-
-    auto fc = files.getContent(bin_file);
-
-    uint32_t  t_npts, t_dim;
-    uint32_t* contentAsIntPtr = (uint32_t*) (fc._content);
-    t_npts = *(contentAsIntPtr);
-    t_dim = *(contentAsIntPtr + 1);
-
-    npts = t_npts;
-    dim = t_dim;
-
-    auto actual_file_size = npts * dim * sizeof(T) + 2 * sizeof(uint32_t);
-    if (actual_file_size != fc._size) {
-      std::stringstream stream;
-      stream << "Error. File size mismatch. Actual size is " << fc._size
-             << " while expected size is  " << actual_file_size
-             << " npts = " << npts << " dim = " << dim
-             << " size of <T>= " << sizeof(T) << std::endl;
-      grann::cout << stream.str();
-      throw grann::ANNException(stream.str(), -1, __FUNCSIG__, __FILE__,
-                                  __LINE__);
-    }
-
-    data =
-        (T*) ((char*) fc._content + 2 * sizeof(uint32_t));  // No need to copy!
-  }
-#endif
 
   inline void wait_for_keystroke() {
     int a;
@@ -208,6 +144,99 @@ namespace grann {
     load_bin_impl<T>(reader, fsize, data, npts, dim);
   }
   // load_bin functions END
+
+  template<typename T>
+  inline void load_bin(const std::string& bin_file, std::unique_ptr<T[]>& data,
+                       size_t& npts, size_t& dim) {
+    T* ptr;
+    load_bin<T>(bin_file, ptr, npts, dim);
+    data.reset(ptr);
+  }
+
+  template<typename T>
+  inline void save_bin(const std::string& filename, T* data, size_t npts,
+                       size_t ndims) {
+    std::ofstream writer(filename, std::ios::binary | std::ios::out);
+    grann::cout << "Writing bin: " << filename.c_str() << std::endl;
+    int npts_i32 = (int) npts, ndims_i32 = (int) ndims;
+    writer.write((char*) &npts_i32, sizeof(int));
+    writer.write((char*) &ndims_i32, sizeof(int));
+    grann::cout << "bin: #pts = " << npts << ", #dims = " << ndims
+                  << ", size = " << npts * ndims * sizeof(T) + 2 * sizeof(int)
+                  << "B" << std::endl;
+
+    //    data = new T[npts_u64 * ndims_u64];
+    writer.write((char*) data, npts * ndims * sizeof(T));
+    writer.close();
+    grann::cout << "Finished writing bin." << std::endl;
+  }
+
+  // load_aligned_bin functions START
+
+  template<typename T>
+  inline void load_aligned_bin_impl(std::basic_istream<char>& reader,
+                                    size_t actual_file_size, T*& data,
+                                    size_t& npts, size_t& dim,
+                                    size_t& rounded_dim) {
+    int npts_i32, dim_i32;
+    reader.read((char*) &npts_i32, sizeof(int));
+    reader.read((char*) &dim_i32, sizeof(int));
+    npts = (unsigned) npts_i32;
+    dim = (unsigned) dim_i32;
+
+    size_t expected_actual_file_size =
+        npts * dim * sizeof(T) + 2 * sizeof(uint32_t);
+    if (actual_file_size != expected_actual_file_size) {
+      std::stringstream stream;
+      stream << "Error. File size mismatch. Actual size is " << actual_file_size
+             << " while expected size is  " << expected_actual_file_size
+             << " npts = " << npts << " dim = " << dim
+             << " size of <T>= " << sizeof(T) << std::endl;
+      grann::cout << stream.str() << std::endl;
+      throw grann::ANNException(stream.str(), -1, __FUNCSIG__, __FILE__,
+                                  __LINE__);
+    }
+    rounded_dim = ROUND_UP(dim, 8);
+    grann::cout << "Metadata: #pts = " << npts << ", #dims = " << dim
+                  << ", aligned_dim = " << rounded_dim << "..." << std::flush;
+    size_t allocSize = npts * rounded_dim * sizeof(T);
+    grann::cout << "allocating aligned memory, " << allocSize << " bytes..."
+                  << std::flush;
+    alloc_aligned(((void**) &data), allocSize, 8 * sizeof(T));
+    grann::cout << "done. Copying data..." << std::flush;
+
+    for (size_t i = 0; i < npts; i++) {
+      reader.read((char*) (data + i * rounded_dim), dim * sizeof(T));
+      memset(data + i * rounded_dim + dim, 0, (rounded_dim - dim) * sizeof(T));
+    }
+    grann::cout << " done." << std::endl;
+  }
+
+
+  template<typename T>
+  inline void load_aligned_bin(const std::string& bin_file, T*& data,
+                               size_t& npts, size_t& dim, size_t& rounded_dim) {
+    grann::cout << "Reading bin file " << bin_file << " ..." << std::flush;
+
+    std::ifstream reader(bin_file, std::ios::binary | std::ios::ate);
+    uint64_t      fsize = reader.tellg();
+    reader.seekg(0);
+
+    load_aligned_bin_impl(reader, fsize, data, npts, dim, rounded_dim);
+  }
+
+  template<typename InType, typename OutType>
+  void convert_types(const InType* srcmat, OutType* destmat, size_t npts,
+                     size_t dim) {
+#pragma omp parallel for schedule(static, 65536)
+    for (int64_t i = 0; i < (_s64) npts; i++) {
+      for (uint64_t j = 0; j < dim; j++) {
+        destmat[i * dim + j] = (OutType) srcmat[i * dim + j];
+      }
+    }
+  }
+
+
 
   inline void load_truthset(const std::string& bin_file, uint32_t*& ids,
                             float*& dists, size_t& npts, size_t& dim) {
@@ -392,126 +421,8 @@ namespace grann {
    }
   }
 
-#ifdef EXEC_ENV_OLS
-  template<typename T>
-  inline void load_bin(MemoryMappedFiles& files, const std::string& bin_file,
-                       std::unique_ptr<T[]>& data, size_t& npts, size_t& dim) {
-    T* ptr;
-    load_bin<T>(files, bin_file, ptr, npts, dim);
-    data.reset(ptr);
-  }
-#endif
 
-  template<typename T>
-  inline void load_bin(const std::string& bin_file, std::unique_ptr<T[]>& data,
-                       size_t& npts, size_t& dim) {
-    T* ptr;
-    load_bin<T>(bin_file, ptr, npts, dim);
-    data.reset(ptr);
-  }
 
-  template<typename T>
-  inline void save_bin(const std::string& filename, T* data, size_t npts,
-                       size_t ndims) {
-    std::ofstream writer(filename, std::ios::binary | std::ios::out);
-    grann::cout << "Writing bin: " << filename.c_str() << std::endl;
-    int npts_i32 = (int) npts, ndims_i32 = (int) ndims;
-    writer.write((char*) &npts_i32, sizeof(int));
-    writer.write((char*) &ndims_i32, sizeof(int));
-    grann::cout << "bin: #pts = " << npts << ", #dims = " << ndims
-                  << ", size = " << npts * ndims * sizeof(T) + 2 * sizeof(int)
-                  << "B" << std::endl;
-
-    //    data = new T[npts_u64 * ndims_u64];
-    writer.write((char*) data, npts * ndims * sizeof(T));
-    writer.close();
-    grann::cout << "Finished writing bin." << std::endl;
-  }
-
-  // load_aligned_bin functions START
-
-  template<typename T>
-  inline void load_aligned_bin_impl(std::basic_istream<char>& reader,
-                                    size_t actual_file_size, T*& data,
-                                    size_t& npts, size_t& dim,
-                                    size_t& rounded_dim) {
-    int npts_i32, dim_i32;
-    reader.read((char*) &npts_i32, sizeof(int));
-    reader.read((char*) &dim_i32, sizeof(int));
-    npts = (unsigned) npts_i32;
-    dim = (unsigned) dim_i32;
-
-    size_t expected_actual_file_size =
-        npts * dim * sizeof(T) + 2 * sizeof(uint32_t);
-    if (actual_file_size != expected_actual_file_size) {
-      std::stringstream stream;
-      stream << "Error. File size mismatch. Actual size is " << actual_file_size
-             << " while expected size is  " << expected_actual_file_size
-             << " npts = " << npts << " dim = " << dim
-             << " size of <T>= " << sizeof(T) << std::endl;
-      grann::cout << stream.str() << std::endl;
-      throw grann::ANNException(stream.str(), -1, __FUNCSIG__, __FILE__,
-                                  __LINE__);
-    }
-    rounded_dim = ROUND_UP(dim, 8);
-    grann::cout << "Metadata: #pts = " << npts << ", #dims = " << dim
-                  << ", aligned_dim = " << rounded_dim << "..." << std::flush;
-    size_t allocSize = npts * rounded_dim * sizeof(T);
-    grann::cout << "allocating aligned memory, " << allocSize << " bytes..."
-                  << std::flush;
-    alloc_aligned(((void**) &data), allocSize, 8 * sizeof(T));
-    grann::cout << "done. Copying data..." << std::flush;
-
-    for (size_t i = 0; i < npts; i++) {
-      reader.read((char*) (data + i * rounded_dim), dim * sizeof(T));
-      memset(data + i * rounded_dim + dim, 0, (rounded_dim - dim) * sizeof(T));
-    }
-    grann::cout << " done." << std::endl;
-  }
-
-#ifdef EXEC_ENV_OLS
-  template<typename T>
-  inline void load_aligned_bin(MemoryMappedFiles& files,
-                               const std::string& bin_file, T*& data,
-                               size_t& npts, size_t& dim, size_t& rounded_dim) {
-    grann::cout << "Reading bin file " << bin_file << " ..." << std::flush;
-    FileContent              fc = files.getContent(bin_file);
-    ContentBuf               buf((char*) fc._content, fc._size);
-    std::basic_istream<char> reader(&buf);
-
-    size_t actual_file_size = fc._size;
-    load_aligned_bin_impl(reader, actual_file_size, data, npts, dim,
-                          rounded_dim);
-  }
-#endif
-
-  template<typename T>
-  inline void load_aligned_bin(const std::string& bin_file, T*& data,
-                               size_t& npts, size_t& dim, size_t& rounded_dim) {
-    grann::cout << "Reading bin file " << bin_file << " ..." << std::flush;
-    // START OLS
-    //_u64            read_blk_size = 64 * 1024 * 1024;
-    // cached_ifstream reader(bin_file, read_blk_size);
-    // size_t actual_file_size = reader.get_file_size();
-    // END OLS
-
-    std::ifstream reader(bin_file, std::ios::binary | std::ios::ate);
-    uint64_t      fsize = reader.tellg();
-    reader.seekg(0);
-
-    load_aligned_bin_impl(reader, fsize, data, npts, dim, rounded_dim);
-  }
-
-  template<typename InType, typename OutType>
-  void convert_types(const InType* srcmat, OutType* destmat, size_t npts,
-                     size_t dim) {
-#pragma omp parallel for schedule(static, 65536)
-    for (int64_t i = 0; i < (_s64) npts; i++) {
-      for (uint64_t j = 0; j < dim; j++) {
-        destmat[i * dim + j] = (OutType) srcmat[i * dim + j];
-      }
-    }
-  }
 
   // this function will take in_file of n*d dimensions and save the output as a
   // floating point matrix
@@ -594,27 +505,6 @@ namespace grann {
     }
     out_writer.close();
     return max_norm;
-  }
-
-  // plain saves data as npts X ndims array into filename
-  template<typename T>
-  void save_Tvecs(const char* filename, T* data, size_t npts, size_t ndims) {
-    std::string fname(filename);
-
-    // create cached ofstream with 64MB cache
-    cached_ofstream writer(fname, 64 * 1048576);
-
-    unsigned dims_u32 = (unsigned) ndims;
-
-    // start writing
-    for (uint64_t i = 0; i < npts; i++) {
-      // write dims in u32
-      writer.write((char*) &dims_u32, sizeof(unsigned));
-
-      // get cur point in data
-      T* cur_pt = data + i * ndims;
-      writer.write((char*) cur_pt, ndims * sizeof(T));
-    }
   }
 
   // NOTE :: good efficiency when total_vec_size is integral multiple of 64

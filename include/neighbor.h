@@ -4,7 +4,7 @@
 #pragma once
 
 #include <cstddef>
-#include "common_includes.h"
+#include "essentials.h"
 #include "utils.h"
 
 namespace grann {

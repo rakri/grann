@@ -70,6 +70,11 @@ typedef uint8_t  _u8;
 typedef int8_t   _s8;
 
 
+namespace grann {
+  static const size_t MAX_SIZE_OF_STREAMBUF = 2LL * 1024 * 1024 * 1024;
+
+  enum Metric { L2 = 0, INNER_PRODUCT = 1, FAST_L2 = 2, PQ = 3 };
+};
 
 // USEFUL MACROS FOR VAMANA
 #define VAMANA_SLACK_FACTOR 1.3

@@ -5,6 +5,7 @@
 
 
 #include "utils.h"
+#include "distance.h"
 
 namespace grann {
   template<typename T>

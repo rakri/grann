@@ -26,7 +26,7 @@ typedef int FileHandle;
 #endif
 
 #include "cached_io.h"
-#include "common_includes.h"
+#include "essentials.h"
 #include "utils.h"
 #include "windows_customizations.h"
 #include "gperftools/malloc_extension.h"

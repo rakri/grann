@@ -6,7 +6,7 @@
 #include "ANNLoggingImpl.hpp"
 #endif
 
-#include "common_includes.h"
+#include "essentials.h"
 #include "logger_impl.h"
 #include "windows_customizations.h"
 
