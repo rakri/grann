@@ -7,24 +7,24 @@
 #include "logger.h"
 #include "aux_utils.h"
 #include "cached_io.h"
-#include "index.h"
+#include "vamana.h"
 #include "mkl.h"
 #include "omp.h"
 #include "partition_and_pq.h"
 #include "percentile_stats.h"
-#include "pq_flash_index.h"
+#include "diskann.h"
 
 namespace grann {
 
   double get_memory_budget(const std::string &mem_budget_str) {
     double mem_ram_budget = atof(mem_budget_str.c_str());
-    double final_index_ram_limit = mem_ram_budget;
+    double final_vamana_ram_limit = mem_ram_budget;
     if (mem_ram_budget - SPACE_FOR_CACHED_NODES_IN_GB >
         THRESHOLD_FOR_CACHING_IN_GB) {  // slack for space used by cached
                                         // nodes
-      final_index_ram_limit = mem_ram_budget - SPACE_FOR_CACHED_NODES_IN_GB;
+      final_vamana_ram_limit = mem_ram_budget - SPACE_FOR_CACHED_NODES_IN_GB;
     }
-    return final_index_ram_limit * 1024 * 1024 * 1024;
+    return final_vamana_ram_limit * 1024 * 1024 * 1024;
   }
 
   double calculate_recall(unsigned num_queries, unsigned *gold_std,
@@ -126,8 +126,8 @@ namespace grann {
         std::stringstream stream;
         stream << "Mismatched dimensions in sample file. file_dim = "
                << file_dim << " file_aligned_dim: " << file_aligned_dim
-               << " index_dim: " << warmup_dim
-               << " index_aligned_dim: " << warmup_aligned_dim << std::endl;
+               << " vamana_dim: " << warmup_dim
+               << " vamana_aligned_dim: " << warmup_aligned_dim << std::endl;
         throw grann::ANNException(stream.str(), -1);
       }
     } else {
@@ -151,8 +151,8 @@ namespace grann {
         std::stringstream stream;
         stream << "Mismatched dimensions in sample file. file_dim = "
                << file_dim << " file_aligned_dim: " << file_aligned_dim
-               << " index_dim: " << warmup_dim
-               << " index_aligned_dim: " << warmup_aligned_dim << std::endl;
+               << " vamana_dim: " << warmup_dim
+               << " vamana_aligned_dim: " << warmup_aligned_dim << std::endl;
         throw grann::ANNException(stream.str(), -1);
       }
     } else {
@@ -253,10 +253,10 @@ namespace grann {
       }
     }
 
-    size_t merged_index_size = 16;
+    size_t merged_vamana_size = 16;
     // create cached vamana writers
     cached_ofstream grann_writer(output_vamana, 1024 * 1048576);
-    grann_writer.write((char *) &merged_index_size, sizeof(uint64_t));
+    grann_writer.write((char *) &merged_vamana_size, sizeof(uint64_t));
 
     unsigned output_width = max_degree;
     unsigned max_input_width = 0;
@@ -315,7 +315,7 @@ namespace grann {
         grann_writer.write((char *) &nnbrs, sizeof(unsigned));
         grann_writer.write((char *) final_nhood.data(),
                              nnbrs * sizeof(unsigned));
-        merged_index_size += (sizeof(unsigned) + nnbrs * sizeof(unsigned));
+        merged_vamana_size += (sizeof(unsigned) + nnbrs * sizeof(unsigned));
         if (cur_id % 499999 == 1) {
           grann::cout << "." << std::flush;
         }
@@ -346,35 +346,35 @@ namespace grann {
     // write into merged ofstream
     grann_writer.write((char *) &nnbrs, sizeof(unsigned));
     grann_writer.write((char *) final_nhood.data(), nnbrs * sizeof(unsigned));
-    merged_index_size += (sizeof(unsigned) + nnbrs * sizeof(unsigned));
+    merged_vamana_size += (sizeof(unsigned) + nnbrs * sizeof(unsigned));
     for (auto &p : final_nhood)
       nhood_set[p] = 0;
     final_nhood.clear();
 
-    grann::cout << "Expected size: " << merged_index_size << std::endl;
+    grann::cout << "Expected size: " << merged_vamana_size << std::endl;
 
     grann_writer.reset();
-    grann_writer.write((char *) &merged_index_size, sizeof(uint64_t));
+    grann_writer.write((char *) &merged_vamana_size, sizeof(uint64_t));
 
     grann::cout << "Finished merge" << std::endl;
     return 0;
   }
 
   template<typename T>
-  int build_merged_vamana_index(std::string     base_file,
+  int build_merged_vamana_vamana(std::string     base_file,
                                 grann::Metric compareMetric, unsigned L,
                                 unsigned R, double sampling_rate,
-                                double ram_budget, std::string mem_index_path,
+                                double ram_budget, std::string mem_vamana_path,
                                 std::string medoids_file,
                                 std::string centroids_file) {
     size_t base_num, base_dim;
     grann::get_bin_metadata(base_file, base_num, base_dim);
 
-    double full_index_ram =
+    double full_vamana_ram =
         ESTIMATE_VAMANA_RAM_USAGE(base_num, base_dim, sizeof(T), R);
-    if (full_index_ram < ram_budget * 1024 * 1024 * 1024) {
-      grann::cout << "Full index fits in RAM budget, should consume at most "
-                    << full_index_ram / (1024 * 1024 * 1024)
+    if (full_vamana_ram < ram_budget * 1024 * 1024 * 1024) {
+      grann::cout << "Full vamana fits in RAM budget, should consume at most "
+                    << full_vamana_ram / (1024 * 1024 * 1024)
                     << "GiBs, so building in one shot" << std::endl;
       grann::Parameters paras;
       paras.Set<unsigned>("L", (unsigned) L);
@@ -383,37 +383,37 @@ namespace grann {
       paras.Set<float>("alpha", 1.2f);
       paras.Set<unsigned>("num_rnds", 2);
       paras.Set<bool>("saturate_graph", 1);
-      paras.Set<std::string>("save_path", mem_index_path);
+      paras.Set<std::string>("save_path", mem_vamana_path);
 
       std::unique_ptr<grann::Index<T>> _pvamanaIndex =
           std::unique_ptr<grann::Index<T>>(
               new grann::Index<T>(compareMetric, base_file.c_str()));
       _pvamanaIndex->build(paras);
-      _pvamanaIndex->save(mem_index_path.c_str());
+      _pvamanaIndex->save(mem_vamana_path.c_str());
       std::remove(medoids_file.c_str());
       std::remove(centroids_file.c_str());
       return 0;
     }
-    std::string merged_index_prefix = mem_index_path + "_tempFiles";
+    std::string merged_vamana_prefix = mem_vamana_path + "_tempFiles";
     int         num_parts =
         partition_with_ram_budget<T>(base_file, sampling_rate, ram_budget,
-                                     2 * R / 3, merged_index_prefix, 2);
+                                     2 * R / 3, merged_vamana_prefix, 2);
 
-    std::string cur_centroid_filepath = merged_index_prefix + "_centroids.bin";
+    std::string cur_centroid_filepath = merged_vamana_prefix + "_centroids.bin";
     std::rename(cur_centroid_filepath.c_str(), centroids_file.c_str());
 
     for (int p = 0; p < num_parts; p++) {
       std::string shard_base_file =
-          merged_index_prefix + "_subshard-" + std::to_string(p) + ".bin";
+          merged_vamana_prefix + "_subshard-" + std::to_string(p) + ".bin";
 
-      std::string shard_ids_file = merged_index_prefix + "_subshard-" +
+      std::string shard_ids_file = merged_vamana_prefix + "_subshard-" +
                                    std::to_string(p) + "_ids_uint32.bin";
 
       retrieve_shard_data_from_ids<T>(base_file, shard_ids_file,
                                       shard_base_file);
 
-      std::string shard_index_file =
-          merged_index_prefix + "_subshard-" + std::to_string(p) + "_mem.index";
+      std::string shard_vamana_file =
+          merged_vamana_prefix + "_subshard-" + std::to_string(p) + "_mem.vamana";
 
       grann::Parameters paras;
       paras.Set<unsigned>("L", L);
@@ -422,32 +422,32 @@ namespace grann {
       paras.Set<float>("alpha", 1.2f);
       paras.Set<unsigned>("num_rnds", 2);
       paras.Set<bool>("saturate_graph", 1);
-      paras.Set<std::string>("save_path", shard_index_file);
+      paras.Set<std::string>("save_path", shard_vamana_file);
 
       std::unique_ptr<grann::Index<T>> _pvamanaIndex =
           std::unique_ptr<grann::Index<T>>(
               new grann::Index<T>(compareMetric, shard_base_file.c_str()));
       _pvamanaIndex->build(paras);
-      _pvamanaIndex->save(shard_index_file.c_str());
+      _pvamanaIndex->save(shard_vamana_file.c_str());
       std::remove(shard_base_file.c_str());
       //      wait_for_keystroke();
     }
 
-    grann::merge_shards(merged_index_prefix + "_subshard-", "_mem.index",
-                          merged_index_prefix + "_subshard-", "_ids_uint32.bin",
-                          num_parts, R, mem_index_path, medoids_file);
+    grann::merge_shards(merged_vamana_prefix + "_subshard-", "_mem.vamana",
+                          merged_vamana_prefix + "_subshard-", "_ids_uint32.bin",
+                          num_parts, R, mem_vamana_path, medoids_file);
 
     // delete tempFiles
     for (int p = 0; p < num_parts; p++) {
       std::string shard_base_file =
-          merged_index_prefix + "_subshard-" + std::to_string(p) + ".bin";
-      std::string shard_id_file = merged_index_prefix + "_subshard-" +
+          merged_vamana_prefix + "_subshard-" + std::to_string(p) + ".bin";
+      std::string shard_id_file = merged_vamana_prefix + "_subshard-" +
                                   std::to_string(p) + "_ids_uint32.bin";
-      std::string shard_index_file =
-          merged_index_prefix + "_subshard-" + std::to_string(p) + "_mem.index";
+      std::string shard_vamana_file =
+          merged_vamana_prefix + "_subshard-" + std::to_string(p) + "_mem.vamana";
       std::remove(shard_base_file.c_str());
       std::remove(shard_id_file.c_str());
-      std::remove(shard_index_file.c_str());
+      std::remove(shard_vamana_file.c_str());
     }
     return 0;
   }
@@ -510,7 +510,7 @@ namespace grann {
 
   template<typename T>
   void create_disk_layout(const std::string base_file,
-                          const std::string mem_index_file,
+                          const std::string mem_vamana_file,
                           const std::string output_file) {
     unsigned npts, ndims;
 
@@ -526,20 +526,20 @@ namespace grann {
     ndims_64 = ndims;
 
     // create cached reader + writer
-    size_t          actual_file_size = get_file_size(mem_index_file);
-    cached_ifstream vamana_reader(mem_index_file, read_blk_size);
+    size_t          actual_file_size = get_file_size(mem_vamana_file);
+    cached_ifstream vamana_reader(mem_vamana_file, read_blk_size);
     cached_ofstream grann_writer(output_file, write_blk_size);
 
     // metadata: width, medoid
     unsigned width_u32, medoid_u32;
-    size_t   index_file_size;
+    size_t   vamana_file_size;
 
-    vamana_reader.read((char *) &index_file_size, sizeof(uint64_t));
-    if (index_file_size != actual_file_size) {
+    vamana_reader.read((char *) &vamana_file_size, sizeof(uint64_t));
+    if (vamana_file_size != actual_file_size) {
       std::stringstream stream;
       stream << "Vamana Index file size does not match expected size per "
                 "meta-data."
-             << " file size from file: " << index_file_size
+             << " file size from file: " << vamana_file_size
              << " actual file size: " << actual_file_size << std::endl;
 
       throw grann::ANNException(stream.str(), -1, __FUNCSIG__, __FILE__,
@@ -572,9 +572,9 @@ namespace grann {
 
     // number of sectors (1 for meta data)
     _u64 n_sectors = ROUND_UP(npts_64, nnodes_per_sector) / nnodes_per_sector;
-    _u64 disk_index_file_size = (n_sectors + 1) * SECTOR_LEN;
+    _u64 disk_vamana_file_size = (n_sectors + 1) * SECTOR_LEN;
     // write first sector with metadata
-    *(_u64 *) (sector_buf.get() + 0 * sizeof(_u64)) = disk_index_file_size;
+    *(_u64 *) (sector_buf.get() + 0 * sizeof(_u64)) = disk_vamana_file_size;
     *(_u64 *) (sector_buf.get() + 1 * sizeof(_u64)) = npts_64;
     *(_u64 *) (sector_buf.get() + 2 * sizeof(_u64)) = medoid;
     *(_u64 *) (sector_buf.get() + 3 * sizeof(_u64)) = max_node_len;
@@ -630,11 +630,11 @@ namespace grann {
   }
 
   template<typename T>
-  bool build_disk_index(const char *dataFilePath, const char *indexFilePath,
-                        const char *    indexBuildParameters,
+  bool build_disk_vamana(const char *dataFilePath, const char *vamanaFilePath,
+                        const char *    vamanaBuildParameters,
                         grann::Metric compareMetric) {
     std::stringstream parser;
-    parser << std::string(indexBuildParameters);
+    parser << std::string(vamanaBuildParameters);
     std::string              cur_param;
     std::vector<std::string> param_list;
     while (parser >> cur_param)
@@ -643,10 +643,10 @@ namespace grann {
     if (param_list.size() != 5 && param_list.size() != 6) {
       grann::cout
           << "Correct usage of parameters is R (max degree) "
-             "L (indexing list size, better if >= R) B (RAM limit of final "
-             "index in "
-             "GB) M (memory limit while indexing) T (number of threads for "
-             "indexing) B' (PQ bytes for disk index: optional parameter for "
+             "L (vamanaing list size, better if >= R) B (RAM limit of final "
+             "vamana in "
+             "GB) M (memory limit while vamanaing) T (number of threads for "
+             "vamanaing) B' (PQ bytes for disk vamana: optional parameter for "
              "very large dimensional data)"
           << std::endl;
       return false;
@@ -664,7 +664,7 @@ namespace grann {
     _u32 disk_pq_dims = 0;
     bool use_disk_pq = false;
 
-    // if there is a 6th parameter, it means we compress the disk index vectors
+    // if there is a 6th parameter, it means we compress the disk vamana vectors
     // also using PQ data (for very large dimensionality data). If the provided
     // parameter is 0, it means we store full vectors.
     if (param_list.size() == 6) {
@@ -676,22 +676,22 @@ namespace grann {
 
     std::string base_file(dataFilePath);
     std::string data_file_to_use = base_file;
-    std::string index_prefix_path(indexFilePath);
-    std::string pq_pivots_path = index_prefix_path + "_pq_pivots.bin";
+    std::string vamana_prefix_path(vamanaFilePath);
+    std::string pq_pivots_path = vamana_prefix_path + "_pq_pivots.bin";
     std::string pq_compressed_vectors_path =
-        index_prefix_path + "_pq_compressed.bin";
-    std::string mem_index_path = index_prefix_path + "_mem.index";
-    std::string disk_index_path = index_prefix_path + "_disk.index";
-    std::string medoids_path = disk_index_path + "_medoids.bin";
-    std::string centroids_path = disk_index_path + "_centroids.bin";
-    std::string sample_base_prefix = index_prefix_path + "_sample";
+        vamana_prefix_path + "_pq_compressed.bin";
+    std::string mem_vamana_path = vamana_prefix_path + "_mem.vamana";
+    std::string disk_vamana_path = vamana_prefix_path + "_disk.vamana";
+    std::string medoids_path = disk_vamana_path + "_medoids.bin";
+    std::string centroids_path = disk_vamana_path + "_centroids.bin";
+    std::string sample_base_prefix = vamana_prefix_path + "_sample";
     std::string disk_pq_pivots_path =
-        index_prefix_path +
-        "_disk.index_pq_pivots.bin";  // optional if disk index is also storing
+        vamana_prefix_path +
+        "_disk.vamana_pq_pivots.bin";  // optional if disk vamana is also storing
                                       // pq data
-    std::string disk_pq_compressed_vectors_path =  // optional if disk index is
+    std::string disk_pq_compressed_vectors_path =  // optional if disk vamana is
                                                    // also storing pq data
-        index_prefix_path + "_disk.index_pq_compressed.bin";
+        vamana_prefix_path + "_disk.vamana_pq_compressed.bin";
 
     // output a new base file which contains extra dimension with sqrt(1 -
     // ||x||^2/M^2) for every x, M is max norm of all points. Extra space on
@@ -700,29 +700,29 @@ namespace grann {
       std::cout << "Using Inner Product search, so need to pre-process base "
                    "data into temp file. Please ensure there is additional "
                    "(n*(d+1)*4) bytes for storing pre-processed base vectors, "
-                   "apart from the intermin indices and final index."
+                   "apart from the intermin indices and final vamana."
                 << std::endl;
-      std::string prepped_base = index_prefix_path + "_prepped_base.bin";
+      std::string prepped_base = vamana_prefix_path + "_prepped_base.bin";
       data_file_to_use = prepped_base;
       float max_norm_of_base =
           grann::prepare_base_for_inner_products<T>(base_file, prepped_base);
-      std::string norm_file = disk_index_path + "_max_base_norm.bin";
+      std::string norm_file = disk_vamana_path + "_max_base_norm.bin";
       grann::save_bin<float>(norm_file, &max_norm_of_base, 1, 1);
     }
 
     unsigned R = (unsigned) atoi(param_list[0].c_str());
     unsigned L = (unsigned) atoi(param_list[1].c_str());
 
-    double final_index_ram_limit = get_memory_budget(param_list[2]);
-    if (final_index_ram_limit <= 0) {
+    double final_vamana_ram_limit = get_memory_budget(param_list[2]);
+    if (final_vamana_ram_limit <= 0) {
       std::cerr << "Insufficient memory budget (or string was not in right "
                    "format). Should be > 0."
                 << std::endl;
       return false;
     }
-    double indexing_ram_budget = (float) atof(param_list[3].c_str());
-    if (indexing_ram_budget <= 0) {
-      std::cerr << "Not building index. Please provide more RAM budget"
+    double vamanaing_ram_budget = (float) atof(param_list[3].c_str());
+    if (vamanaing_ram_budget <= 0) {
+      std::cerr << "Not building vamana. Please provide more RAM budget"
                 << std::endl;
       return false;
     }
@@ -733,9 +733,9 @@ namespace grann {
       mkl_set_num_threads(num_threads);
     }
 
-    grann::cout << "Starting index build: R=" << R << " L=" << L
-                  << " Query RAM budget: " << final_index_ram_limit
-                  << " Indexing ram budget: " << indexing_ram_budget
+    grann::cout << "Starting vamana build: R=" << R << " L=" << L
+                  << " Query RAM budget: " << final_vamana_ram_limit
+                  << " Indexing ram budget: " << vamanaing_ram_budget
                   << " T: " << num_threads << std::endl;
 
     auto s = std::chrono::high_resolution_clock::now();
@@ -745,7 +745,7 @@ namespace grann {
     grann::get_bin_metadata(data_file_to_use.c_str(), points_num, dim);
 
     size_t num_pq_chunks =
-        (size_t)(std::floor)(_u64(final_index_ram_limit / points_num));
+        (size_t)(std::floor)(_u64(final_vamana_ram_limit / points_num));
 
     num_pq_chunks = num_pq_chunks <= 0 ? 1 : num_pq_chunks;
     num_pq_chunks = num_pq_chunks > dim ? dim : num_pq_chunks;
@@ -803,22 +803,22 @@ namespace grann {
     train_data = nullptr;
     MallocExtension::instance()->ReleaseFreeMemory();
 
-    grann::build_merged_vamana_index<T>(
+    grann::build_merged_vamana_vamana<T>(
         data_file_to_use.c_str(), grann::Metric::L2, L, R, p_val,
-        indexing_ram_budget, mem_index_path, medoids_path, centroids_path);
+        vamanaing_ram_budget, mem_vamana_path, medoids_path, centroids_path);
 
     if (!use_disk_pq) {
-      grann::create_disk_layout<T>(data_file_to_use.c_str(), mem_index_path,
-                                     disk_index_path);
+      grann::create_disk_layout<T>(data_file_to_use.c_str(), mem_vamana_path,
+                                     disk_vamana_path);
     } else
       grann::create_disk_layout<_u8>(disk_pq_compressed_vectors_path,
-                                       mem_index_path, disk_index_path);
+                                       mem_vamana_path, disk_vamana_path);
 
     double sample_sampling_rate = (150000.0 / points_num);
     gen_random_slice<T>(data_file_to_use.c_str(), sample_base_prefix,
                         sample_sampling_rate);
 
-    std::remove(mem_index_path.c_str());
+    std::remove(mem_vamana_path.c_str());
     if (use_disk_pq)
       std::remove(disk_pq_compressed_vectors_path.c_str());
 
@@ -830,14 +830,14 @@ namespace grann {
   }
 
   template GRANN_DLLEXPORT void create_disk_layout<int8_t>(
-      const std::string base_file, const std::string mem_index_file,
+      const std::string base_file, const std::string mem_vamana_file,
       const std::string output_file);
 
   template GRANN_DLLEXPORT void create_disk_layout<uint8_t>(
-      const std::string base_file, const std::string mem_index_file,
+      const std::string base_file, const std::string mem_vamana_file,
       const std::string output_file);
   template GRANN_DLLEXPORT void create_disk_layout<float>(
-      const std::string base_file, const std::string mem_index_file,
+      const std::string base_file, const std::string mem_vamana_file,
       const std::string output_file);
 
   template GRANN_DLLEXPORT int8_t *load_warmup<int8_t>(
@@ -878,29 +878,29 @@ namespace grann {
       _u64 tuning_sample_aligned_dim, uint32_t L, uint32_t nthreads,
       uint32_t start_bw);
 
-  template GRANN_DLLEXPORT bool build_disk_index<int8_t>(
-      const char *dataFilePath, const char *indexFilePath,
-      const char *indexBuildParameters, grann::Metric compareMetric);
-  template GRANN_DLLEXPORT bool build_disk_index<uint8_t>(
-      const char *dataFilePath, const char *indexFilePath,
-      const char *indexBuildParameters, grann::Metric compareMetric);
-  template GRANN_DLLEXPORT bool build_disk_index<float>(
-      const char *dataFilePath, const char *indexFilePath,
-      const char *indexBuildParameters, grann::Metric compareMetric);
+  template GRANN_DLLEXPORT bool build_disk_vamana<int8_t>(
+      const char *dataFilePath, const char *vamanaFilePath,
+      const char *vamanaBuildParameters, grann::Metric compareMetric);
+  template GRANN_DLLEXPORT bool build_disk_vamana<uint8_t>(
+      const char *dataFilePath, const char *vamanaFilePath,
+      const char *vamanaBuildParameters, grann::Metric compareMetric);
+  template GRANN_DLLEXPORT bool build_disk_vamana<float>(
+      const char *dataFilePath, const char *vamanaFilePath,
+      const char *vamanaBuildParameters, grann::Metric compareMetric);
 
-  template GRANN_DLLEXPORT int build_merged_vamana_index<int8_t>(
+  template GRANN_DLLEXPORT int build_merged_vamana_vamana<int8_t>(
       std::string base_file, grann::Metric compareMetric, unsigned L,
       unsigned R, double sampling_rate, double ram_budget,
-      std::string mem_index_path, std::string medoids_path,
+      std::string mem_vamana_path, std::string medoids_path,
       std::string centroids_file);
-  template GRANN_DLLEXPORT int build_merged_vamana_index<float>(
+  template GRANN_DLLEXPORT int build_merged_vamana_vamana<float>(
       std::string base_file, grann::Metric compareMetric, unsigned L,
       unsigned R, double sampling_rate, double ram_budget,
-      std::string mem_index_path, std::string medoids_path,
+      std::string mem_vamana_path, std::string medoids_path,
       std::string centroids_file);
-  template GRANN_DLLEXPORT int build_merged_vamana_index<uint8_t>(
+  template GRANN_DLLEXPORT int build_merged_vamana_vamana<uint8_t>(
       std::string base_file, grann::Metric compareMetric, unsigned L,
       unsigned R, double sampling_rate, double ram_budget,
-      std::string mem_index_path, std::string medoids_path,
+      std::string mem_vamana_path, std::string medoids_path,
       std::string centroids_file);
 };  // namespace grann

@@ -74,10 +74,10 @@ GRANN_DLLEXPORT double calculate_range_search_recall(unsigned num_queries, std::
                                      const std::string &medoids_file);
 
   template<typename T>
-  GRANN_DLLEXPORT int build_merged_vamana_index(
+  GRANN_DLLEXPORT int build_merged_vamana_vamana(
       std::string base_file, grann::Metric _compareMetric, unsigned L,
       unsigned R, double sampling_rate, double ram_budget,
-      std::string mem_index_path, std::string medoids_file,
+      std::string mem_vamana_path, std::string medoids_file,
       std::string centroids_file);
 
   template<typename T>
@@ -87,14 +87,14 @@ GRANN_DLLEXPORT double calculate_range_search_recall(unsigned num_queries, std::
       uint32_t nthreads, uint32_t start_bw = 2);
 
   template<typename T>
-  GRANN_DLLEXPORT bool build_disk_index(const char *    dataFilePath,
-                                          const char *    indexFilePath,
-                                          const char *    indexBuildParameters,
+  GRANN_DLLEXPORT bool build_disk_vamana(const char *    dataFilePath,
+                                          const char *    vamanaFilePath,
+                                          const char *    vamanaBuildParameters,
                                           grann::Metric _compareMetric);
 
   template<typename T>
   GRANN_DLLEXPORT void create_disk_layout(const std::string base_file,
-                                            const std::string mem_index_file,
+                                            const std::string mem_vamana_file,
                                             const std::string output_file);
 
 }  // namespace grann

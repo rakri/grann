@@ -3,22 +3,22 @@
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_executable(build_memory_index build_memory_index.cpp )
+add_executable(build_vamana build_vamana.cpp )
 if(MSVC)
-	target_link_options(build_memory_index PRIVATE /MACHINE:x64 /DEBUG:FULL "/INCLUDE:_tcmalloc")
-	target_link_libraries(build_memory_index debug ${CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG}/grann_dll.lib ${PROJECT_SOURCE_DIR}/dependencies/windows/tcmalloc/libtcmalloc_minimal.lib)
-	target_link_libraries(build_memory_index optimized ${CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE}/grann_dll.lib ${PROJECT_SOURCE_DIR}/dependencies/windows/tcmalloc/libtcmalloc_minimal.lib)
+	target_link_options(build_vamana PRIVATE /MACHINE:x64 /DEBUG:FULL "/INCLUDE:_tcmalloc")
+	target_link_libraries(build_vamana debug ${CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG}/grann_dll.lib ${PROJECT_SOURCE_DIR}/dependencies/windows/tcmalloc/libtcmalloc_minimal.lib)
+	target_link_libraries(build_vamana optimized ${CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE}/grann_dll.lib ${PROJECT_SOURCE_DIR}/dependencies/windows/tcmalloc/libtcmalloc_minimal.lib)
 else() 
-	target_link_libraries(build_memory_index ${PROJECT_NAME} -ltcmalloc)
+	target_link_libraries(build_vamana ${PROJECT_NAME} -ltcmalloc)
 endif()
 
-add_executable(search_memory_index search_memory_index.cpp )
+add_executable(search_vamana search_vamana.cpp )
 if(MSVC)
-	target_link_options(search_memory_index PRIVATE /MACHINE:x64 /DEBUG:FULL)
-	target_link_libraries(search_memory_index debug ${CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG}/grann_dll.lib)
-	target_link_libraries(search_memory_index optimized ${CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE}/grann_dll.lib)
+	target_link_options(search_vamana PRIVATE /MACHINE:x64 /DEBUG:FULL)
+	target_link_libraries(search_vamana debug ${CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG}/grann_dll.lib)
+	target_link_libraries(search_vamana optimized ${CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE}/grann_dll.lib)
 else() 
-	target_link_libraries(search_memory_index ${PROJECT_NAME} aio -ltcmalloc)
+	target_link_libraries(search_vamana ${PROJECT_NAME} aio -ltcmalloc)
 endif()
 
 

@@ -8,12 +8,12 @@
 
 template<typename T>
 bool generate_pq(const std::string& data_path,
-                 const std::string& index_prefix_path,
+                 const std::string& vamana_prefix_path,
                  const size_t num_pq_centers, const size_t num_pq_chunks,
                  const float sampling_rate) {
-  std::string pq_pivots_path = index_prefix_path + "_pq_pivots.bin";
+  std::string pq_pivots_path = vamana_prefix_path + "_pq_pivots.bin";
   std::string pq_compressed_vectors_path =
-      index_prefix_path + "_compressed.bin";
+      vamana_prefix_path + "_compressed.bin";
 
   // generates random sample and sets it to train_data and updates train_size
   size_t train_size, train_dim;
@@ -43,19 +43,19 @@ int main(int argc, char** argv) {
         << std::endl;
   } else {
     const std::string data_path(argv[2]);
-    const std::string index_prefix_path(argv[3]);
+    const std::string vamana_prefix_path(argv[3]);
     const size_t      num_pq_centers = 256;
     const size_t      num_pq_chunks = (size_t) atoi(argv[4]);
     const float       sampling_rate = atof(argv[5]);
 
     if (std::string(argv[1]) == std::string("float"))
-      generate_pq<float>(data_path, index_prefix_path, num_pq_centers,
+      generate_pq<float>(data_path, vamana_prefix_path, num_pq_centers,
                          num_pq_chunks, sampling_rate);
     else if (std::string(argv[1]) == std::string("int8"))
-      generate_pq<int8_t>(data_path, index_prefix_path, num_pq_centers,
+      generate_pq<int8_t>(data_path, vamana_prefix_path, num_pq_centers,
                           num_pq_chunks, sampling_rate);
     else if (std::string(argv[1]) == std::string("uint8"))
-      generate_pq<uint8_t>(data_path, index_prefix_path, num_pq_centers,
+      generate_pq<uint8_t>(data_path, vamana_prefix_path, num_pq_centers,
                            num_pq_chunks, sampling_rate);
     else
       std::cout << "Error. wrong file type" << std::endl;

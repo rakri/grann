@@ -51,20 +51,20 @@ while IFS= read -r line; do
   echo "Computing Groundtruth"
   ${BUILD_FOLDER}/tests/utils/compute_groundtruth ${TYPE} ${BASE} ${QUERY} 30 ${GT} ${METRIC} > /dev/null
   echo "Building Mem Index"
-  /usr/bin/time ${BUILD_FOLDER}/tests/build_memory_index ${TYPE} ${METRIC} ${BASE} ${MEM}  32  50  1.2 0 > ${MBLOG}
+  /usr/bin/time ${BUILD_FOLDER}/tests/build_memory_vamana ${TYPE} ${METRIC} ${BASE} ${MEM}  32  50  1.2 0 > ${MBLOG}
   awk '/^Degree/' ${MBLOG}
   awk '/^Indexing/' ${MBLOG}
   echo "Searching Mem Index"
-  ${BUILD_FOLDER}/tests/search_memory_index ${TYPE} ${METRIC} ${BASE} ${MEM} 16 ${QUERY} ${GT} 10 /tmp/res 10 20 30 40 50 60 70 80 90 100 > ${MSLOG}
+  ${BUILD_FOLDER}/tests/search_memory_vamana ${TYPE} ${METRIC} ${BASE} ${MEM} 16 ${QUERY} ${GT} 10 /tmp/res 10 20 30 40 50 60 70 80 90 100 > ${MSLOG}
   awk '/===/{x=NR+10}(NR<=x){print}' ${MSLOG}
   echo "Building Disk Index"
-  ${BUILD_FOLDER}/tests/build_disk_index  ${TYPE} ${METRIC} ${BASE} ${DISK} 32 50 ${BUDGETSERVE} ${BUDGETBUILD} 32 0 > ${DBLOG}
+  ${BUILD_FOLDER}/tests/build_disk_vamana  ${TYPE} ${METRIC} ${BASE} ${DISK} 32 50 ${BUDGETSERVE} ${BUDGETBUILD} 32 0 > ${DBLOG}
   awk '/^Compressing/' ${DBLOG}
-  echo "#shards in disk index"
+  echo "#shards in disk vamana"
   awk '/^Indexing/' ${DBLOG}
   echo "Searching Disk Index"
-  ${BUILD_FOLDER}/tests/search_disk_index ${TYPE} ${METRIC} ${DISK} 10000 10 4 ${QUERY} ${GT} 10 /tmp/res 20 40 60 80 100 > ${DSLOG}
-  echo "# shards used during index construction:"
+  ${BUILD_FOLDER}/tests/search_disk_vamana ${TYPE} ${METRIC} ${DISK} 10000 10 4 ${QUERY} ${GT} 10 /tmp/res 20 40 60 80 100 > ${DSLOG}
+  echo "# shards used during vamana construction:"
   awk '/medoids/{x=NR+1}(NR<=x){print}' ${DSLOG}
   awk '/===/{x=NR+10}(NR<=x){print}' ${DSLOG}
 done < "${CATALOG}"

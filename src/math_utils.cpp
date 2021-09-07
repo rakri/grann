@@ -51,7 +51,7 @@ namespace math_utils {
   // centers is num_centers * dim (row major)
   // data_l2sq has pre-computed squared norms of data
   // centers_l2sq has pre-computed squared norms of centers
-  // pre-allocated center_index will contain id of nearest center
+  // pre-allocated center_vamana will contain id of nearest center
   // pre-allocated dist_matrix shound be num_points * num_centers and contain
   // squared distances
   // Default value of k is 1
@@ -61,7 +61,7 @@ namespace math_utils {
       const float* const data, const size_t num_points, const size_t dim,
       const float* const centers, const size_t num_centers,
       const float* const docs_l2sq, const float* const centers_l2sq,
-      uint32_t* center_index, float* const dist_matrix, size_t k) {
+      uint32_t* center_vamana, float* const dist_matrix, size_t k) {
     if (k > num_centers) {
       grann::cout << "ERROR: k (" << k << ") > num_center(" << num_centers
                     << ")" << std::endl;
@@ -100,7 +100,7 @@ namespace math_utils {
         float* current = dist_matrix + (i * num_centers);
         for (size_t j = 0; j < num_centers; j++) {
           if (current[j] < min) {
-            center_index[i] = (uint32_t) j;
+            center_vamana[i] = (uint32_t) j;
             min = current[j];
           }
         }
@@ -116,7 +116,7 @@ namespace math_utils {
         }
         for (size_t j = 0; j < k; j++) {
           PivotContainer this_piv = top_k_queue.top();
-          center_index[i * k + j] = (uint32_t) this_piv.piv_id;
+          center_vamana[i * k + j] = (uint32_t) this_piv.piv_id;
           top_k_queue.pop();
         }
       }
@@ -129,16 +129,16 @@ namespace math_utils {
   // Pivots stored in full_pivot_data as num_centers * new_dim row major
   // Calculate the k closest pivot for each point and store it in vector
   // closest_centers_ivf (row major, num_points*k) (which needs to be allocated
-  // outside) Additionally, if inverted index is not null (and pre-allocated),
+  // outside) Additionally, if inverted vamana is not null (and pre-allocated),
   // it
-  // will return inverted index for each center, assuming each of the inverted
+  // will return inverted vamana for each center, assuming each of the inverted
   // indices is an empty vector. Additionally, if pts_norms_squared is not null,
   // then it will assume that point norms are pre-computed and use those values
 
   void compute_closest_centers(float* data, size_t num_points, size_t dim,
                                float* pivot_data, size_t num_centers, size_t k,
                                uint32_t*            closest_centers_ivf,
-                               std::vector<size_t>* inverted_index,
+                               std::vector<size_t>* inverted_vamana,
                                float*               pts_norms_squared) {
     if (k > num_centers) {
       grann::cout << "ERROR: k (" << k << ") > num_center(" << num_centers
@@ -184,9 +184,9 @@ namespace math_utils {
           size_t this_center_id =
               closest_centers[(j - cur_blk * PAR_BLOCK_SIZE) * k + l];
           closest_centers_ivf[j * k + l] = (uint32_t) this_center_id;
-          if (inverted_index != NULL) {
+          if (inverted_vamana != NULL) {
 #pragma omp critical
-            inverted_index[this_center_id].push_back(j);
+            inverted_vamana[this_center_id].push_back(j);
           }
         }
       }
@@ -229,7 +229,7 @@ namespace kmeans {
   // run Lloyds one iteration
   // Given data in row major num_points * dim, and centers in row major
   // num_centers * dim And squared lengths of data points, output the closest
-  // center to each data point, update centers, and also return inverted index.
+  // center to each data point, update centers, and also return inverted vamana.
   // If
   // closest_centers == NULL, will allocate memory and return. Similarly, if
   // closest_docs == NULL, will allocate memory and return.

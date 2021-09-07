@@ -24,7 +24,7 @@ namespace math_utils {
   // centers is num_centers * dim (row major)
   // data_l2sq has pre-computed squared norms of data
   // centers_l2sq has pre-computed squared norms of centers
-  // pre-allocated center_index will contain id of k nearest centers
+  // pre-allocated center_vamana will contain id of k nearest centers
   // pre-allocated dist_matrix shound be num_points * num_centers and contain
   // squared distances
 
@@ -33,14 +33,14 @@ namespace math_utils {
       const float* const data, const size_t num_points, const size_t dim,
       const float* const centers, const size_t num_centers,
       const float* const docs_l2sq, const float* const centers_l2sq,
-      uint32_t* center_index, float* const dist_matrix, size_t k = 1);
+      uint32_t* center_vamana, float* const dist_matrix, size_t k = 1);
 
   // Given data in num_points * new_dim row major
   // Pivots stored in full_pivot_data as k * new_dim row major
   // Calculate the closest pivot for each point and store it in vector
   // closest_centers_ivf (which needs to be allocated outside)
-  // Additionally, if inverted index is not null (and pre-allocated), it will
-  // return inverted index for each center Additionally, if pts_norms_squared is
+  // Additionally, if inverted vamana is not null (and pre-allocated), it will
+  // return inverted vamana for each center Additionally, if pts_norms_squared is
   // not null, then it will assume that point norms are pre-computed and use
   // those
   // values
@@ -48,7 +48,7 @@ namespace math_utils {
   void compute_closest_centers(float* data, size_t num_points, size_t dim,
                                float* pivot_data, size_t num_centers, size_t k,
                                uint32_t*            closest_centers_ivf,
-                               std::vector<size_t>* inverted_index = NULL,
+                               std::vector<size_t>* inverted_vamana = NULL,
                                float*               pts_norms_squared = NULL);
 
   // if to_subtract is 1, will subtract nearest center from each row. Else will
@@ -67,7 +67,7 @@ namespace kmeans {
   // Given data in row major num_points * dim, and centers in row major
   // num_centers * dim
   // And squared lengths of data points, output the closest center to each data
-  // point, update centers, and also return inverted index.
+  // point, update centers, and also return inverted vamana.
   // If closest_centers == NULL, will allocate memory and return.
   // Similarly, if closest_docs == NULL, will allocate memory and return.
 
