@@ -156,7 +156,7 @@ namespace grann {
     size_t       _dim;
     size_t       _aligned_dim;
     T *          _data;
-    size_t       _nd;  // number of active points i.e. existing in the graph
+    size_t       _num_points;  // number of active points i.e. existing in the graph
     size_t       _max_points;  // total number of points in given data set
     size_t       _num_frozen_pts;
     bool         _has_built;

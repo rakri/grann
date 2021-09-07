@@ -11,11 +11,11 @@ namespace grann {
   template<typename T>
   class Dataset {
    public:
-    GRANN_DLLEXPORT Dataset(Metric m, const char *filename);
-    GRANN_DLLEXPORT ~Dataset();
+    Dataset(Metric m, const char *filename);
+    ~Dataset();
 
-    GRANN_DLLEXPORT void save(const char *filename);
-    GRANN_DLLEXPORT void load(const char *filename);
+    void save(const char *filename);
+    void load(const char *filename);
 
     /*  Internals of the library */
    private:
@@ -23,7 +23,7 @@ namespace grann {
     size_t       _dim;
     size_t       _aligned_dim;
     T *          _data;
-    size_t       _nd;  // number of active points i.e. existing in the graph
+    size_t       _num_points;  // number of points in the dataset
     Distance<T> *_distance;
   };
 }  // namespace grann

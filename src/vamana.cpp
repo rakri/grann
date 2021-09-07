@@ -106,18 +106,18 @@ namespace grann {
         _compacted_order(true), _enable_tags(enable_tags),
         _consolidated_order(true), _support_eager_delete(support_eager_delete),
         _store_data(store_data) {
-    // data is stored to _nd * aligned_dim matrix with necessary
+    // data is stored to _num_points * aligned_dim matrix with necessary
     // zero-padding
     grann::cout << "Number of frozen points = " << _num_frozen_pts
                   << std::endl;
-    load_aligned_bin<T>(std::string(filename), _data, _nd, _dim, _aligned_dim);
+    load_aligned_bin<T>(std::string(filename), _data, _num_points, _dim, _aligned_dim);
 
     if (nd > 0) {
-      if (_nd >= nd)
-        _nd = nd;  // Consider the first _nd points and ignore the rest.
+      if (_num_points >= nd)
+        _num_points = nd;  // Consider the first _num_points points and ignore the rest.
       else {
         std::stringstream stream;
-        stream << "ERROR: Driver requests loading " << _nd << " points,"
+        stream << "ERROR: Driver requests loading " << _num_points << " points,"
                << "but file has fewer (" << nd << ") points" << std::endl;
         grann::cerr << stream.str() << std::endl;
         throw grann::ANNException(stream.str(), -1, __FUNCSIG__, __FILE__,
@@ -125,11 +125,11 @@ namespace grann {
       }
     }
 
-    _max_points = (max_points > 0) ? max_points : _nd;
-    if (_max_points < _nd) {
+    _max_points = (max_points > 0) ? max_points : _num_points;
+    if (_max_points < _num_points) {
       std::stringstream stream;
       stream << "ERROR: max_points must be >= data size; max_points: "
-             << _max_points << "  n: " << _nd << std::endl;
+             << _max_points << "  n: " << _num_points << std::endl;
       grann::cerr << stream.str() << std::endl;
       throw grann::ANNException(stream.str(), -1, __FUNCSIG__, __FILE__,
                                   __LINE__);
@@ -183,7 +183,7 @@ namespace grann {
 
     if (_support_eager_delete)
       if (_eager_done && (!_compacted_order)) {
-        if (_nd < _max_points) {
+        if (_num_points < _max_points) {
           assert(_final_graph.size() == _max_points + _num_frozen_pts);
           unsigned              active = 0;
           std::vector<unsigned> new_location = get_new_location(active);
@@ -239,7 +239,7 @@ namespace grann {
     out.write((char *) &vamana_size, sizeof(uint64_t));
     out.write((char *) &_width, sizeof(unsigned));
     out.write((char *) &_ep, sizeof(unsigned));
-    for (unsigned i = 0; i < _nd + _num_frozen_pts; i++) {
+    for (unsigned i = 0; i < _num_points + _num_frozen_pts; i++) {
       unsigned GK = (unsigned) _final_graph[i].size();
       out.write((char *) &GK, sizeof(unsigned));
       out.write((char *) _final_graph[i].data(), GK * sizeof(unsigned));
@@ -252,7 +252,7 @@ namespace grann {
 
     grann::cout << "Avg degree: "
                   << ((float) total_gr_edges) /
-                         ((float) (_nd + _num_frozen_pts))
+                         ((float) (_num_points + _num_frozen_pts))
                   << std::endl;
   }
 
@@ -287,10 +287,10 @@ namespace grann {
       if (nodes % 10000000 == 0)
         grann::cout << "." << std::flush;
     }
-    if (_final_graph.size() != _nd) {
+    if (_final_graph.size() != _num_points) {
       grann::cout << "ERROR. mismatch in number of points. Graph has "
                     << _final_graph.size() << " points and loaded dataset has "
-                    << _nd << " points. " << std::endl;
+                    << _num_points << " points. " << std::endl;
       return;
     }
 
@@ -317,7 +317,7 @@ namespace grann {
         _tag_to_location[tag] = id++;
       }
       tag_file.close();
-      assert(id == _nd);
+      assert(id == _num_points);
     }
   }
 
@@ -335,17 +335,17 @@ namespace grann {
     for (size_t j = 0; j < _aligned_dim; j++)
       center[j] = 0;
 
-    for (size_t i = 0; i < _nd; i++)
+    for (size_t i = 0; i < _num_points; i++)
       for (size_t j = 0; j < _aligned_dim; j++)
         center[j] += _data[i * _aligned_dim + j];
 
     for (size_t j = 0; j < _aligned_dim; j++)
-      center[j] /= _nd;
+      center[j] /= _num_points;
 
     // compute all to one distance
-    float *distances = new float[_nd]();
+    float *distances = new float[_num_points]();
 #pragma omp parallel for schedule(static, 65536)
-    for (_s64 i = 0; i < (_s64) _nd; i++) {
+    for (_s64 i = 0; i < (_s64) _num_points; i++) {
       // extract point and distance reference
       float &  dist = distances[i];
       const T *cur_vec = _data + (i * (size_t) _aligned_dim);
@@ -359,7 +359,7 @@ namespace grann {
     // find imin
     unsigned min_idx = 0;
     float    min_dist = distances[0];
-    for (unsigned i = 1; i < _nd; i++) {
+    for (unsigned i = 1; i < _num_points; i++) {
       if (distances[i] < min_dist) {
         min_idx = i;
         min_dist = distances[i];
@@ -631,7 +631,7 @@ namespace grann {
                                     const Parameters &     parameter,
                                     bool                   update_in_graph) {
     const auto range = parameter.Get<unsigned>("R");
-    assert(n >= 0 && n < _nd);
+    assert(n >= 0 && n < _num_points);
     const auto &src_pool = pruned_list;
 
     assert(!src_pool.empty());
@@ -710,7 +710,7 @@ namespace grann {
       omp_set_num_threads(NUM_THREADS);
 
     uint32_t NUM_SYNCS =
-        (unsigned) DIV_ROUND_UP(_nd + _num_frozen_pts, (64 * 64));
+        (unsigned) DIV_ROUND_UP(_num_points + _num_frozen_pts, (64 * 64));
     if (NUM_SYNCS < 40)
       NUM_SYNCS = 40;
     grann::cout << "Number of syncs: " << NUM_SYNCS << std::endl;
@@ -737,8 +737,8 @@ namespace grann {
 
     /* visit_order is a vector that is initialized to the entire graph */
     std::vector<unsigned> visit_order;
-    visit_order.reserve(_nd + _num_frozen_pts);
-    for (unsigned i = 0; i < (unsigned) _nd; i++) {
+    visit_order.reserve(_num_points + _num_frozen_pts);
+    for (unsigned i = 0; i < (unsigned) _num_points; i++) {
       visit_order.emplace_back(i);
     }
 
@@ -789,7 +789,7 @@ namespace grann {
       size_t   inter_count = 0, total_inter_count = 0;
       unsigned progress_counter = 0;
 
-      size_t round_size = DIV_ROUND_UP(_nd, NUM_SYNCS);  // size of each batch
+      size_t round_size = DIV_ROUND_UP(_num_points, NUM_SYNCS);  // size of each batch
       std::vector<unsigned> need_to_sync(_max_points + _num_frozen_pts, 0);
 
       std::vector<std::vector<unsigned>> pruned_list_vector(round_size);
@@ -797,7 +797,7 @@ namespace grann {
       for (uint32_t sync_num = 0; sync_num < NUM_SYNCS; sync_num++) {
         size_t start_id = sync_num * round_size;
         size_t end_id =
-            (std::min)(_nd + _num_frozen_pts, (sync_num + 1) * round_size);
+            (std::min)(_num_points + _num_frozen_pts, (sync_num + 1) * round_size);
 
         auto s = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> diff;
@@ -960,7 +960,7 @@ namespace grann {
   void Index<T, TagT>::build(Parameters &             parameters,
                              const std::vector<TagT> &tags) {
     if (_enable_tags) {
-      if (tags.size() != _nd) {
+      if (tags.size() != _num_points) {
         std::cerr << "#Tags should be equal to #points" << std::endl;
         throw grann::ANNException("#Tags must be equal to #points", -1,
                                     __FUNCSIG__, __FILE__, __LINE__);
@@ -978,7 +978,7 @@ namespace grann {
     }
 
     size_t max = 0, min = 1 << 30, total = 0, cnt = 0;
-    for (size_t i = 0; i < _nd; i++) {
+    for (size_t i = 0; i < _num_points; i++) {
       auto &pool = _final_graph[i];
       max = (std::max)(max, pool.size());
       min = (std::min)(min, pool.size());
@@ -987,7 +987,7 @@ namespace grann {
         cnt++;
     }
     grann::cout << "Degree: max:" << max
-                  << "  avg:" << (float) total / (float) _nd << "  min:" << min
+                  << "  avg:" << (float) total / (float) _num_points << "  min:" << min
                   << "  count(deg<2):" << cnt << "\n"
                   << "Index built." << std::endl;
     _width = (std::max)((unsigned) max, _width);
@@ -1068,9 +1068,9 @@ namespace grann {
     _data_len = (_aligned_dim + 1) * sizeof(float);
     _neighbor_len = (_width + 1) * sizeof(unsigned);
     _node_size = _data_len + _neighbor_len;
-    _opt_graph = (char *) malloc(_node_size * _nd);
+    _opt_graph = (char *) malloc(_node_size * _num_points);
     DistanceFastL2<T> *dist_fast = (DistanceFastL2<T> *) _distance;
-    for (unsigned i = 0; i < _nd; i++) {
+    for (unsigned i = 0; i < _num_points; i++) {
       char *cur_node_offset = _opt_graph + i * _node_size;
       float cur_norm = dist_fast->norm(_data + i * _aligned_dim, _aligned_dim);
       std::memcpy(cur_node_offset, &cur_norm, sizeof(float));
@@ -1098,7 +1098,7 @@ namespace grann {
     // std::mt19937 rng(rand());
     // GenRandom(rng, init_ids.data(), L, (unsigned) nd_);
 
-    boost::dynamic_bitset<> flags{_nd, 0};
+    boost::dynamic_bitset<> flags{_num_points, 0};
     unsigned                tmp_l = 0;
     unsigned *              neighbors =
         (unsigned *) (_opt_graph + _node_size * _ep + _data_len);
@@ -1111,7 +1111,7 @@ namespace grann {
     }
 
     while (tmp_l < L) {
-      unsigned id = rand() % _nd;
+      unsigned id = rand() % _num_points;
       if (flags[id])
         continue;
       flags[id] = true;
@@ -1121,14 +1121,14 @@ namespace grann {
 
     for (unsigned i = 0; i < init_ids.size(); i++) {
       unsigned id = init_ids[i];
-      if (id >= _nd)
+      if (id >= _num_points)
         continue;
       _mm_prefetch(_opt_graph + _node_size * id, _MM_HINT_T0);
     }
     L = 0;
     for (unsigned i = 0; i < init_ids.size(); i++) {
       unsigned id = init_ids[i];
-      if (id >= _nd)
+      if (id >= _num_points)
         continue;
       T *   x = (T *) (_opt_graph + _node_size * id);
       float norm_x = *x;
@@ -1247,7 +1247,7 @@ namespace grann {
 
     if (_consolidated_order && _compacted_order) {
       assert(_empty_slots.size() == 0);
-      for (unsigned slot = (unsigned) _nd; slot < _max_points; ++slot)
+      for (unsigned slot = (unsigned) _num_points; slot < _max_points; ++slot)
         _empty_slots.insert(slot);
       _consolidated_order = false;
       _compacted_order = false;
@@ -1366,7 +1366,7 @@ namespace grann {
       }
     }
     _final_graph[id].clear();
-    _nd--;
+    _num_points--;
 
     _eager_done = true;
     return 0;
@@ -1404,7 +1404,7 @@ namespace grann {
     grann::cout << std::endl
                   << "Max in_degree = " << max_in
                   << "; Min in_degree = " << min_in << "; Average in_degree = "
-                  << (float) (avg_in) / (float) (_nd + _num_frozen_pts)
+                  << (float) (avg_in) / (float) (_num_points + _num_frozen_pts)
                   << std::endl;
   }
 
@@ -1421,8 +1421,8 @@ namespace grann {
     assert(!_consolidated_order);
     assert(_can_delete);
     assert(_enable_tags);
-    assert(_delete_set.size() <= _nd);
-    assert(_empty_slots.size() + _nd == _max_points);
+    assert(_delete_set.size() <= _num_points);
+    assert(_empty_slots.size() + _num_points == _max_points);
 
     const unsigned range = parameters.Get<unsigned>("R");
     const unsigned maxc = parameters.Get<unsigned>("C");
@@ -1486,9 +1486,9 @@ namespace grann {
     if (_support_eager_delete)
       update_in_graph();
 
-    _nd -= _delete_set.size();
+    _num_points -= _delete_set.size();
     compact_data(new_location, active, _consolidated_order);
-    return _nd;
+    return _num_points;
   }
 
   template<typename T, typename TagT>
@@ -1583,7 +1583,7 @@ namespace grann {
     mode = true;
     grann::cout << "Consolidated the vamana" << std::endl;
 
-    /*	  for(unsigned i = 0; i < _nd + _num_frozen_pts; i++){
+    /*	  for(unsigned i = 0; i < _num_points + _num_frozen_pts; i++){
           int flag = 0;
           for(unsigned j = 0; j < _final_graph[i].size(); j++)
             if(_final_graph[i][j] == i){
@@ -1601,14 +1601,14 @@ namespace grann {
   // It is not thread safe.
   template<typename T, typename TagT>
   unsigned Index<T, TagT>::reserve_location() {
-    assert(_nd < _max_points);
+    assert(_num_points < _max_points);
 
     unsigned location;
     if (_consolidated_order || _compacted_order)
-      location = (unsigned) _nd;
+      location = (unsigned) _num_points;
     else {
       assert(_empty_slots.size() != 0);
-      assert(_empty_slots.size() + _nd == _max_points);
+      assert(_empty_slots.size() + _num_points == _max_points);
 
       auto iter = _empty_slots.begin();
       location = *iter;
@@ -1616,7 +1616,7 @@ namespace grann {
       _delete_set.erase(iter);
     }
 
-    ++_nd;
+    ++_num_points;
     return location;
   }
 
@@ -1626,16 +1626,16 @@ namespace grann {
       if (_final_graph[_max_points].empty()) {
         grann::cout << "Readjusting data to correctly position frozen point"
                       << std::endl;
-        for (unsigned i = 0; i < _nd; i++)
+        for (unsigned i = 0; i < _num_points; i++)
           for (unsigned j = 0; j < _final_graph[i].size(); j++)
-            if (_final_graph[i][j] >= _nd)
+            if (_final_graph[i][j] >= _num_points)
               _final_graph[i][j] =
-                  (unsigned) (_max_points + (_final_graph[i][j] - _nd));
+                  (unsigned) (_max_points + (_final_graph[i][j] - _num_points));
         for (unsigned i = 0; i < _num_frozen_pts; i++) {
-          for (unsigned k = 0; k < _final_graph[_nd + i].size(); k++)
+          for (unsigned k = 0; k < _final_graph[_num_points + i].size(); k++)
             _final_graph[_max_points + i].emplace_back(
-                _final_graph[_nd + i][k]);
-          _final_graph[_nd + i].clear();
+                _final_graph[_num_points + i][k]);
+          _final_graph[_num_points + i].clear();
         }
 
         if (_support_eager_delete)
@@ -1645,9 +1645,9 @@ namespace grann {
                       << std::endl;
         for (unsigned i = 0; i < _num_frozen_pts; i++) {
           memcpy((void *) (_data + (size_t) _aligned_dim * (_max_points + i)),
-                 _data + (size_t) _aligned_dim * (_nd + i),
+                 _data + (size_t) _aligned_dim * (_num_points + i),
                  sizeof(float) * _dim);
-          memset((_data + (size_t) _aligned_dim * (_nd + i)), 0,
+          memset((_data + (size_t) _aligned_dim * (_num_points + i)), 0,
                  sizeof(float) * _aligned_dim);
         }
         grann::cout << "Readjustment done" << std::endl;
@@ -1673,7 +1673,7 @@ namespace grann {
                 << std::endl;
       return -1;
     }
-    if (_nd == _max_points) {
+    if (_num_points == _max_points) {
       std::cerr << "Can not insert, reached maximum(" << _max_points
                 << ") points." << std::endl;
       return -2;
@@ -1749,22 +1749,22 @@ namespace grann {
                                   __FUNCSIG__, __FILE__, __LINE__);
     }
     if (_eager_done) {
-      grann::cout << "#Points after eager_delete : " << _nd + _num_frozen_pts
+      grann::cout << "#Points after eager_delete : " << _num_points + _num_frozen_pts
                     << std::endl;
-      if (_tag_to_location.size() != _nd) {
+      if (_tag_to_location.size() != _num_points) {
         grann::cerr << "Tags to points array wrong sized" << std::endl;
         return -2;
       }
-    } else if (_tag_to_location.size() + _delete_set.size() != _nd) {
+    } else if (_tag_to_location.size() + _delete_set.size() != _num_points) {
       grann::cerr << "Tags to points array wrong sized" << std::endl;
       return -2;
     }
     if (_eager_done) {
-      if (_location_to_tag.size() != _nd) {
+      if (_location_to_tag.size() != _num_points) {
         grann::cerr << "Points to tags array wrong sized" << std::endl;
         return -3;
       }
-    } else if (_location_to_tag.size() + _delete_set.size() != _nd) {
+    } else if (_location_to_tag.size() + _delete_set.size() != _num_points) {
       grann::cerr << "Points to tags array wrong sized" << std::endl;
       return -3;
     }
