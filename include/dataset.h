@@ -5,7 +5,7 @@
 
 
 #include "utils.h"
-#include "distance.h"
+//#include "distance.h"
 
 namespace grann {
   template<typename T>
@@ -21,9 +21,9 @@ namespace grann {
    private:
     Metric       _metric = grann::L2;
     size_t       _dim;
-    size_t       _aligned_dim;
+    size_t       _aligned_dim; // for faster distance computations using AVX instructions, we round up dimension to multiple of 8
     T *          _data;
     size_t       _num_points;  // number of points in the dataset
-    Distance<T> *_distance;
+//    Distance<T> *_distance;
   };
 }  // namespace grann
