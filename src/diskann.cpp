@@ -73,7 +73,7 @@ namespace {
 
 namespace grann {
   template<>
-  PQFlashIndex<_u8>::PQFlashIndex(
+  DiskANN<_u8>::DiskANN(
       std::shared_ptr<AlignedFileReader> &fileReader, grann::Metric metric)
       : reader(fileReader), metric(metric) {
     grann::cout
@@ -103,7 +103,7 @@ namespace grann {
   }
 
   template<>
-  PQFlashIndex<_s8>::PQFlashIndex(
+  DiskANN<_s8>::DiskANN(
       std::shared_ptr<AlignedFileReader> &fileReader, grann::Metric metric)
       : reader(fileReader), metric(metric) {
     if (Avx2SupportedCPU) {
@@ -133,7 +133,7 @@ namespace grann {
   }
 
   template<>
-  PQFlashIndex<float>::PQFlashIndex(
+  DiskANN<float>::DiskANN(
       std::shared_ptr<AlignedFileReader> &fileReader, grann::Metric metric)
       : reader(fileReader), metric(metric) {
     if (metric == grann::Metric::L2) {
@@ -169,7 +169,7 @@ namespace grann {
   }
 
   template<typename T>
-  PQFlashIndex<T>::~PQFlashIndex() {
+  DiskANN<T>::~DiskANN() {
 #ifndef EXEC_ENV_OLS
     if (data != nullptr) {
       delete[] data;
@@ -194,7 +194,7 @@ namespace grann {
   }
 
   template<typename T>
-  void PQFlashIndex<T>::setup_thread_data(_u64 nthreads) {
+  void DiskANN<T>::setup_thread_data(_u64 nthreads) {
     grann::cout << "Setting up thread-specific contexts for nthreads: "
                   << nthreads << std::endl;
 // omp parallel for to generate unique thread IDs
@@ -243,7 +243,7 @@ namespace grann {
   }
 
   template<typename T>
-  void PQFlashIndex<T>::destroy_thread_data() {
+  void DiskANN<T>::destroy_thread_data() {
     grann::cout << "Clearing scratch" << std::endl;
     assert(this->thread_data.size() == this->max_nthreads);
     while (this->thread_data.size() > 0) {
@@ -265,7 +265,7 @@ namespace grann {
   }
 
   template<typename T>
-  void PQFlashIndex<T>::load_cache_list(std::vector<uint32_t> &node_list) {
+  void DiskANN<T>::load_cache_list(std::vector<uint32_t> &node_list) {
     grann::cout << "Loading the cache list into memory.." << std::flush;
     _u64 num_cached_nodes = node_list.size();
 
@@ -336,13 +336,13 @@ namespace grann {
 
 #ifdef EXEC_ENV_OLS
   template<typename T>
-  void PQFlashIndex<T>::generate_cache_list_from_sample_queries(
+  void DiskANN<T>::generate_cache_list_from_sample_queries(
       MemoryMappedFiles &files, std::string sample_bin, _u64 l_search,
       _u64 beamwidth, _u64 num_nodes_to_cache, uint32_t nthreads,
       std::vector<uint32_t> &node_list) {
 #else
   template<typename T>
-  void PQFlashIndex<T>::generate_cache_list_from_sample_queries(
+  void DiskANN<T>::generate_cache_list_from_sample_queries(
       std::string sample_bin, _u64 l_search, _u64 beamwidth,
       _u64 num_nodes_to_cache, uint32_t nthreads,
       std::vector<uint32_t> &node_list) {
@@ -401,7 +401,7 @@ namespace grann {
   }
 
   template<typename T>
-  void PQFlashIndex<T>::cache_bfs_levels(_u64 num_nodes_to_cache,
+  void DiskANN<T>::cache_bfs_levels(_u64 num_nodes_to_cache,
                                          std::vector<uint32_t> &node_list) {
     // Gopal. random_shuffle() is deprecated.
     std::random_device rng;
@@ -521,7 +521,7 @@ namespace grann {
   }
 
   template<typename T>
-  void PQFlashIndex<T>::use_medoids_data_as_centroids() {
+  void DiskANN<T>::use_medoids_data_as_centroids() {
     if (centroid_data != nullptr)
       aligned_free(centroid_data);
     alloc_aligned(((void **) &centroid_data),
@@ -574,12 +574,12 @@ namespace grann {
 
 #ifdef EXEC_ENV_OLS
   template<typename T>
-  int PQFlashIndex<T>::load(MemoryMappedFiles &files, uint32_t num_threads,
+  int DiskANN<T>::load(MemoryMappedFiles &files, uint32_t num_threads,
                             const char *pq_prefix,
                             const char *disk_vamana_file) {
 #else
   template<typename T>
-  int PQFlashIndex<T>::load(uint32_t num_threads, const char *pq_prefix,
+  int DiskANN<T>::load(uint32_t num_threads, const char *pq_prefix,
                             const char *disk_vamana_file) {
 #endif
     std::string pq_table_bin = std::string(pq_prefix) + "_pivots.bin";
@@ -703,7 +703,7 @@ namespace grann {
     READ_U64(vamana_metadata, nnodes_per_sector);
     max_degree = ((max_node_len - disk_bytes_per_point) / sizeof(unsigned)) - 1;
 
-    grann::cout << "Disk-Index File Meta-data: ";
+    grann::cout << "Disk-Vamana File Meta-data: ";
     grann::cout << "# nodes per sector: " << nnodes_per_sector;
     grann::cout << ", max node len (bytes): " << max_node_len;
     grann::cout << ", max node degree: " << max_degree << std::endl;
@@ -798,24 +798,24 @@ namespace grann {
 
 #ifdef USE_BING_INFRA
   bool getNextCompletedRequest(const IOContext &ctx, size_t size,
-                               int &completedIndex) {
+                               int &completedVamana) {
     bool waitsRemaining = false;
     for (int i = 0; i < size; i++) {
       auto ithStatus = (*ctx.m_pRequestsStatus)[i];
       if (ithStatus == IOContext::Status::READ_SUCCESS) {
-        completedIndex = i;
+        completedVamana = i;
         return true;
       } else if (ithStatus == IOContext::Status::READ_WAIT) {
         waitsRemaining = true;
       }
     }
-    completedIndex = -1;
+    completedVamana = -1;
     return waitsRemaining;
   }
 #endif
 
   template<typename T>
-  void PQFlashIndex<T>::cached_beam_search(const T *query1, const _u64 k_search,
+  void DiskANN<T>::cached_beam_search(const T *query1, const _u64 k_search,
                                            const _u64 l_search, _u64 *indices,
                                            float *     distances,
                                            const _u64  beam_width,
@@ -1061,18 +1061,18 @@ namespace grann {
       }
 #ifdef USE_BING_INFRA
       // process each frontier nhood - compute distances to unvisited nodes
-      int completedIndex = -1;
+      int completedVamana = -1;
       // If we issued read requests and if a read is complete or there are reads
       // in wait
       // state, then enter the while loop.
       while (frontier_read_reqs.size() > 0 &&
              getNextCompletedRequest(ctx, frontier_read_reqs.size(),
-                                     completedIndex)) {
-        if (completedIndex == -1) {  // all reads are waiting
+                                     completedVamana)) {
+        if (completedVamana == -1) {  // all reads are waiting
           continue;
         }
-        auto &frontier_nhood = frontier_nhoods[completedIndex];
-        (*ctx.m_pRequestsStatus)[completedIndex] = IOContext::PROCESS_COMPLETE;
+        auto &frontier_nhood = frontier_nhoods[completedVamana];
+        (*ctx.m_pRequestsStatus)[completedVamana] = IOContext::PROCESS_COMPLETE;
 #else
       for (auto &frontier_nhood : frontier_nhoods) {
 #endif
@@ -1203,7 +1203,7 @@ namespace grann {
 // and the return value is the number of matching hits.
 
     template<typename T>
-  _u32 PQFlashIndex<T>::range_search(const T *query1, const double range,
+  _u32 DiskANN<T>::range_search(const T *query1, const double range,
                                            const _u64 l_search, _u64* indices, float* distances,
                                            const _u64  beam_width,
                                            QueryStats *stats) {
@@ -1224,11 +1224,11 @@ for (_u32 i = 0; i < l_search; i++) {
 
 #ifdef EXEC_ENV_OLS
   template<typename T>
-  char *PQFlashIndex<T>::getHeaderBytes() {
+  char *DiskANN<T>::getHeaderBytes() {
     IOContext & ctx = reader->get_ctx();
     AlignedRead readReq;
-    readReq.buf = new char[PQFlashIndex<T>::HEADER_SIZE];
-    readReq.len = PQFlashIndex<T>::HEADER_SIZE;
+    readReq.buf = new char[DiskANN<T>::HEADER_SIZE];
+    readReq.len = DiskANN<T>::HEADER_SIZE;
     readReq.offset = 0;
 
     std::vector<AlignedRead> readReqs;
@@ -1241,8 +1241,8 @@ for (_u32 i = 0; i < l_search; i++) {
 #endif
 
   // instantiations
-  template class PQFlashIndex<_u8>;
-  template class PQFlashIndex<_s8>;
-  template class PQFlashIndex<float>;
+  template class DiskANN<_u8>;
+  template class DiskANN<_s8>;
+  template class DiskANN<float>;
 
 }  // namespace grann

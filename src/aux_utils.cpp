@@ -244,7 +244,7 @@ namespace grann {
       vamana_readers[i].read((char *) &expected_file_size, sizeof(uint64_t));
       if (actual_file_size != expected_file_size) {
         std::stringstream stream;
-        stream << "Error in Vamana Index file " << vamana_names[i]
+        stream << "Error in Vamana Vamana file " << vamana_names[i]
                << " Actual file size: " << actual_file_size
                << " does not match expected file size: " << expected_file_size
                << std::endl;
@@ -385,11 +385,11 @@ namespace grann {
       paras.Set<bool>("saturate_graph", 1);
       paras.Set<std::string>("save_path", mem_vamana_path);
 
-      std::unique_ptr<grann::Index<T>> _pvamanaIndex =
-          std::unique_ptr<grann::Index<T>>(
-              new grann::Index<T>(compareMetric, base_file.c_str()));
-      _pvamanaIndex->build(paras);
-      _pvamanaIndex->save(mem_vamana_path.c_str());
+      std::unique_ptr<grann::Vamana<T>> _pvamanaVamana =
+          std::unique_ptr<grann::Vamana<T>>(
+              new grann::Vamana<T>(compareMetric, base_file.c_str()));
+      _pvamanaVamana->build(paras);
+      _pvamanaVamana->save(mem_vamana_path.c_str());
       std::remove(medoids_file.c_str());
       std::remove(centroids_file.c_str());
       return 0;
@@ -424,11 +424,11 @@ namespace grann {
       paras.Set<bool>("saturate_graph", 1);
       paras.Set<std::string>("save_path", shard_vamana_file);
 
-      std::unique_ptr<grann::Index<T>> _pvamanaIndex =
-          std::unique_ptr<grann::Index<T>>(
-              new grann::Index<T>(compareMetric, shard_base_file.c_str()));
-      _pvamanaIndex->build(paras);
-      _pvamanaIndex->save(shard_vamana_file.c_str());
+      std::unique_ptr<grann::Vamana<T>> _pvamanaVamana =
+          std::unique_ptr<grann::Vamana<T>>(
+              new grann::Vamana<T>(compareMetric, shard_base_file.c_str()));
+      _pvamanaVamana->build(paras);
+      _pvamanaVamana->save(shard_vamana_file.c_str());
       std::remove(shard_base_file.c_str());
       //      wait_for_keystroke();
     }
@@ -460,7 +460,7 @@ namespace grann {
   // 99.9 latency not blowing up
   template<typename T>
   uint32_t optimize_beamwidth(
-      std::unique_ptr<grann::PQFlashIndex<T>> &pFlashIndex, T *tuning_sample,
+      std::unique_ptr<grann::DiskANN<T>> &pFlashVamana, T *tuning_sample,
       _u64 tuning_sample_num, _u64 tuning_sample_aligned_dim, uint32_t L,
       uint32_t nthreads, uint32_t start_bw) {
     uint32_t cur_bw = start_bw;
@@ -476,7 +476,7 @@ namespace grann {
       auto s = std::chrono::high_resolution_clock::now();
 #pragma omp parallel for schedule(dynamic, 1) num_threads(nthreads)
       for (_s64 i = 0; i < (int64_t) tuning_sample_num; i++) {
-        pFlashIndex->cached_beam_search(
+        pFlashVamana->cached_beam_search(
             tuning_sample + (i * tuning_sample_aligned_dim), 1, L,
             tuning_sample_result_ids_64.data() + (i * 1),
             tuning_sample_result_dists.data() + (i * 1), cur_bw, stats + i);
@@ -537,7 +537,7 @@ namespace grann {
     vamana_reader.read((char *) &vamana_file_size, sizeof(uint64_t));
     if (vamana_file_size != actual_file_size) {
       std::stringstream stream;
-      stream << "Vamana Index file size does not match expected size per "
+      stream << "Vamana Vamana file size does not match expected size per "
                 "meta-data."
              << " file size from file: " << vamana_file_size
              << " actual file size: " << actual_file_size << std::endl;
@@ -735,7 +735,7 @@ namespace grann {
 
     grann::cout << "Starting vamana build: R=" << R << " L=" << L
                   << " Query RAM budget: " << final_vamana_ram_limit
-                  << " Indexing ram budget: " << vamanaing_ram_budget
+                  << " Vamanaing ram budget: " << vamanaing_ram_budget
                   << " T: " << num_threads << std::endl;
 
     auto s = std::chrono::high_resolution_clock::now();
@@ -824,7 +824,7 @@ namespace grann {
 
     auto                          e = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> diff = e - s;
-    grann::cout << "Indexing time: " << diff.count() << std::endl;
+    grann::cout << "Vamanaing time: " << diff.count() << std::endl;
 
     return true;
   }
@@ -863,17 +863,17 @@ namespace grann {
 #endif
 
   template GRANN_DLLEXPORT uint32_t optimize_beamwidth<int8_t>(
-      std::unique_ptr<grann::PQFlashIndex<int8_t>> &pFlashIndex,
+      std::unique_ptr<grann::DiskANN<int8_t>> &pFlashVamana,
       int8_t *tuning_sample, _u64 tuning_sample_num,
       _u64 tuning_sample_aligned_dim, uint32_t L, uint32_t nthreads,
       uint32_t start_bw);
   template GRANN_DLLEXPORT uint32_t optimize_beamwidth<uint8_t>(
-      std::unique_ptr<grann::PQFlashIndex<uint8_t>> &pFlashIndex,
+      std::unique_ptr<grann::DiskANN<uint8_t>> &pFlashVamana,
       uint8_t *tuning_sample, _u64 tuning_sample_num,
       _u64 tuning_sample_aligned_dim, uint32_t L, uint32_t nthreads,
       uint32_t start_bw);
   template GRANN_DLLEXPORT uint32_t optimize_beamwidth<float>(
-      std::unique_ptr<grann::PQFlashIndex<float>> &pFlashIndex,
+      std::unique_ptr<grann::DiskANN<float>> &pFlashVamana,
       float *tuning_sample, _u64 tuning_sample_num,
       _u64 tuning_sample_aligned_dim, uint32_t L, uint32_t nthreads,
       uint32_t start_bw);

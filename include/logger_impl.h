@@ -9,14 +9,14 @@
 #include <mutex>
 
 #ifdef EXEC_ENV_OLS
-#include "IANNIndex.h"
+#include "IANNVamana.h"
 #include "ANNLogging.h"
 #endif
 
 #include "ann_exception.h"
 
 #ifndef EXEC_ENV_OLS
-namespace ANNIndex {
+namespace ANNVamana {
   enum LogLevel {
     LL_Debug = 0,
     LL_Info,
@@ -46,9 +46,9 @@ namespace grann {
    private:
     FILE*              _fp;
     char*              _buf;
-    int                _bufIndex;
+    int                _bufVamana;
     std::mutex         _mutex;
-    ANNIndex::LogLevel _logLevel;
+    ANNVamana::LogLevel _logLevel;
 
     int  flush();
     void logImpl(char* str, int numchars);

@@ -91,9 +91,9 @@ int search_memory_vamana(int argc, char** argv) {
   std::cout.setf(std::ios_base::fixed, std::ios_base::floatfield);
   std::cout.precision(2);
 
-  grann::Index<T> vamana(metric, data_file.c_str());
+  grann::Vamana<T> vamana(metric, data_file.c_str());
   vamana.load(memory_vamana_file.c_str());  // to load NSG
-  std::cout << "Index loaded" << std::endl;
+  std::cout << "Vamana loaded" << std::endl;
 
   if (metric == grann::FAST_L2)
     vamana.optimize_graph();

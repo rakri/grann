@@ -28,8 +28,8 @@ namespace grann {
           "The custom logger only supports stdout and stderr.", -1);
     }
     _fp = fp;
-    _logLevel = (_fp == stdout) ? ANNIndex::LogLevel::LL_Info
-                                : ANNIndex::LogLevel::LL_Error;
+    _logLevel = (_fp == stdout) ? ANNVamana::LogLevel::LL_Info
+                                : ANNVamana::LogLevel::LL_Error;
 #ifdef EXEC_ENV_OLS
     _buf = new char[BUFFER_SIZE + 1];  // See comment in the header
 #else

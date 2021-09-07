@@ -40,7 +40,7 @@ namespace grann {
   const uint32_t NUM_KMEANS_REPS = 12;
 
   template<typename T>
-  class PQFlashIndex;
+  class DiskANN;
 
   GRANN_DLLEXPORT double calculate_recall(
       unsigned num_queries, unsigned *gold_std, float *gs_dist, unsigned dim_gs,
@@ -82,7 +82,7 @@ GRANN_DLLEXPORT double calculate_range_search_recall(unsigned num_queries, std::
 
   template<typename T>
   GRANN_DLLEXPORT uint32_t optimize_beamwidth(
-      std::unique_ptr<grann::PQFlashIndex<T>> &_pFlashIndex, T *tuning_sample,
+      std::unique_ptr<grann::DiskANN<T>> &_pFlashVamana, T *tuning_sample,
       _u64 tuning_sample_num, _u64 tuning_sample_aligned_dim, uint32_t L,
       uint32_t nthreads, uint32_t start_bw = 2);
 

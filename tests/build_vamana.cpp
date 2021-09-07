@@ -30,13 +30,13 @@ int build_in_memory_vamana(const std::string&     data_path,
   paras.Set<bool>("saturate_graph", 0);
   paras.Set<unsigned>("num_threads", num_threads);
 
-  grann::Index<T> vamana(metric, data_path.c_str());
+  grann::Vamana<T> vamana(metric, data_path.c_str());
   auto              s = std::chrono::high_resolution_clock::now();
   vamana.build(paras);
   std::chrono::duration<double> diff =
       std::chrono::high_resolution_clock::now() - s;
 
-  std::cout << "Indexing time: " << diff.count() << "\n";
+  std::cout << "Vamanaing time: " << diff.count() << "\n";
   vamana.save(save_path.c_str());
 
   return 0;

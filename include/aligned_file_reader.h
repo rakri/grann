@@ -34,13 +34,13 @@ struct IOContext {
 struct IOContext {
   enum Status { READ_WAIT = 0, READ_SUCCESS, READ_FAILED, PROCESS_COMPLETE };
 
-  std::shared_ptr<ANNIndex::IDiskPriorityIO>               m_pDiskIO = nullptr;
-  std::shared_ptr<std::vector<ANNIndex::AsyncReadRequest>> m_pRequests;
+  std::shared_ptr<ANNVamana::IDiskPriorityIO>               m_pDiskIO = nullptr;
+  std::shared_ptr<std::vector<ANNVamana::AsyncReadRequest>> m_pRequests;
   std::shared_ptr<std::vector<Status>>                     m_pRequestsStatus;
 
   IOContext()
       : m_pRequestsStatus(new std::vector<Status>()),
-        m_pRequests(new std::vector<ANNIndex::AsyncReadRequest>()) {
+        m_pRequests(new std::vector<ANNVamana::AsyncReadRequest>()) {
     (*m_pRequestsStatus).reserve(MAX_IO_DEPTH);
     (*m_pRequests).reserve(MAX_IO_DEPTH);
   }

@@ -51,7 +51,7 @@ namespace grann {
   };
 
   template<typename T>
-  class PQFlashIndex {
+  class DiskANN {
    public:
     // Gopal. Adapting to the new Bing interface. Since the DiskPriorityIO is
     // now a singleton, we have to take it in the DiskANNInterface and
@@ -64,10 +64,10 @@ namespace grann {
     // using the object passed by the XTS environment.
     // Freeing the reader object is now the client's (DiskANNInterface's)
     // responsibility.
-    GRANN_DLLEXPORT PQFlashIndex(
+    GRANN_DLLEXPORT DiskANN(
         std::shared_ptr<AlignedFileReader> &fileReader,
         grann::Metric                     metric = grann::Metric::L2);
-    GRANN_DLLEXPORT ~PQFlashIndex();
+    GRANN_DLLEXPORT ~DiskANN();
 
 #ifdef EXEC_ENV_OLS
     GRANN_DLLEXPORT int load(grann::MemoryMappedFiles &files,

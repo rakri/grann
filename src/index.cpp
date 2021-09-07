@@ -97,7 +97,7 @@ namespace grann {
   // Initialize an vamana with metric m, load the data of type T with filename
   // (bin), and initialize max_points
   template<typename T, typename TagT>
-  Index<T, TagT>::Index(Metric m, const char *filename, const size_t max_points,
+  Vamana<T, TagT>::Vamana(Metric m, const char *filename, const size_t max_points,
                         const size_t nd, const size_t num_frozen_pts,
                         const bool enable_tags, const bool store_data,
                         const bool support_eager_delete)
@@ -155,19 +155,19 @@ namespace grann {
   }
 
   template<>
-  Index<float>::~Index() {
+  Vamana<float>::~Vamana() {
     delete this->_distance;
     aligned_free(_data);
   }
 
   template<>
-  Index<_s8>::~Index() {
+  Vamana<_s8>::~Vamana() {
     delete this->_distance;
     aligned_free(_data);
   }
 
   template<>
-  Index<_u8>::~Index() {
+  Vamana<_u8>::~Vamana() {
     delete this->_distance;
     aligned_free(_data);
   }
@@ -176,7 +176,7 @@ namespace grann {
   // first store the number of neighbors, and then the neighbor list (each as
   // 4 byte unsigned)
   template<typename T, typename TagT>
-  void Index<T, TagT>::save(const char *filename) {
+  void Vamana<T, TagT>::save(const char *filename) {
     long long     total_gr_edges = 0;
     size_t        vamana_size = 0;
     std::ofstream out(std::string(filename), std::ios::binary | std::ios::out);
@@ -259,7 +259,7 @@ namespace grann {
   // load the vamana from file and update the width (max_degree), ep
   // (navigating node id), and _final_graph (adjacency list)
   template<typename T, typename TagT>
-  void Index<T, TagT>::load(const char *filename, const bool load_tags,
+  void Vamana<T, TagT>::load(const char *filename, const bool load_tags,
                             const char *tag_filename) {
     if (!validate_file_size(filename)) {
       return;
@@ -294,7 +294,7 @@ namespace grann {
       return;
     }
 
-    grann::cout << "..done. Index has " << nodes << " nodes and " << cc
+    grann::cout << "..done. Vamana has " << nodes << " nodes and " << cc
                   << " out-edges" << std::endl;
 
     if (load_tags) {
@@ -322,14 +322,14 @@ namespace grann {
   }
 
   /**************************************************************
-   *      Support for Static Index Building and Searching
+   *      Support for Static Vamana Building and Searching
    **************************************************************/
 
   /* This function finds out the navigating node, which is the medoid node
    * in the graph.
    */
   template<typename T, typename TagT>
-  unsigned Index<T, TagT>::calculate_entry_point() {
+  unsigned Vamana<T, TagT>::calculate_entry_point() {
     // allocate and init centroid
     float *center = new float[_aligned_dim]();
     for (size_t j = 0; j < _aligned_dim; j++)
@@ -383,7 +383,7 @@ namespace grann {
    * best_L_nodes: ids of closest L nodes in list
    */
   template<typename T, typename TagT>
-  std::pair<uint32_t, uint32_t> Index<T, TagT>::iterate_to_fixed_point(
+  std::pair<uint32_t, uint32_t> Vamana<T, TagT>::iterate_to_fixed_point(
       const T *node_coords, const unsigned Lsize,
       const std::vector<unsigned> &init_ids,
       std::vector<Neighbor> &      expanded_nodes_info,
@@ -467,7 +467,7 @@ namespace grann {
   }
 
   template<typename T, typename TagT>
-  void Index<T, TagT>::get_expanded_nodes(
+  void Vamana<T, TagT>::get_expanded_nodes(
       const size_t node_id, const unsigned Lvamana,
       std::vector<unsigned>     init_ids,
       std::vector<Neighbor> &   expanded_nodes_info,
@@ -483,7 +483,7 @@ namespace grann {
   }
 
   template<typename T, typename TagT>
-  void Index<T, TagT>::occlude_list(std::vector<Neighbor> &pool,
+  void Vamana<T, TagT>::occlude_list(std::vector<Neighbor> &pool,
                                     const float alpha, const unsigned degree,
                                     const unsigned         maxc,
                                     std::vector<Neighbor> &result) {
@@ -493,7 +493,7 @@ namespace grann {
   }
 
   template<typename T, typename TagT>
-  void Index<T, TagT>::occlude_list(std::vector<Neighbor> &pool,
+  void Vamana<T, TagT>::occlude_list(std::vector<Neighbor> &pool,
                                     const float alpha, const unsigned degree,
                                     const unsigned         maxc,
                                     std::vector<Neighbor> &result,
@@ -546,7 +546,7 @@ namespace grann {
   }
 
   template<typename T, typename TagT>
-  void Index<T, TagT>::prune_neighbors(const unsigned         location,
+  void Vamana<T, TagT>::prune_neighbors(const unsigned         location,
                                        std::vector<Neighbor> &pool,
                                        const Parameters &     parameter,
                                        std::vector<unsigned> &pruned_list) {
@@ -593,7 +593,7 @@ namespace grann {
    * the current node n.
    */
   template<typename T, typename TagT>
-  void Index<T, TagT>::batch_inter_insert(
+  void Vamana<T, TagT>::batch_inter_insert(
       unsigned n, const std::vector<unsigned> &pruned_list,
       const Parameters &parameter, std::vector<unsigned> &need_to_sync) {
     const auto range = parameter.Get<unsigned>("R");
@@ -626,7 +626,7 @@ namespace grann {
    * the current node n.
    */
   template<typename T, typename TagT>
-  void Index<T, TagT>::inter_insert(unsigned               n,
+  void Vamana<T, TagT>::inter_insert(unsigned               n,
                                     std::vector<unsigned> &pruned_list,
                                     const Parameters &     parameter,
                                     bool                   update_in_graph) {
@@ -704,7 +704,7 @@ namespace grann {
    *    The graph will be updated periodically in NUM_SYNCS batches
    */
   template<typename T, typename TagT>
-  void Index<T, TagT>::link(Parameters &parameters) {
+  void Vamana<T, TagT>::link(Parameters &parameters) {
     unsigned NUM_THREADS = parameters.Get<unsigned>("num_threads");
     if (NUM_THREADS != 0)
       omp_set_num_threads(NUM_THREADS);
@@ -957,7 +957,7 @@ namespace grann {
   }
 
   template<typename T, typename TagT>
-  void Index<T, TagT>::build(Parameters &             parameters,
+  void Vamana<T, TagT>::build(Parameters &             parameters,
                              const std::vector<TagT> &tags) {
     if (_enable_tags) {
       if (tags.size() != _num_points) {
@@ -989,13 +989,13 @@ namespace grann {
     grann::cout << "Degree: max:" << max
                   << "  avg:" << (float) total / (float) _num_points << "  min:" << min
                   << "  count(deg<2):" << cnt << "\n"
-                  << "Index built." << std::endl;
+                  << "Vamana built." << std::endl;
     _width = (std::max)((unsigned) max, _width);
     _has_built = true;
   }
 
   template<typename T, typename TagT>
-  std::pair<uint32_t, uint32_t> Index<T, TagT>::search(const T *      query,
+  std::pair<uint32_t, uint32_t> Vamana<T, TagT>::search(const T *      query,
                                                        const size_t   K,
                                                        const unsigned L,
                                                        unsigned *     indices) {
@@ -1022,7 +1022,7 @@ namespace grann {
   }
 
   template<typename T, typename TagT>
-  std::pair<uint32_t, uint32_t> Index<T, TagT>::search(
+  std::pair<uint32_t, uint32_t> Vamana<T, TagT>::search(
       const T *query, const uint64_t K, const unsigned L,
       std::vector<unsigned> init_ids, uint64_t *indices, float *distances) {
     tsl::robin_set<unsigned> visited(10 * L);
@@ -1050,7 +1050,7 @@ namespace grann {
   }
 
   template<typename T, typename TagT>
-  std::pair<uint32_t, uint32_t> Index<T, TagT>::search_with_tags(
+  std::pair<uint32_t, uint32_t> Vamana<T, TagT>::search_with_tags(
       const T *query, const size_t K, const unsigned L, TagT *tags,
       unsigned *indices_buffer) {
     const bool alloc = indices_buffer == NULL;
@@ -1064,7 +1064,7 @@ namespace grann {
   }
 
   template<typename T, typename TagT>
-  void Index<T, TagT>::optimize_graph() {  // use after build or load
+  void Vamana<T, TagT>::optimize_graph() {  // use after build or load
     _data_len = (_aligned_dim + 1) * sizeof(float);
     _neighbor_len = (_width + 1) * sizeof(unsigned);
     _node_size = _data_len + _neighbor_len;
@@ -1089,7 +1089,7 @@ namespace grann {
   }
 
   template<typename T, typename TagT>
-  void Index<T, TagT>::search_with_opt_graph(const T *query, size_t K, size_t L,
+  void Vamana<T, TagT>::search_with_opt_graph(const T *query, size_t K, size_t L,
                                              unsigned *indices) {
     DistanceFastL2<T> *dist_fast = (DistanceFastL2<T> *) _distance;
 
@@ -1194,9 +1194,9 @@ namespace grann {
   // in case we add ''frozen'' auxiliary points to the dataset, these are not
   // visible to external world, we generate them here and update our dataset
   template<typename T, typename TagT>
-  int Index<T, TagT>::generate_random_frozen_points(const char *filename) {
+  int Vamana<T, TagT>::generate_random_frozen_points(const char *filename) {
     if (_has_built) {
-      grann::cout << "Index already built. Cannot add more points"
+      grann::cout << "Vamana already built. Cannot add more points"
                     << std::endl;
       return -1;
     }
@@ -1231,7 +1231,7 @@ namespace grann {
   }
 
   template<typename T, typename TagT>
-  int Index<T, TagT>::enable_delete() {
+  int Vamana<T, TagT>::enable_delete() {
     LockGuard guard(_change_lock);
     assert(!_can_delete);
     assert(_enable_tags);
@@ -1261,7 +1261,7 @@ namespace grann {
   }
 
   template<typename T, typename TagT>
-  int Index<T, TagT>::eager_delete(const TagT        tag,
+  int Vamana<T, TagT>::eager_delete(const TagT        tag,
                                    const Parameters &parameters) {
     if (_lazy_done && (!_consolidated_order)) {
       grann::cout << "Lazy delete reuests issued but data not consolidated, "
@@ -1373,7 +1373,7 @@ namespace grann {
   }
 
   template<typename T, typename TagT>
-  void Index<T, TagT>::update_in_graph() {
+  void Vamana<T, TagT>::update_in_graph() {
     grann::cout << "Updating in_graph....." << std::flush;
     for (unsigned i = 0; i < _in_graph.size(); i++)
       _in_graph[i].clear();
@@ -1411,7 +1411,7 @@ namespace grann {
   // Do not call consolidate_deletes() if you have not locked _change_lock.
   // Returns number of live points left after consolidation
   template<typename T, typename TagT>
-  size_t Index<T, TagT>::consolidate_deletes(const Parameters &parameters) {
+  size_t Vamana<T, TagT>::consolidate_deletes(const Parameters &parameters) {
     if (_eager_done) {
       grann::cout << "No consolidation required, eager deletes done"
                     << std::endl;
@@ -1492,7 +1492,7 @@ namespace grann {
   }
 
   template<typename T, typename TagT>
-  std::vector<unsigned> Index<T, TagT>::get_new_location(unsigned &active) {
+  std::vector<unsigned> Vamana<T, TagT>::get_new_location(unsigned &active) {
     std::vector<unsigned> new_location;
     new_location.resize(_max_points + _num_frozen_pts,
                         (unsigned) (_max_points + _num_frozen_pts));
@@ -1507,7 +1507,7 @@ namespace grann {
   }
 
   template<typename T, typename TagT>
-  void Index<T, TagT>::compact_data(std::vector<unsigned> new_location,
+  void Vamana<T, TagT>::compact_data(std::vector<unsigned> new_location,
                                     unsigned active, bool &mode) {
     // If start node is removed, replace it.
     assert(!mode);
@@ -1600,7 +1600,7 @@ namespace grann {
   // Do not call reserve_location() if you have not locked _change_lock.
   // It is not thread safe.
   template<typename T, typename TagT>
-  unsigned Index<T, TagT>::reserve_location() {
+  unsigned Vamana<T, TagT>::reserve_location() {
     assert(_num_points < _max_points);
 
     unsigned location;
@@ -1621,7 +1621,7 @@ namespace grann {
   }
 
   template<typename T, typename TagT>
-  void Index<T, TagT>::readjust_data(unsigned _num_frozen_pts) {
+  void Vamana<T, TagT>::readjust_data(unsigned _num_frozen_pts) {
     if (_num_frozen_pts > 0) {
       if (_final_graph[_max_points].empty()) {
         grann::cout << "Readjusting data to correctly position frozen point"
@@ -1658,7 +1658,7 @@ namespace grann {
   }
 
   template<typename T, typename TagT>
-  int Index<T, TagT>::insert_point(const T *point, const Parameters &parameters,
+  int Vamana<T, TagT>::insert_point(const T *point, const Parameters &parameters,
                                    std::vector<Neighbor> &   pool,
                                    std::vector<Neighbor> &   tmp,
                                    tsl::robin_set<unsigned> &visited,
@@ -1736,7 +1736,7 @@ namespace grann {
   }
 
   template<typename T, typename TagT>
-  int Index<T, TagT>::disable_delete(const Parameters &parameters,
+  int Vamana<T, TagT>::disable_delete(const Parameters &parameters,
                                      const bool        consolidate) {
     LockGuard guard(_change_lock);
     if (!_can_delete) {
@@ -1781,7 +1781,7 @@ namespace grann {
   }
 
   template<typename T, typename TagT>
-  int Index<T, TagT>::delete_point(const TagT tag) {
+  int Vamana<T, TagT>::delete_point(const TagT tag) {
     if ((_eager_done) && (!_compacted_order)) {
       grann::cout << "Eager delete requests were issued but data was not "
                        "compacted, cannot proceed with lazy_deletes"
@@ -1801,7 +1801,7 @@ namespace grann {
   }
 
   // EXPORTS
-  template GRANN_DLLEXPORT class Index<float>;
-  template GRANN_DLLEXPORT class Index<int8_t>;
-  template GRANN_DLLEXPORT class Index<uint8_t>;
+  template GRANN_DLLEXPORT class Vamana<float>;
+  template GRANN_DLLEXPORT class Vamana<int8_t>;
+  template GRANN_DLLEXPORT class Vamana<uint8_t>;
 }  // namespace grann

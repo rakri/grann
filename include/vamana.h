@@ -10,15 +10,15 @@
 
 namespace grann {
   template<typename T, typename TagT = int>
-  class Index {
+  class Vamana {
    public:
-    GRANN_DLLEXPORT Index(Metric m, const char *filename,
+    GRANN_DLLEXPORT Vamana(Metric m, const char *filename,
                             const size_t max_points = 0, const size_t nd = 0,
                             const size_t num_frozen_pts = 0,
                             const bool   enable_tags = false,
                             const bool   store_data = true,
                             const bool   support_eager_delete = false);
-    GRANN_DLLEXPORT ~Index();
+    GRANN_DLLEXPORT ~Vamana();
 
     // checks if data is consolidated, saves graph, metadata and associated
     // tags.
