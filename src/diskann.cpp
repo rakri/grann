@@ -818,7 +818,7 @@ namespace grann {
   void DiskANN<T>::cached_beam_search(const T *query1, const _u64 k_search,
                                            const _u64 l_search, _u64 *indices,
                                            float *     distances,
-                                           const _u64  beam_width,
+                                           const _u64  beam_max_degree,
                                            QueryStats *stats) {
     ThreadData<T> data = this->thread_data.pop();
     while (data.scratch.sector_scratch == nullptr) {
@@ -947,8 +947,8 @@ namespace grann {
       _u32 marker = k;
       _u32 num_seen = 0;
 
-      while (marker < cur_list_size && frontier.size() < beam_width &&
-             num_seen < beam_width + 2) {
+      while (marker < cur_list_size && frontier.size() < beam_max_degree &&
+             num_seen < beam_max_degree + 2) {
         if (retset[marker].flag) {
           num_seen++;
           auto iter = nhood_cache.find(retset[marker].id);
@@ -1205,10 +1205,10 @@ namespace grann {
     template<typename T>
   _u32 DiskANN<T>::range_search(const T *query1, const double range,
                                            const _u64 l_search, _u64* indices, float* distances,
-                                           const _u64  beam_width,
+                                           const _u64  beam_max_degree,
                                            QueryStats *stats) {
 _u32 res_count = 0;
-this->cached_beam_search(query1, l_search, l_search, indices, distances, beam_width, stats);
+this->cached_beam_search(query1, l_search, l_search, indices, distances, beam_max_degree, stats);
 for (_u32 i = 0; i < l_search; i++) {
   //std::cout<<distances[i]<<" ";
   if (distances[i] > (float) range) {

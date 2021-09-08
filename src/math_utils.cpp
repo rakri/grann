@@ -6,6 +6,7 @@
 #include <math_utils.h>
 #include "logger.h"
 #include "utils.h"
+#include "index.h"
 
 namespace math_utils {
 
@@ -108,15 +109,15 @@ namespace math_utils {
     } else {
 #pragma omp parallel for schedule(static, 8192)
       for (int64_t i = 0; i < (_s64) num_points; i++) {
-        std::priority_queue<PivotContainer> top_k_queue;
+        std::priority_queue<grann::SimpleNeighbor> top_k_queue;
         float* current = dist_matrix + (i * num_centers);
         for (size_t j = 0; j < num_centers; j++) {
-          PivotContainer this_piv(j, current[j]);
+          grann::SimpleNeighbor this_piv(j, current[j]);
           top_k_queue.push(this_piv);
         }
         for (size_t j = 0; j < k; j++) {
-          PivotContainer this_piv = top_k_queue.top();
-          center_vamana[i * k + j] = (uint32_t) this_piv.piv_id;
+          grann::SimpleNeighbor this_piv = top_k_queue.top();
+          center_vamana[i * k + j] = (uint32_t) this_piv.id;
           top_k_queue.pop();
         }
       }

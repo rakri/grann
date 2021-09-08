@@ -14,7 +14,7 @@
 #include <unistd.h>
 #endif
 
-#include "aux_utils.h"
+#include "recall_utils.h"
 #include "vamana.h"
 #include "memory_mapper.h"
 #include "utils.h"

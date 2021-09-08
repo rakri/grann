@@ -102,7 +102,7 @@ namespace grann {
                         const bool enable_tags, const bool store_data,
                         const bool support_eager_delete)
       : _metric(m), _num_frozen_pts(num_frozen_pts), _has_built(false),
-        _width(0), _can_delete(false), _eager_done(true), _lazy_done(true),
+        _max_degree(0), _can_delete(false), _eager_done(true), _lazy_done(true),
         _compacted_order(true), _enable_tags(enable_tags),
         _consolidated_order(true), _support_eager_delete(support_eager_delete),
         _store_data(store_data) {
@@ -151,7 +151,7 @@ namespace grann {
 
     this->_distance = ::get_distance_function<T>(m);
     _locks = std::vector<std::mutex>(_max_points + _num_frozen_pts);
-    _width = 0;
+    _max_degree = 0;
   }
 
   template<>
@@ -184,7 +184,7 @@ namespace grann {
     if (_support_eager_delete)
       if (_eager_done && (!_compacted_order)) {
         if (_num_points < _max_points) {
-          assert(_final_graph.size() == _max_points + _num_frozen_pts);
+          assert(_out_nbrs.size() == _max_points + _num_frozen_pts);
           unsigned              active = 0;
           std::vector<unsigned> new_location = get_new_location(active);
           grann::cout << "Size of new_location = " << new_location.size()
@@ -204,10 +204,10 @@ namespace grann {
           compact_data(new_location, active, _compacted_order);
 
           if (_support_eager_delete)
-            update_in_graph();
+            update_in_nbrs();
 
         } else {
-          assert(_final_graph.size() == _max_points + _num_frozen_pts);
+          assert(_out_nbrs.size() == _max_points + _num_frozen_pts);
           if (_enable_tags) {
             _change_lock.lock();
             if (_can_delete) {
@@ -223,7 +223,7 @@ namespace grann {
         }
       }
     if (_lazy_done) {
-      assert(_final_graph.size() == _max_points + _num_frozen_pts);
+      assert(_out_nbrs.size() == _max_points + _num_frozen_pts);
       if (_enable_tags) {
         _change_lock.lock();
         if (_can_delete || (!_consolidated_order)) {
@@ -237,12 +237,12 @@ namespace grann {
       }
     }
     out.write((char *) &vamana_size, sizeof(uint64_t));
-    out.write((char *) &_width, sizeof(unsigned));
-    out.write((char *) &_ep, sizeof(unsigned));
+    out.write((char *) &_max_degree, sizeof(unsigned));
+    out.write((char *) &_start_node, sizeof(unsigned));
     for (unsigned i = 0; i < _num_points + _num_frozen_pts; i++) {
-      unsigned GK = (unsigned) _final_graph[i].size();
+      unsigned GK = (unsigned) _out_nbrs[i].size();
       out.write((char *) &GK, sizeof(unsigned));
-      out.write((char *) _final_graph[i].data(), GK * sizeof(unsigned));
+      out.write((char *) _out_nbrs[i].data(), GK * sizeof(unsigned));
       total_gr_edges += GK;
     }
     vamana_size = out.tellp();
@@ -257,7 +257,7 @@ namespace grann {
   }
 
   // load the vamana from file and update the width (max_degree), ep
-  // (navigating node id), and _final_graph (adjacency list)
+  // (navigating node id), and _out_nbrs (adjacency list)
   template<typename T, typename TagT>
   void Vamana<T, TagT>::load(const char *filename, const bool load_tags,
                             const char *tag_filename) {
@@ -267,8 +267,8 @@ namespace grann {
     std::ifstream in(filename, std::ios::binary);
     size_t        expected_file_size;
     in.read((char *) &expected_file_size, sizeof(_u64));
-    in.read((char *) &_width, sizeof(unsigned));
-    in.read((char *) &_ep, sizeof(unsigned));
+    in.read((char *) &_max_degree, sizeof(unsigned));
+    in.read((char *) &_start_node, sizeof(unsigned));
     grann::cout << "Loading vamana vamana " << filename << "..." << std::flush;
 
     size_t   cc = 0;
@@ -283,13 +283,13 @@ namespace grann {
       std::vector<unsigned> tmp(k);
       in.read((char *) tmp.data(), k * sizeof(unsigned));
 
-      _final_graph.emplace_back(tmp);
+      _out_nbrs.emplace_back(tmp);
       if (nodes % 10000000 == 0)
         grann::cout << "." << std::flush;
     }
-    if (_final_graph.size() != _num_points) {
+    if (_out_nbrs.size() != _num_points) {
       grann::cout << "ERROR. mismatch in number of points. Graph has "
-                    << _final_graph.size() << " points and loaded dataset has "
+                    << _out_nbrs.size() << " points and loaded dataset has "
                     << _num_points << " points. " << std::endl;
       return;
     }
@@ -371,11 +371,11 @@ namespace grann {
     return min_idx;
   }
 
-  /* iterate_to_fixed_point():
+  /* greedy_search_to_fixed_point():
    * node_coords : point whose neighbors to be found.
    * init_ids : ids of initial search list.
    * Lsize : size of list.
-   * beam_width: beam_width when performing vamanaing
+   * beam_max_degree: beam_max_degree when performing vamanaing
    * expanded_nodes_info: will contain all the node ids and distances from
    * query that are expanded
    * expanded_nodes_ids : will contain all the nodes that are expanded during
@@ -383,7 +383,7 @@ namespace grann {
    * best_L_nodes: ids of closest L nodes in list
    */
   template<typename T, typename TagT>
-  std::pair<uint32_t, uint32_t> Vamana<T, TagT>::iterate_to_fixed_point(
+  std::pair<uint32_t, uint32_t> Vamana<T, TagT>::greedy_search_to_fixed_point(
       const T *node_coords, const unsigned Lsize,
       const std::vector<unsigned> &init_ids,
       std::vector<Neighbor> &      expanded_nodes_info,
@@ -427,13 +427,13 @@ namespace grann {
         expanded_nodes_info.emplace_back(best_L_nodes[k]);
         expanded_nodes_ids.insert(n);
 
-        for (unsigned m = 0; m < _final_graph[n].size(); ++m) {
-          unsigned id = _final_graph[n][m];
+        for (unsigned m = 0; m < _out_nbrs[n].size(); ++m) {
+          unsigned id = _out_nbrs[n][m];
           if (inserted_into_pool.find(id) == inserted_into_pool.end()) {
             inserted_into_pool.insert(id);
 
-            if ((m + 1) < _final_graph[n].size()) {
-              auto nextn = _final_graph[n][m + 1];
+            if ((m + 1) < _out_nbrs[n].size()) {
+              auto nextn = _out_nbrs[n][m + 1];
               grann::prefetch_vector(
                   (const char *) _data + _aligned_dim * (size_t) nextn,
                   sizeof(T) * _aligned_dim);
@@ -476,9 +476,9 @@ namespace grann {
     std::vector<Neighbor> best_L_nodes;
 
     if (init_ids.size() == 0)
-      init_ids.emplace_back(_ep);
+      init_ids.emplace_back(_start_node);
 
-    iterate_to_fixed_point(node_coords, Lvamana, init_ids, expanded_nodes_info,
+    greedy_search_to_fixed_point(node_coords, Lvamana, init_ids, expanded_nodes_info,
                            expanded_nodes_ids, best_L_nodes);
   }
 
@@ -557,7 +557,7 @@ namespace grann {
     if (pool.size() == 0)
       return;
 
-    _width = (std::max)(_width, range);
+    _max_degree = (std::max)(_max_degree, range);
 
     // sort the pool based on distance to query
     std::sort(pool.begin(), pool.end());
@@ -611,10 +611,10 @@ namespace grann {
 
       {
         LockGuard guard(_locks[des]);
-        if (std::find(_final_graph[des].begin(), _final_graph[des].end(), n) ==
-            _final_graph[des].end()) {
-          _final_graph[des].push_back(n);
-          if (_final_graph[des].size() > (unsigned) (range * VAMANA_SLACK_FACTOR))
+        if (std::find(_out_nbrs[des].begin(), _out_nbrs[des].end(), n) ==
+            _out_nbrs[des].end()) {
+          _out_nbrs[des].push_back(n);
+          if (_out_nbrs[des].size() > (unsigned) (range * VAMANA_SLACK_FACTOR))
             need_to_sync[des] = 1;
         }
       }  // des lock is released by this point
@@ -629,7 +629,7 @@ namespace grann {
   void Vamana<T, TagT>::inter_insert(unsigned               n,
                                     std::vector<unsigned> &pruned_list,
                                     const Parameters &     parameter,
-                                    bool                   update_in_graph) {
+                                    bool                   update_in_nbrs) {
     const auto range = parameter.Get<unsigned>("R");
     assert(n >= 0 && n < _num_points);
     const auto &src_pool = pruned_list;
@@ -640,7 +640,7 @@ namespace grann {
       /* des.id is the id of the neighbors of n */
       assert(des >= 0 && des < _max_points);
       /* des_pool contains the neighbors of the neighbors of n */
-      auto &                des_pool = _final_graph[des];
+      auto &                des_pool = _out_nbrs[des];
       std::vector<unsigned> copy_of_neighbors;
       bool                  prune_needed = false;
       {
@@ -648,11 +648,11 @@ namespace grann {
         if (std::find(des_pool.begin(), des_pool.end(), n) == des_pool.end()) {
           if (des_pool.size() < VAMANA_SLACK_FACTOR * range) {
             des_pool.emplace_back(n);
-            if (update_in_graph) {
+            if (update_in_nbrs) {
               // USE APPROPRIATE LOCKS FOR IN_GRAPH
-              if (std::find(_in_graph[n].begin(), _in_graph[n].end(), des) ==
-                  _in_graph[n].end()) {
-                _in_graph[n].emplace_back(des);
+              if (std::find(_in_nbrs[n].begin(), _in_nbrs[n].end(), des) ==
+                  _in_nbrs[n].end()) {
+                _in_nbrs[n].emplace_back(des);
               }
             }
             prune_needed = false;
@@ -688,11 +688,11 @@ namespace grann {
         {
           LockGuard guard(_locks[des]);
           // DELETE IN-EDGES FROM IN_GRAPH USING APPROPRIATE LOCKS
-          _final_graph[des].clear();
+          _out_nbrs[des].clear();
           for (auto new_nbr : new_out_neighbors) {
-            _final_graph[des].emplace_back(new_nbr);
-            if (update_in_graph) {
-              _in_graph[new_nbr].emplace_back(des);
+            _out_nbrs[des].emplace_back(new_nbr);
+            if (update_in_nbrs) {
+              _in_nbrs[new_nbr].emplace_back(des);
             }
           }
         }
@@ -745,31 +745,31 @@ namespace grann {
     for (unsigned i = 0; i < (unsigned) _num_frozen_pts; ++i)
       visit_order.emplace_back((unsigned) (_max_points + i));
 
-    // if there are frozen points, the first such one is set to be the _ep
+    // if there are frozen points, the first such one is set to be the _start_node
     if (_num_frozen_pts > 0)
-      _ep = (unsigned) _max_points;
+      _start_node = (unsigned) _max_points;
     else
-      _ep = calculate_entry_point();
+      _start_node = calculate_entry_point();
 
-    _final_graph.reserve(_max_points + _num_frozen_pts);
-    _final_graph.resize(_max_points + _num_frozen_pts);
+    _out_nbrs.reserve(_max_points + _num_frozen_pts);
+    _out_nbrs.resize(_max_points + _num_frozen_pts);
     if (_support_eager_delete) {
-      _in_graph.reserve(_max_points + _num_frozen_pts);
-      _in_graph.resize(_max_points + _num_frozen_pts);
+      _in_nbrs.reserve(_max_points + _num_frozen_pts);
+      _in_nbrs.resize(_max_points + _num_frozen_pts);
     }
 
     for (uint64_t p = 0; p < _max_points + _num_frozen_pts; p++) {
-      _final_graph[p].reserve((size_t)(std::ceil(range * VAMANA_SLACK_FACTOR * 1.05)));
+      _out_nbrs[p].reserve((size_t)(std::ceil(range * VAMANA_SLACK_FACTOR * 1.05)));
     }
 
     std::random_device               rd;
     std::mt19937                     gen(rd());
     std::uniform_real_distribution<> dis(0, 1);
 
-    // creating a initial list to begin the search process. it has _ep and
+    // creating a initial list to begin the search process. it has _start_node and
     // random other nodes
     std::set<unsigned> unique_start_points;
-    unique_start_points.insert(_ep);
+    unique_start_points.insert(_start_node);
 
     std::vector<unsigned> init_ids;
     for (auto pt : unique_start_points)
@@ -820,8 +820,8 @@ namespace grann {
            * visited, check their distance to the query, and add it to
            * pool.
            */
-          if (!_final_graph[node].empty())
-            for (auto id : _final_graph[node]) {
+          if (!_out_nbrs[node].empty())
+            for (auto id : _out_nbrs[node]) {
               if (visited.find(id) == visited.end() && id != node) {
                 float dist =
                     _distance->compare(_data + _aligned_dim * (size_t) node,
@@ -844,9 +844,9 @@ namespace grann {
           _u64                   node = visit_order[node_ctr];
           size_t                 node_offset = node_ctr - start_id;
           std::vector<unsigned> &pruned_list = pruned_list_vector[node_offset];
-          _final_graph[node].clear();
+          _out_nbrs[node].clear();
           for (auto id : pruned_list)
-            _final_graph[node].emplace_back(id);
+            _out_nbrs[node].emplace_back(id);
         }
         s = std::chrono::high_resolution_clock::now();
 
@@ -872,7 +872,7 @@ namespace grann {
             std::vector<Neighbor>    dummy_pool(0);
             std::vector<unsigned>    new_out_neighbors;
 
-            for (auto cur_nbr : _final_graph[node]) {
+            for (auto cur_nbr : _out_nbrs[node]) {
               if (dummy_visited.find(cur_nbr) == dummy_visited.end() &&
                   cur_nbr != node) {
                 float dist =
@@ -885,9 +885,9 @@ namespace grann {
             }
             prune_neighbors(node, dummy_pool, parameters, new_out_neighbors);
 
-            _final_graph[node].clear();
+            _out_nbrs[node].clear();
             for (auto id : new_out_neighbors)
-              _final_graph[node].emplace_back(id);
+              _out_nbrs[node].emplace_back(id);
           }
         }
 
@@ -928,12 +928,12 @@ namespace grann {
 #pragma omp parallel for schedule(dynamic, 65536)
     for (_s64 node_ctr = 0; node_ctr < (_s64)(visit_order.size()); node_ctr++) {
       auto node = visit_order[node_ctr];
-      if (_final_graph[node].size() > range) {
+      if (_out_nbrs[node].size() > range) {
         tsl::robin_set<unsigned> dummy_visited(0);
         std::vector<Neighbor>    dummy_pool(0);
         std::vector<unsigned>    new_out_neighbors;
 
-        for (auto cur_nbr : _final_graph[node]) {
+        for (auto cur_nbr : _out_nbrs[node]) {
           if (dummy_visited.find(cur_nbr) == dummy_visited.end() &&
               cur_nbr != node) {
             float dist =
@@ -946,9 +946,9 @@ namespace grann {
         }
         prune_neighbors(node, dummy_pool, parameters, new_out_neighbors);
 
-        _final_graph[node].clear();
+        _out_nbrs[node].clear();
         for (auto id : new_out_neighbors)
-          _final_graph[node].emplace_back(id);
+          _out_nbrs[node].emplace_back(id);
       }
     }
     grann::cout << "done. Link time: "
@@ -974,12 +974,12 @@ namespace grann {
     link(parameters);  // Primary func for creating graph
 
     if (_support_eager_delete) {
-      update_in_graph();  // copying values to in_graph
+      update_in_nbrs();  // copying values to in_graph
     }
 
     size_t max = 0, min = 1 << 30, total = 0, cnt = 0;
     for (size_t i = 0; i < _num_points; i++) {
-      auto &pool = _final_graph[i];
+      auto &pool = _out_nbrs[i];
       max = (std::max)(max, pool.size());
       min = (std::min)(min, pool.size());
       total += pool.size();
@@ -990,7 +990,7 @@ namespace grann {
                   << "  avg:" << (float) total / (float) _num_points << "  min:" << min
                   << "  count(deg<2):" << cnt << "\n"
                   << "Vamana built." << std::endl;
-    _width = (std::max)((unsigned) max, _width);
+    _max_degree = (std::max)((unsigned) max, _max_degree);
     _has_built = true;
   }
 
@@ -1005,10 +1005,10 @@ namespace grann {
     tsl::robin_set<unsigned> expanded_nodes_ids;
 
     if (init_ids.size() == 0) {
-      init_ids.emplace_back(_ep);
+      init_ids.emplace_back(_start_node);
     }
     auto retval =
-        iterate_to_fixed_point(query, L, init_ids, expanded_nodes_info,
+        greedy_search_to_fixed_point(query, L, init_ids, expanded_nodes_info,
                                expanded_nodes_ids, best_L_nodes);
 
     size_t pos = 0;
@@ -1030,9 +1030,9 @@ namespace grann {
     tsl::robin_set<unsigned> expanded_nodes_ids;
 
     if (init_ids.size() == 0) {
-      init_ids.emplace_back(_ep);
+      init_ids.emplace_back(_start_node);
     }
-    auto retval = iterate_to_fixed_point(query, (unsigned) L, init_ids,
+    auto retval = greedy_search_to_fixed_point(query, (unsigned) L, init_ids,
                                          expanded_nodes_info,
                                          expanded_nodes_ids, best_L_nodes);
 
@@ -1066,7 +1066,7 @@ namespace grann {
   template<typename T, typename TagT>
   void Vamana<T, TagT>::optimize_graph() {  // use after build or load
     _data_len = (_aligned_dim + 1) * sizeof(float);
-    _neighbor_len = (_width + 1) * sizeof(unsigned);
+    _neighbor_len = (_max_degree + 1) * sizeof(unsigned);
     _node_size = _data_len + _neighbor_len;
     _opt_graph = (char *) malloc(_node_size * _num_points);
     DistanceFastL2<T> *dist_fast = (DistanceFastL2<T> *) _distance;
@@ -1078,14 +1078,14 @@ namespace grann {
                   _data_len - sizeof(float));
 
       cur_node_offset += _data_len;
-      unsigned k = _final_graph[i].size();
+      unsigned k = _out_nbrs[i].size();
       std::memcpy(cur_node_offset, &k, sizeof(unsigned));
-      std::memcpy(cur_node_offset + sizeof(unsigned), _final_graph[i].data(),
+      std::memcpy(cur_node_offset + sizeof(unsigned), _out_nbrs[i].data(),
                   k * sizeof(unsigned));
-      std::vector<unsigned>().swap(_final_graph[i]);
+      std::vector<unsigned>().swap(_out_nbrs[i]);
     }
-    _final_graph.clear();
-    _final_graph.shrink_to_fit();
+    _out_nbrs.clear();
+    _out_nbrs.shrink_to_fit();
   }
 
   template<typename T, typename TagT>
@@ -1101,11 +1101,11 @@ namespace grann {
     boost::dynamic_bitset<> flags{_num_points, 0};
     unsigned                tmp_l = 0;
     unsigned *              neighbors =
-        (unsigned *) (_opt_graph + _node_size * _ep + _data_len);
-    unsigned MaxM_ep = *neighbors;
+        (unsigned *) (_opt_graph + _node_size * _start_node + _data_len);
+    unsigned MaxM_start_node = *neighbors;
     neighbors++;
 
-    for (; tmp_l < L && tmp_l < MaxM_ep; tmp_l++) {
+    for (; tmp_l < L && tmp_l < MaxM_start_node; tmp_l++) {
       init_ids[tmp_l] = neighbors[tmp_l];
       flags[init_ids[tmp_l]] = true;
     }
@@ -1286,17 +1286,17 @@ namespace grann {
     const float    alpha = parameters.Get<float>("alpha");
 
     // delete point from out-neighbors' in-neighbor list
-    for (auto j : _final_graph[id])
-      for (unsigned k = 0; k < _in_graph[j].size(); k++)
-        if (_in_graph[j][k] == id) {
-          _in_graph[j].erase(_in_graph[j].begin() + k);
+    for (auto j : _out_nbrs[id])
+      for (unsigned k = 0; k < _in_nbrs[j].size(); k++)
+        if (_in_nbrs[j][k] == id) {
+          _in_nbrs[j].erase(_in_nbrs[j].begin() + k);
           break;
         }
 
     tsl::robin_set<unsigned> in_nbr;
-    for (unsigned i = 0; i < _in_graph[id].size(); i++)
-      in_nbr.insert(_in_graph[id][i]);
-    assert(_in_graph[id].size() == in_nbr.size());
+    for (unsigned i = 0; i < _in_nbrs[id].size(); i++)
+      in_nbr.insert(_in_nbrs[id][i]);
+    assert(_in_nbrs[id].size() == in_nbr.size());
 
     tsl::robin_set<unsigned> candidate_set;
     std::vector<Neighbor>    expanded_nghrs;
@@ -1316,9 +1316,9 @@ namespace grann {
       }
 
     for (auto it : in_nbr) {
-      _final_graph[it].erase(
-          std::remove(_final_graph[it].begin(), _final_graph[it].end(), id),
-          _final_graph[it].end());
+      _out_nbrs[it].erase(
+          std::remove(_out_nbrs[it].begin(), _out_nbrs[it].end(), id),
+          _out_nbrs[it].end());
     }
 
     for (auto it : visited) {
@@ -1328,12 +1328,12 @@ namespace grann {
         expanded_nghrs.clear();
         result.clear();
 
-        for (auto j : _final_graph[id])
+        for (auto j : _out_nbrs[id])
           if ((j != id) && (j != ngh) &&
               (_delete_set.find(j) == _delete_set.end()))
             candidate_set.insert(j);
 
-        for (auto j : _final_graph[ngh])
+        for (auto j : _out_nbrs[ngh])
           if ((j != id) && (j != ngh) &&
               (_delete_set.find(j) == _delete_set.end()))
             candidate_set.insert(j);
@@ -1348,24 +1348,24 @@ namespace grann {
         std::sort(expanded_nghrs.begin(), expanded_nghrs.end());
         occlude_list(expanded_nghrs, alpha, range, maxc, result);
 
-        for (auto iter : _final_graph[ngh])
-          for (unsigned k = 0; k < _in_graph[iter].size(); k++)
-            if (_in_graph[iter][k] == ngh) {
-              _in_graph[iter].erase(_in_graph[iter].begin() + k);
+        for (auto iter : _out_nbrs[ngh])
+          for (unsigned k = 0; k < _in_nbrs[iter].size(); k++)
+            if (_in_nbrs[iter][k] == ngh) {
+              _in_nbrs[iter].erase(_in_nbrs[iter].begin() + k);
             }
 
-        _final_graph[ngh].clear();
+        _out_nbrs[ngh].clear();
 
         for (auto j : result) {
           if (_delete_set.find(j.id) == _delete_set.end())
-            _final_graph[ngh].push_back(j.id);
-          if (std::find(_in_graph[j.id].begin(), _in_graph[j.id].end(), ngh) ==
-              _in_graph[j.id].end())
-            _in_graph[j.id].emplace_back(ngh);
+            _out_nbrs[ngh].push_back(j.id);
+          if (std::find(_in_nbrs[j.id].begin(), _in_nbrs[j.id].end(), ngh) ==
+              _in_nbrs[j.id].end())
+            _in_nbrs[j.id].emplace_back(ngh);
         }
       }
     }
-    _final_graph[id].clear();
+    _out_nbrs[id].clear();
     _num_points--;
 
     _eager_done = true;
@@ -1373,32 +1373,32 @@ namespace grann {
   }
 
   template<typename T, typename TagT>
-  void Vamana<T, TagT>::update_in_graph() {
+  void Vamana<T, TagT>::update_in_nbrs() {
     grann::cout << "Updating in_graph....." << std::flush;
-    for (unsigned i = 0; i < _in_graph.size(); i++)
-      _in_graph[i].clear();
+    for (unsigned i = 0; i < _in_nbrs.size(); i++)
+      _in_nbrs[i].clear();
 
-    for (unsigned i = 0; i < _final_graph.size();
+    for (unsigned i = 0; i < _out_nbrs.size();
          i++)  // copying to in-neighbor graph
 
-      for (unsigned j = 0; j < _final_graph[i].size(); j++) {
-        if (std::find(_in_graph[_final_graph[i][j]].begin(),
-                      _in_graph[_final_graph[i][j]].end(),
-                      i) != _in_graph[_final_graph[i][j]].end())
+      for (unsigned j = 0; j < _out_nbrs[i].size(); j++) {
+        if (std::find(_in_nbrs[_out_nbrs[i][j]].begin(),
+                      _in_nbrs[_out_nbrs[i][j]].end(),
+                      i) != _in_nbrs[_out_nbrs[i][j]].end())
           grann::cout << "Duplicates found" << std::endl;
-        _in_graph[_final_graph[i][j]].emplace_back(i);
+        _in_nbrs[_out_nbrs[i][j]].emplace_back(i);
       }
 
     size_t max_in, min_in, avg_in;
     max_in = 0;
     min_in = _max_points + 1;
     avg_in = 0;
-    for (unsigned i = 0; i < _in_graph.size(); i++) {
-      avg_in += _in_graph[i].size();
-      if (_in_graph[i].size() > max_in)
-        max_in = _in_graph[i].size();
-      if ((_in_graph[i].size() < min_in) && (i != _ep))
-        min_in = _in_graph[i].size();
+    for (unsigned i = 0; i < _in_nbrs.size(); i++) {
+      avg_in += _in_nbrs[i].size();
+      if (_in_nbrs[i].size() > max_in)
+        max_in = _in_nbrs[i].size();
+      if ((_in_nbrs[i].size() < min_in) && (i != _start_node))
+        min_in = _in_nbrs[i].size();
     }
 
     grann::cout << std::endl
@@ -1449,12 +1449,12 @@ namespace grann {
         result.clear();
 
         bool modify = false;
-        for (auto ngh : _final_graph[i]) {
+        for (auto ngh : _out_nbrs[i]) {
           if (new_location[ngh] >= _max_points + _num_frozen_pts) {
             modify = true;
 
             // Add outgoing links from
-            for (auto j : _final_graph[ngh])
+            for (auto j : _out_nbrs[ngh])
               if (_delete_set.find(j) == _delete_set.end())
                 candidate_set.insert(j);
           } else {
@@ -1473,18 +1473,18 @@ namespace grann {
           std::sort(expanded_nghrs.begin(), expanded_nghrs.end());
           occlude_list(expanded_nghrs, alpha, range, maxc, result);
 
-          _final_graph[i].clear();
+          _out_nbrs[i].clear();
           for (auto j : result) {
             if (j.id != i)
-              _final_graph[i].push_back(j.id);
+              _out_nbrs[i].push_back(j.id);
           }
         }
       } else
-        _final_graph[i].clear();
+        _out_nbrs[i].clear();
     }
 
     if (_support_eager_delete)
-      update_in_graph();
+      update_in_nbrs();
 
     _num_points -= _delete_set.size();
     compact_data(new_location, active, _consolidated_order);
@@ -1511,25 +1511,25 @@ namespace grann {
                                     unsigned active, bool &mode) {
     // If start node is removed, replace it.
     assert(!mode);
-    if (_delete_set.find(_ep) != _delete_set.end()) {
+    if (_delete_set.find(_start_node) != _delete_set.end()) {
       std::cerr << "Replacing start node which has been deleted... "
                 << std::flush;
-      auto old_ep = _ep;
+      auto old_start_node = _start_node;
       // First active neighbor of old start node is new start node
-      for (auto iter : _final_graph[_ep])
+      for (auto iter : _out_nbrs[_start_node])
         if (_delete_set.find(iter) != _delete_set.end()) {
-          _ep = iter;
+          _start_node = iter;
           break;
         }
-      if (_ep == old_ep) {
+      if (_start_node == old_start_node) {
         grann::cerr << "ERROR: Did not find a replacement for start node."
                       << std::endl;
         throw grann::ANNException(
             "ERROR: Did not find a replacement for start node.", -1,
             __FUNCSIG__, __FILE__, __LINE__);
       } else {
-        assert(_delete_set.find(_ep) == _delete_set.end());
-        grann::cout << "New start node is " << _ep << std::endl;
+        assert(_delete_set.find(_start_node) == _delete_set.end());
+        grann::cout << "New start node is " << _start_node << std::endl;
       }
     }
 
@@ -1541,23 +1541,23 @@ namespace grann {
           _max_points + _num_frozen_pts) {  // If point continues to exist
 
         // Renumber nodes to compact the order
-        for (size_t i = 0; i < _final_graph[old].size(); ++i) {
-          assert(new_location[_final_graph[old][i]] <= _final_graph[old][i]);
-          _final_graph[old][i] = new_location[_final_graph[old][i]];
+        for (size_t i = 0; i < _out_nbrs[old].size(); ++i) {
+          assert(new_location[_out_nbrs[old][i]] <= _out_nbrs[old][i]);
+          _out_nbrs[old][i] = new_location[_out_nbrs[old][i]];
         }
 
         if (_support_eager_delete)
-          for (size_t i = 0; i < _in_graph[old].size(); ++i) {
-            if (new_location[_in_graph[old][i]] <= _in_graph[old][i])
-              _in_graph[old][i] = new_location[_in_graph[old][i]];
+          for (size_t i = 0; i < _in_nbrs[old].size(); ++i) {
+            if (new_location[_in_nbrs[old][i]] <= _in_nbrs[old][i])
+              _in_nbrs[old][i] = new_location[_in_nbrs[old][i]];
           }
 
         // Move the data and adj list to the correct position
         if (new_location[old] != old) {
           assert(new_location[old] < old);
-          _final_graph[new_location[old]].swap(_final_graph[old]);
+          _out_nbrs[new_location[old]].swap(_out_nbrs[old]);
           if (_support_eager_delete)
-            _in_graph[new_location[old]].swap(_in_graph[old]);
+            _in_nbrs[new_location[old]].swap(_in_nbrs[old]);
           memcpy((void *) (_data + _aligned_dim * (size_t) new_location[old]),
                  (void *) (_data + _aligned_dim * (size_t) old),
                  _aligned_dim * sizeof(T));
@@ -1577,7 +1577,7 @@ namespace grann {
     grann::cout << "done." << std::endl;
 
     for (unsigned old = active; old < _max_points + _num_frozen_pts; ++old)
-      _final_graph[old].clear();
+      _out_nbrs[old].clear();
     _delete_set.clear();
     _empty_slots.clear();
     mode = true;
@@ -1585,8 +1585,8 @@ namespace grann {
 
     /*	  for(unsigned i = 0; i < _num_points + _num_frozen_pts; i++){
           int flag = 0;
-          for(unsigned j = 0; j < _final_graph[i].size(); j++)
-            if(_final_graph[i][j] == i){
+          for(unsigned j = 0; j < _out_nbrs[i].size(); j++)
+            if(_out_nbrs[i][j] == i){
               grann::cout << "Self loop found just after compacting inside the
        function" << std::endl;
               flag = 1;
@@ -1623,23 +1623,23 @@ namespace grann {
   template<typename T, typename TagT>
   void Vamana<T, TagT>::readjust_data(unsigned _num_frozen_pts) {
     if (_num_frozen_pts > 0) {
-      if (_final_graph[_max_points].empty()) {
+      if (_out_nbrs[_max_points].empty()) {
         grann::cout << "Readjusting data to correctly position frozen point"
                       << std::endl;
         for (unsigned i = 0; i < _num_points; i++)
-          for (unsigned j = 0; j < _final_graph[i].size(); j++)
-            if (_final_graph[i][j] >= _num_points)
-              _final_graph[i][j] =
-                  (unsigned) (_max_points + (_final_graph[i][j] - _num_points));
+          for (unsigned j = 0; j < _out_nbrs[i].size(); j++)
+            if (_out_nbrs[i][j] >= _num_points)
+              _out_nbrs[i][j] =
+                  (unsigned) (_max_points + (_out_nbrs[i][j] - _num_points));
         for (unsigned i = 0; i < _num_frozen_pts; i++) {
-          for (unsigned k = 0; k < _final_graph[_num_points + i].size(); k++)
-            _final_graph[_max_points + i].emplace_back(
-                _final_graph[_num_points + i][k]);
-          _final_graph[_num_points + i].clear();
+          for (unsigned k = 0; k < _out_nbrs[_num_points + i].size(); k++)
+            _out_nbrs[_max_points + i].emplace_back(
+                _out_nbrs[_num_points + i][k]);
+          _out_nbrs[_num_points + i].clear();
         }
 
         if (_support_eager_delete)
-          update_in_graph();
+          update_in_nbrs();
 
         grann::cout << "Finished updating graph, updating data now"
                       << std::endl;
@@ -1706,27 +1706,27 @@ namespace grann {
 
     prune_neighbors(location, pool, parameters, pruned_list);
 
-    assert(_final_graph.size() == _max_points + _num_frozen_pts);
+    assert(_out_nbrs.size() == _max_points + _num_frozen_pts);
 
-    for (unsigned i = 0; i < _final_graph[location].size(); i++)
-      _in_graph[_final_graph[location][i]].erase(
-          std::remove(_in_graph[_final_graph[location][i]].begin(),
-                      _in_graph[_final_graph[location][i]].end(), location),
-          _in_graph[_final_graph[location][i]].end());
+    for (unsigned i = 0; i < _out_nbrs[location].size(); i++)
+      _in_nbrs[_out_nbrs[location][i]].erase(
+          std::remove(_in_nbrs[_out_nbrs[location][i]].begin(),
+                      _in_nbrs[_out_nbrs[location][i]].end(), location),
+          _in_nbrs[_out_nbrs[location][i]].end());
 
-    _final_graph[location].clear();
-    _final_graph[location].reserve(range);
+    _out_nbrs[location].clear();
+    _out_nbrs[location].reserve(range);
     assert(!pruned_list.empty());
     for (auto link : pruned_list) {
-      _final_graph[location].emplace_back(link);
+      _out_nbrs[location].emplace_back(link);
       if (_support_eager_delete)
-        if (std::find(_in_graph[link].begin(), _in_graph[link].end(),
-                      location) == _in_graph[link].end()) {
-          _in_graph[link].emplace_back(location);
+        if (std::find(_in_nbrs[link].begin(), _in_nbrs[link].end(),
+                      location) == _in_nbrs[link].end()) {
+          _in_nbrs[link].emplace_back(location);
         }
     }
 
-    assert(_final_graph[location].size() <= range);
+    assert(_out_nbrs[location].size() <= range);
     if (_support_eager_delete)
       inter_insert(location, pruned_list, parameters, 1);
     else
