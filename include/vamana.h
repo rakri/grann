@@ -6,7 +6,6 @@
 #include "index.h"
 #include "utils.h"
 #include "distance.h"
-#include "neighbor.h"
 
 
 

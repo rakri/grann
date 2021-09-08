@@ -10,7 +10,7 @@
 #include "percentile_stats.h"
 #include "pq_table.h"
 #include "distance.h"
-#include "neighbor.h"
+
 
 
 #define MAX_N_CMPS 16384
