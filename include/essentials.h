@@ -60,6 +60,10 @@
 #define IS_512_ALIGNED(X) IS_ALIGNED(X, 512)
 #define IS_4096_ALIGNED(X) IS_ALIGNED(X, 4096)
 
+#define SECTOR_LEN 4096
+#define MAX_N_SECTOR_READS 128
+
+
 typedef uint64_t _u64;
 typedef int64_t  _s64;
 typedef uint32_t _u32;
