@@ -32,6 +32,10 @@ typedef std::vector<std::vector<_u32>> NeighborList;
     NeighborList                             _out_nbrs;
     NeighborList                             _in_nbrs;
     _u32 _max_degree = 0;
+    bool _locks_enabled = false; // will be used at build time, pure search dont need locks 
+
+    _u32 process_neighbors_into_candidate_pool(const T* & node_coords, std::vector<_u32> &nbr_list, std::vector<Neighbor> &best_L_nodes, const _u32  maxListSize, _u32 & curListSize, tsl::robin_set<_u32> &inserted_into_pool, _u32 & total_comparisons, _u32 & total_hops);
+
 
     void greedy_search_to_fixed_point(
         const T *node_coords, const _u32 list_size,

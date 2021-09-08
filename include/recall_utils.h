@@ -216,13 +216,6 @@ inline void load_truthset(const std::string& bin_file, uint32_t*& ids,
       if (gt_count[i]!=0)
       reader.read((char*) groundtruth[i].data(), sizeof(_u32)*gt_count[i]);
 
-// debugging code
-/*      if (i < 10) { 
-      std::cout<<gt_count[i] <<" nbrs, ids: "; 
-        for (auto &x : groundtruth[i])
-          std::cout<<x <<" ";
-        std::cout<<std::endl;
-      } */
    }
   }
 
