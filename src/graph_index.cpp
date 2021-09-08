@@ -13,7 +13,6 @@ namespace grann {
   GraphIndex<T>::GraphIndex(Metric m, const char *filename, std::vector<_u32> &list_of_ids) : ANNIndex<T>(m, filename, list_of_ids)
        { // Graph Index class constructor loads the data and sets num_points, dim, etc.
     _max_degree = 0;
-    _out_nbrs.resize(this->_num_points);
   }
 
   /* greedy_search_to_fixed_point():

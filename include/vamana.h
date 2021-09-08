@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "index.h"
+#include "graph_index.h"
 #include "utils.h"
 #include "distance.h"
 
@@ -13,7 +13,7 @@ namespace grann {
 
 
   template<typename T>
-  class Vamana {
+  class Vamana : public GraphIndex<T> {
    public:
     GRANN_DLLEXPORT Vamana(Metric m, const char *filename, std::vector<_u32> &list_of_ids);
     GRANN_DLLEXPORT ~Vamana();
@@ -30,10 +30,7 @@ namespace grann {
 
     /*  Internals of the library */
    protected:
-
-   private:
-    size_t       _num_frozen_pts;
-    unsigned     _max_degree;
+    size_t       _num_steiner_pts;
     unsigned     _start_node;
 
   };
