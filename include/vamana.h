@@ -33,5 +33,29 @@ namespace grann {
     size_t       _num_steiner_pts;
     unsigned     _start_node;
 
+
+  GRANN_DLLEXPORT unsigned calculate_entry_point();
+void get_expanded_nodes();
+  void occlude_list(std::vector<Neighbor> &pool,
+                                    const float alpha, const unsigned degree,
+                                    const unsigned         maxc,
+                                    std::vector<Neighbor> &result);
+
+void occlude_list(std::vector<Neighbor> &pool,
+                                    const float alpha, const unsigned degree,
+                                    const unsigned         maxc,
+                                    std::vector<Neighbor> &result,
+                                    std::vector<float> &   occlude_factor);
+
+                                     void prune_neighbors(const unsigned         location,
+                                       std::vector<Neighbor> &pool,
+                                       const Parameters &     parameter,
+                                       std::vector<unsigned> &pruned_list);
+
+                                       void inter_insert(unsigned               n,
+                                    std::vector<unsigned> &pruned_list,
+                                    const Parameters &     parameters);
+
+
   };
 }  // namespace grann

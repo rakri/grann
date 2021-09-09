@@ -205,67 +205,34 @@ namespace grann {
                                        std::vector<Neighbor> &pool,
                                        const Parameters &     parameter,
                                        std::vector<unsigned> &pruned_list) {
-    unsigned range = parameter.Get<unsigned>("R");
+    unsigned degree_bound = parameter.Get<unsigned>("R");
     unsigned maxc = parameter.Get<unsigned>("C");
     float    alpha = parameter.Get<float>("alpha");
 
     if (pool.size() == 0)
       return;
 
-    //_max_degree = (std::max)(this->_max_degree, range);
+    //_max_degree = (std::max)(this->_max_degree, degree_bound);
 
     // sort the pool based on distance to query
     std::sort(pool.begin(), pool.end());
 
     std::vector<Neighbor> result;
-    result.reserve(range);
+    result.reserve(degree_bound);
     std::vector<float> occlude_factor(pool.size(), 0);
 
-    occlude_list(pool, alpha, range, maxc, result, occlude_factor);
+    occlude_list(pool, alpha, degree_bound, maxc, result, occlude_factor);
 
     /* Add all the nodes in result into a variable called cut_graph
      * So this contains all the neighbors of id location
      */
     pruned_list.clear();
-    assert(result.size() <= range);
+    assert(result.size() <= degree_bound);
     for (auto iter : result) {
       if (iter.id != location)
         pruned_list.emplace_back(iter.id);
     }
-                                       }
-
-  /* batch_inter_insert():
-   * This function tries to add reverse links from all the visited nodes to
-   * the current node n.
-   */
-  template<typename T>
-  void Vamana<T>::batch_inter_insert(
-      unsigned n, const std::vector<unsigned> &pruned_list,
-      const Parameters &parameter, std::vector<unsigned> &need_to_sync) {
-    const auto range = parameter.Get<unsigned>("R");
-
-    // assert(!src_pool.empty());
-
-    for (auto des : pruned_list) {
-      if (des == n)
-        continue;
-      /* des.id is the id of the neighbors of n */
-      assert(des >= 0 && des < this->_num_points);
-      if (des > this->_num_points)
-        grann::cout << "error. " << des << " exceeds max_pts" << std::endl;
-      /* des_pool contains the neighbors of the neighbors of n */
-
-      {
-        LockGuard guard(this->_locks[des]);
-        if (std::find(this->_out_nbrs[des].begin(), this->_out_nbrs[des].end(), n) ==
-            this->_out_nbrs[des].end()) {
-          this->_out_nbrs[des].push_back(n);
-          if (this->_out_nbrs[des].size() > (unsigned) (range * VAMANA_SLACK_FACTOR))
-            need_to_sync[des] = 1;
-        }
-      }  // des lock is released by this point
     }
-  }
 
   /* inter_insert():
    * This function tries to add reverse links from all the visited nodes to
@@ -274,10 +241,9 @@ namespace grann {
   template<typename T>
   void Vamana<T>::inter_insert(unsigned               n,
                                     std::vector<unsigned> &pruned_list,
-                                    const Parameters &     parameter,
-                                    bool                   update_in_nbrs) {
-    const auto range = parameter.Get<unsigned>("R");
-    assert(n >= 0 && n < _num_points);
+                                    const Parameters &     parameters) {
+    const auto degree_bound = parameters.Get<unsigned>("R");
+
     const auto &src_pool = pruned_list;
 
     assert(!src_pool.empty());
@@ -291,7 +257,7 @@ namespace grann {
       {
         LockGuard guard(this->_locks[des]);
         if (std::find(des_pool.begin(), des_pool.end(), n) == des_pool.end()) {
-          if (des_pool.size() < VAMANA_SLACK_FACTOR * range) {
+          if (des_pool.size() < VAMANA_SLACK_FACTOR * degree_bound) {
             des_pool.emplace_back(n);
             prune_needed = false;
           } else {
@@ -306,7 +272,7 @@ namespace grann {
         tsl::robin_set<unsigned> dummy_visited(0);
         std::vector<Neighbor>    dummy_pool(0);
 
-        size_t reserveSize = (size_t)(std::ceil(1.05 * VAMANA_SLACK_FACTOR * range));
+        size_t reserveSize = (size_t)(std::ceil(1.05 * VAMANA_SLACK_FACTOR * degree_bound));
         dummy_visited.reserve(reserveSize);
         dummy_pool.reserve(reserveSize);
 
@@ -325,13 +291,9 @@ namespace grann {
         prune_neighbors(des, dummy_pool, parameter, new_out_neighbors);
         {
           LockGuard guard(this->_locks[des]);
-          // DELETE IN-EDGES FROM IN_GRAPH USING APPROPRIATE LOCKS
           this->_out_nbrs[des].clear();
           for (auto new_nbr : new_out_neighbors) {
             this->_out_nbrs[des].emplace_back(new_nbr);
-            if (update_in_nbrs) {
-              this->_in_nbrs[new_nbr].emplace_back(des);
-            }
           }
         }
       }
@@ -345,7 +307,7 @@ namespace grann {
 
     unsigned num_threads = parameters.Get<unsigned>("num_threads");
     unsigned list_size = parameters.Get<unsigned>("L");
-    unsigned degree_budget = parameters.Get<unsigned>("R");
+    unsigned degree_bound = parameters.Get<unsigned>("R");
     float alpha = parameters.Get<float>("alpha");
 
     if (num_threads != 0)
@@ -375,21 +337,18 @@ for (_u32 location = 0; location < this->_num_points; location++) {
       }*/
     prune_neighbors(location, pool, parameters, pruned_list);
 
-    _out_nbrs[location].reserve((_u64)(VAMANA_SLACK_FACTOR*range));
-    for (auto link : pruned_list) {
+    _out_nbrs[location].reserve((_u64)(VAMANA_SLACK_FACTOR*degree_bound));
+    {
+            LockGuard guard(this->_locks[location]);
+    for (auto link : pruned_list) 
       _out_nbrs[location].emplace_back(link);
     }
-    inter_insert(location, pruned_list, parameters, 0);
-
-    return 0;
-
-
+    inter_insert(location, pruned_list, parameters, 0); // add reverse edge
 
     grann::cout << "Starting final cleanup.." << std::flush;
 #pragma omp parallel for schedule(dynamic, 65536)
-    for (_s64 node_ctr = 0; node_ctr < (_s64)(visit_order.size()); node_ctr++) {
-      auto node = node_ctr;
-      if (_out_nbrs[node].size() > degree_budget) {
+    for (_s64 node = 0; node < this->_num_points; node++) {
+      if (_out_nbrs[node].size() > degree_bound) {
         tsl::robin_set<unsigned> dummy_visited(0);
         std::vector<Neighbor>    dummy_pool(0);
         std::vector<unsigned>    new_out_neighbors;
