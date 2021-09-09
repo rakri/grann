@@ -65,7 +65,7 @@ namespace math_utils {
       uint32_t* center_vamana, float* const dist_matrix, size_t k) {
     if (k > num_centers) {
       grann::cout << "ERROR: k (" << k << ") > num_center(" << num_centers
-                    << ")" << std::endl;
+                  << ")" << std::endl;
       return;
     }
 
@@ -143,7 +143,7 @@ namespace math_utils {
                                float*               pts_norms_squared) {
     if (k > num_centers) {
       grann::cout << "ERROR: k (" << k << ") > num_center(" << num_centers
-                    << ")" << std::endl;
+                  << ")" << std::endl;
       return;
     }
 
@@ -206,8 +206,8 @@ namespace math_utils {
                          float* cur_pivot_data, size_t num_centers,
                          uint32_t* closest_centers, bool to_subtract) {
     grann::cout << "Processing residuals of " << num_points << " points in "
-                  << dim << " dimensions using " << num_centers << " centers "
-                  << std::endl;
+                << dim << " dimensions using " << num_centers << " centers "
+                << std::endl;
 #pragma omp parallel for schedule(static, 8192)
     for (int64_t n_iter = 0; n_iter < (_s64) num_points; n_iter++) {
       for (size_t d_iter = 0; d_iter < dim; d_iter++) {
@@ -335,13 +335,13 @@ namespace kmeans {
       residual = lloyds_iter(data, num_points, dim, centers, num_centers,
                              docs_l2sq, closest_docs, closest_center);
 
-      grann::cout << "Lloyd's iter " << i
-                    << "  dist_sq residual: " << residual << std::endl;
+      grann::cout << "Lloyd's iter " << i << "  dist_sq residual: " << residual
+                  << std::endl;
 
       if (((i != 0) && ((old_residual - residual) / residual) < 0.00001) ||
           (residual < std::numeric_limits<float>::epsilon())) {
         grann::cout << "Residuals unchanged: " << old_residual << " becomes "
-                      << residual << ". Early termination." << std::endl;
+                    << residual << ". Early termination." << std::endl;
         break;
       }
     }
@@ -361,8 +361,8 @@ namespace kmeans {
     //	pivot_data = new float[num_centers * dim];
 
     std::vector<size_t> picked;
-    grann::cout << "Selecting " << num_centers << " pivots from "
-                  << num_points << " points using ";
+    grann::cout << "Selecting " << num_centers << " pivots from " << num_points
+                << " points using ";
     std::random_device rd;
     auto               x = rd();
     grann::cout << "random seed " << x << std::endl;
@@ -384,17 +384,17 @@ namespace kmeans {
                                  float* pivot_data, size_t num_centers) {
     if (num_points > 1 << 23) {
       grann::cout << "ERROR: n_pts " << num_points
-                    << " currently not supported for k-means++, maximum is "
-                       "8388608. Falling back to random pivot "
-                       "selection."
-                    << std::endl;
+                  << " currently not supported for k-means++, maximum is "
+                     "8388608. Falling back to random pivot "
+                     "selection."
+                  << std::endl;
       selecting_pivots(data, num_points, dim, pivot_data, num_centers);
       return;
     }
 
     std::vector<size_t> picked;
-    grann::cout << "Selecting " << num_centers << " pivots from "
-                  << num_points << " points using ";
+    grann::cout << "Selecting " << num_centers << " pivots from " << num_points
+                << " points using ";
     std::random_device rd;
     auto               x = rd();
     grann::cout << "random seed " << x << ": " << std::flush;

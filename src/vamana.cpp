@@ -4,15 +4,16 @@
 #include "utils.h"
 #include "vamana.h"
 
-
 namespace grann {
 
   // Initialize an vamana with metric m, load the data of type T with filename
   // (bin), and initialize num_points
   template<typename T>
-  Vamana<T>::Vamana(Metric m, const char *filename, std::vector<_u32> &list_of_ids)
-      : GraphIndex<T>(m,filename,list_of_ids) {
-        grann::cout<<"Initialized Vamana Object with " << this->_num_points << "points, dim=" << this->_dim << std::endl;
+  Vamana<T>::Vamana(Metric m, const char *filename,
+                    std::vector<_u32> &list_of_ids)
+      : GraphIndex<T>(m, filename, list_of_ids) {
+    grann::cout << "Initialized Vamana Object with " << this->_num_points
+                << "points, dim=" << this->_dim << std::endl;
   }
 
   // save the graph vamana on a file as an adjacency list. For each point,
@@ -39,9 +40,9 @@ namespace grann {
     out.close();
 
     grann::cout << "Avg degree: "
-                  << ((float) total_gr_edges) /
-                         ((float) (this->_num_points + this->_num_steiner_pts))
-                  << std::endl;
+                << ((float) total_gr_edges) /
+                       ((float) (this->_num_points + this->_num_steiner_pts))
+                << std::endl;
   }
 
   // load the vamana from file and update the width (max_degree), ep
@@ -73,13 +74,13 @@ namespace grann {
     }
     if (this->_out_nbrs.size() != this->_num_points) {
       grann::cout << "ERROR. mismatch in number of points. Graph has "
-                    << _out_nbrs.size() << " points and loaded dataset has "
-                    << _num_points << " points. " << std::endl;
+                  << _out_nbrs.size() << " points and loaded dataset has "
+                  << _num_points << " points. " << std::endl;
       return;
     }
 
     grann::cout << "..done. Vamana has " << nodes << " nodes and " << cc
-                  << " out-edges" << std::endl;
+                << " out-edges" << std::endl;
   }
 
   /**************************************************************
@@ -132,28 +133,27 @@ namespace grann {
     return min_idx;
   }
 
-
   template<typename T>
   void Vamana<T>::get_expanded_nodes(
       const size_t node_id, const unsigned l_build,
       std::vector<unsigned>     init_ids,
       std::vector<Neighbor> &   expanded_nodes_info,
       tsl::robin_set<unsigned> &expanded_nodes_ids) {
-    const T *             node_coords = this->_data + this->_aligned_dim * node_id;
+    const T *node_coords = this->_data + this->_aligned_dim * node_id;
     std::vector<Neighbor> best_L_nodes;
 
     if (init_ids.size() == 0)
       init_ids.emplace_back(this->_start_node);
 
-    greedy_search_to_fixed_point(node_coords, l_build, init_ids, expanded_nodes_info,
-                           expanded_nodes_ids, best_L_nodes);
+    greedy_search_to_fixed_point(node_coords, l_build, init_ids,
+                                 expanded_nodes_info, expanded_nodes_ids,
+                                 best_L_nodes);
   }
 
   template<typename T>
-  void Vamana<T>::occlude_list(std::vector<Neighbor> &pool,
-                                    const float alpha, const unsigned degree,
-                                    const unsigned         maxc,
-                                    std::vector<Neighbor> &result) {
+  void Vamana<T>::occlude_list(std::vector<Neighbor> &pool, const float alpha,
+                               const unsigned degree, const unsigned maxc,
+                               std::vector<Neighbor> &result) {
     auto               pool_size = (_u32) pool.size();
     std::vector<float> occlude_factor(pool_size, 0);
     occlude_list(pool, alpha, degree, maxc, result, occlude_factor);
@@ -161,10 +161,10 @@ namespace grann {
 
   template<typename T, typename TagT>
   void Vamana<T, TagT>::occlude_list(std::vector<Neighbor> &pool,
-                                    const float alpha, const unsigned degree,
-                                    const unsigned         maxc,
-                                    std::vector<Neighbor> &result,
-                                    std::vector<float> &   occlude_factor) {
+                                     const float alpha, const unsigned degree,
+                                     const unsigned         maxc,
+                                     std::vector<Neighbor> &result,
+                                     std::vector<float> &   occlude_factor) {
     if (pool.empty())
       return;
     assert(std::is_sorted(pool.begin(), pool.end()));
@@ -190,9 +190,10 @@ namespace grann {
             continue;
           float djk = this->_distance->compare(
               this->_data + this->_aligned_dim * (size_t) pool[t].id,
-              this->_data + this->_aligned_dim * (size_t) p.id, (unsigned) this->_aligned_dim);
-            occlude_factor[t] =
-                (std::max)(occlude_factor[t], pool[t].distance / djk);
+              this->_data + this->_aligned_dim * (size_t) p.id,
+              (unsigned) this->_aligned_dim);
+          occlude_factor[t] =
+              (std::max)(occlude_factor[t], pool[t].distance / djk);
         }
         start++;
       }
@@ -202,9 +203,9 @@ namespace grann {
 
   template<typename T>
   void Vamana<T>::prune_neighbors(const unsigned         location,
-                                       std::vector<Neighbor> &pool,
-                                       const Parameters &     parameter,
-                                       std::vector<unsigned> &pruned_list) {
+                                  std::vector<Neighbor> &pool,
+                                  const Parameters &     parameter,
+                                  std::vector<unsigned> &pruned_list) {
     unsigned degree_bound = parameter.Get<unsigned>("R");
     unsigned maxc = parameter.Get<unsigned>("C");
     float    alpha = parameter.Get<float>("alpha");
@@ -232,16 +233,15 @@ namespace grann {
       if (iter.id != location)
         pruned_list.emplace_back(iter.id);
     }
-    }
+  }
 
   /* inter_insert():
    * This function tries to add reverse links from all the visited nodes to
    * the current node n.
    */
   template<typename T>
-  void Vamana<T>::inter_insert(unsigned               n,
-                                    std::vector<unsigned> &pruned_list,
-                                    const Parameters &     parameters) {
+  void Vamana<T>::inter_insert(unsigned n, std::vector<unsigned> &pruned_list,
+                               const Parameters &parameters) {
     const auto degree_bound = parameters.Get<unsigned>("R");
 
     const auto &src_pool = pruned_list;
@@ -272,17 +272,18 @@ namespace grann {
         tsl::robin_set<unsigned> dummy_visited(0);
         std::vector<Neighbor>    dummy_pool(0);
 
-        size_t reserveSize = (size_t)(std::ceil(1.05 * VAMANA_SLACK_FACTOR * degree_bound));
+        size_t reserveSize =
+            (size_t)(std::ceil(1.05 * VAMANA_SLACK_FACTOR * degree_bound));
         dummy_visited.reserve(reserveSize);
         dummy_pool.reserve(reserveSize);
 
         for (auto cur_nbr : copy_of_neighbors) {
           if (dummy_visited.find(cur_nbr) == dummy_visited.end() &&
               cur_nbr != des) {
-            float dist =
-                this->_distance->compare(this->_data + this->_aligned_dim * (size_t) des,
-                                   this->_data + this->_aligned_dim * (size_t) cur_nbr,
-                                   (unsigned) this->_aligned_dim);
+            float dist = this->_distance->compare(
+                this->_data + this->_aligned_dim * (size_t) des,
+                this->_data + this->_aligned_dim * (size_t) cur_nbr,
+                (unsigned) this->_aligned_dim);
             dummy_pool.emplace_back(Neighbor(cur_nbr, dist, true));
             dummy_visited.insert(cur_nbr);
           }
@@ -301,112 +302,107 @@ namespace grann {
   }
 
   template<typename T>
-  void Vamana<T>::build(Parameters & build_parameters) {
+  void Vamana<T>::build(Parameters &build_parameters) {
     grann::cout << "Starting vamana build..." << std::endl;
-
 
     unsigned num_threads = parameters.Get<unsigned>("num_threads");
     unsigned list_size = parameters.Get<unsigned>("L");
     unsigned degree_bound = parameters.Get<unsigned>("R");
-    float alpha = parameters.Get<float>("alpha");
+    float    alpha = parameters.Get<float>("alpha");
 
     if (num_threads != 0)
       omp_set_num_threads(num_threads);
 
+#pragma omp parallel for schedule(static, 64)
+    for (_u32 location = 0; location < this->_num_points; location++) {
+      auto offset_data = this->_data + (size_t) this->_aligned_dim * location;
 
-    #pragma omp parallel for schedule (static, 64)
-for (_u32 location = 0; location < this->_num_points; location++) {
-    auto offset_data = this->_data + (size_t) this->_aligned_dim * location;
+      std::vector<Neighbor> pool;
+      std::vector<Neighbor> tmp;
+      tsl::robin_set<_u32>  visited;
+      pool.reserve(2 * list_size);
+      tmp.reserve(2 * list_size);
+      visited.reserve(20 * list_size);
 
-    std::vector<Neighbor> pool;
-    std::vector<Neighbor> tmp;
-    tsl::robin_set<_u32> visited;
-    pool.reserve(2*list_size);
-    tmp.reserve(2*list_size);
-    visited.reserve(20*list_size);
+      std::vector<_u32> pruned_list;
+      std::vector<_u32> init_ids;
+      get_expanded_nodes(location, list_size, init_ids, pool, visited);
 
-    std::vector<_u32> pruned_list;
-    std::vector<_u32> init_ids;
-    get_expanded_nodes(location, list_size, init_ids, pool, visited);
+      for (unsigned i = 0; i < pool.size(); i++)
+        /*      if (pool[i].id == location) {
+                pool.erase(pool.begin() + i);
+                visited.erase(location);
+                break;
+              }*/
+        prune_neighbors(location, pool, parameters, pruned_list);
 
-    for (unsigned i = 0; i < pool.size(); i++)
-/*      if (pool[i].id == location) {
-        pool.erase(pool.begin() + i);
-        visited.erase(location);
-        break;
-      }*/
-    prune_neighbors(location, pool, parameters, pruned_list);
-
-    _out_nbrs[location].reserve((_u64)(VAMANA_SLACK_FACTOR*degree_bound));
-    {
-            LockGuard guard(this->_locks[location]);
-    for (auto link : pruned_list) 
-      _out_nbrs[location].emplace_back(link);
-    }
-    inter_insert(location, pruned_list, parameters, 0); // add reverse edge
-
-    grann::cout << "Starting final cleanup.." << std::flush;
-#pragma omp parallel for schedule(dynamic, 65536)
-    for (_s64 node = 0; node < this->_num_points; node++) {
-      if (_out_nbrs[node].size() > degree_bound) {
-        tsl::robin_set<unsigned> dummy_visited(0);
-        std::vector<Neighbor>    dummy_pool(0);
-        std::vector<unsigned>    new_out_neighbors;
-
-        for (auto cur_nbr : _out_nbrs[node]) {
-          if (dummy_visited.find(cur_nbr) == dummy_visited.end() &&
-              cur_nbr != node) {
-            float dist =
-                this->_distance->compare(this->_data + this->_aligned_dim * (size_t) node,
-                                   this->_data + this->_aligned_dim * (size_t) cur_nbr,
-                                   (unsigned) this->_aligned_dim);
-            dummy_pool.emplace_back(Neighbor(cur_nbr, dist, true));
-            dummy_visited.insert(cur_nbr);
-          }
-        }
-        prune_neighbors(node, dummy_pool, parameters, new_out_neighbors);
-
-        _out_nbrs[node].clear();
-        for (auto id : new_out_neighbors)
-          _out_nbrs[node].emplace_back(id);
+      _out_nbrs[location].reserve((_u64)(VAMANA_SLACK_FACTOR * degree_bound));
+      {
+        LockGuard guard(this->_locks[location]);
+        for (auto link : pruned_list)
+          _out_nbrs[location].emplace_back(link);
       }
-    }
-    grann::cout << "done. Build time: "
+      inter_insert(location, pruned_list, parameters, 0);  // add reverse edge
+
+      grann::cout << "Starting final cleanup.." << std::flush;
+#pragma omp parallel for schedule(dynamic, 65536)
+      for (_s64 node = 0; node < this->_num_points; node++) {
+        if (_out_nbrs[node].size() > degree_bound) {
+          tsl::robin_set<unsigned> dummy_visited(0);
+          std::vector<Neighbor>    dummy_pool(0);
+          std::vector<unsigned>    new_out_neighbors;
+
+          for (auto cur_nbr : _out_nbrs[node]) {
+            if (dummy_visited.find(cur_nbr) == dummy_visited.end() &&
+                cur_nbr != node) {
+              float dist = this->_distance->compare(
+                  this->_data + this->_aligned_dim * (size_t) node,
+                  this->_data + this->_aligned_dim * (size_t) cur_nbr,
+                  (unsigned) this->_aligned_dim);
+              dummy_pool.emplace_back(Neighbor(cur_nbr, dist, true));
+              dummy_visited.insert(cur_nbr);
+            }
+          }
+          prune_neighbors(node, dummy_pool, parameters, new_out_neighbors);
+
+          _out_nbrs[node].clear();
+          for (auto id : new_out_neighbors)
+            _out_nbrs[node].emplace_back(id);
+        }
+      }
+      grann::cout << "done. Build time: "
                   << ((double) link_timer.elapsed() / (double) 1000000) << "s"
                   << std::endl;
-    _has_built = true;
-  }
-
-  template<typename T>
-  std::pair<uint32_t, uint32_t> Vamana<T>::search(const T *      query,
-                                                       const size_t   K,
-                                                       const unsigned L,
-                                                       unsigned *     indices) {
-    std::vector<unsigned>    init_ids;
-    tsl::robin_set<unsigned> visited(10 * L);
-    std::vector<Neighbor>    best_L_nodes, expanded_nodes_info;
-    tsl::robin_set<unsigned> expanded_nodes_ids;
-
-    if (init_ids.size() == 0) {
-      init_ids.emplace_back(_start_node);
+      _has_built = true;
     }
-    auto retval =
-        greedy_search_to_fixed_point(query, L, init_ids, expanded_nodes_info,
-                               expanded_nodes_ids, best_L_nodes);
 
-    size_t pos = 0;
-    for (auto it : best_L_nodes) {
-      indices[pos] = it.id;
-      pos++;
-      if (pos == K)
-        break;
+    template<typename T>
+    std::pair<uint32_t, uint32_t> Vamana<T>::search(
+        const T *query, const size_t K, const unsigned L, unsigned *indices) {
+      std::vector<unsigned>    init_ids;
+      tsl::robin_set<unsigned> visited(10 * L);
+      std::vector<Neighbor>    best_L_nodes, expanded_nodes_info;
+      tsl::robin_set<unsigned> expanded_nodes_ids;
+
+      if (init_ids.size() == 0) {
+        init_ids.emplace_back(_start_node);
+      }
+      auto retval =
+          greedy_search_to_fixed_point(query, L, init_ids, expanded_nodes_info,
+                                       expanded_nodes_ids, best_L_nodes);
+
+      size_t pos = 0;
+      for (auto it : best_L_nodes) {
+        indices[pos] = it.id;
+        pos++;
+        if (pos == K)
+          break;
+      }
+      return retval;
     }
-    return retval;
-  }
 
-
-  // EXPORTS
-  template GRANN_DLLEXPORT class Vamana<float>;
-  template GRANN_DLLEXPORT class Vamana<int8_t>;
-  template GRANN_DLLEXPORT class Vamana<uint8_t>;
-}  // namespace grann
+    // EXPORTS
+    template GRANN_DLLEXPORT class Vamana<float>;
+    template GRANN_DLLEXPORT class Vamana<int8_t>;
+    template GRANN_DLLEXPORT class Vamana<uint8_t>;
+  }  // namespace grann

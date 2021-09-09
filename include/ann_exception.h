@@ -14,9 +14,9 @@ namespace grann {
    public:
     GRANN_DLLEXPORT ANNException(const std::string& message, int errorCode);
     GRANN_DLLEXPORT ANNException(const std::string& message, int errorCode,
-                                   const std::string& funcSig,
-                                   const std::string& fileName,
-                                   unsigned int       lineNum);
+                                 const std::string& funcSig,
+                                 const std::string& fileName,
+                                 unsigned int       lineNum);
 
     GRANN_DLLEXPORT std::string message() const;
 

@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-
 #include "utils.h"
 
 #include "logger.h"
@@ -58,8 +57,9 @@ namespace grann {
     return total_recall / (num_queries) * (100.0 / recall_at);
   }
 
-  double calculate_range_search_recall(unsigned num_queries, std::vector<std::vector<_u32>> &groundtruth,
-                          std::vector<std::vector<_u32>> &our_results) {
+  double calculate_range_search_recall(
+      unsigned num_queries, std::vector<std::vector<_u32>> &groundtruth,
+      std::vector<std::vector<_u32>> &our_results) {
     double             total_recall = 0;
     std::set<unsigned> gt, res;
 
@@ -68,7 +68,7 @@ namespace grann {
       res.clear();
 
       gt.insert(groundtruth[i].begin(), groundtruth[i].end());
-      res.insert(our_results[i].begin(), our_results[i].end()); 
+      res.insert(our_results[i].begin(), our_results[i].end());
       unsigned cur_recall = 0;
       for (auto &v : gt) {
         if (res.find(v) != res.end()) {
@@ -76,12 +76,11 @@ namespace grann {
         }
       }
       if (gt.size() != 0)
-      total_recall += ((100.0*cur_recall)/gt.size());
+        total_recall += ((100.0 * cur_recall) / gt.size());
       else
-      total_recall += 100;
+        total_recall += 100;
     }
     return total_recall / (num_queries);
   }
-
 
 };  // namespace grann

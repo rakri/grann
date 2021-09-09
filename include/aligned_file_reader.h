@@ -36,7 +36,7 @@ struct IOContext {
 
   std::shared_ptr<ANNVamana::IDiskPriorityIO>               m_pDiskIO = nullptr;
   std::shared_ptr<std::vector<ANNVamana::AsyncReadRequest>> m_pRequests;
-  std::shared_ptr<std::vector<Status>>                     m_pRequestsStatus;
+  std::shared_ptr<std::vector<Status>>                      m_pRequestsStatus;
 
   IOContext()
       : m_pRequestsStatus(new std::vector<Status>()),

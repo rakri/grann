@@ -3,7 +3,6 @@
 
 #include "utils.h"
 
-
 #ifdef _WINDOWS
 #include <intrin.h>
 

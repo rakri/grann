@@ -25,7 +25,6 @@ typedef int FileHandle;
 #include "memory_mapped_files.h"
 #endif
 
-
 namespace grann {
 
   inline void alloc_aligned(void** ptr, size_t size, size_t align) {
@@ -52,7 +51,6 @@ namespace grann {
 #endif
   }
 
-  
   // get_bin_metadata functions START
   inline void get_bin_metadata_impl(std::basic_istream<char>& reader,
                                     size_t& nrows, size_t& ncols) {
@@ -62,7 +60,6 @@ namespace grann {
     nrows = nrows_32;
     ncols = ncols_32;
   }
-
 
   inline void get_bin_metadata(const std::string& bin_file, size_t& nrows,
                                size_t& ncols) {
@@ -95,7 +92,7 @@ namespace grann {
     dim = (unsigned) dim_i32;
 
     grann::cout << "Metadata: #pts = " << npts << ", #dims = " << dim << "..."
-                  << std::endl;
+                << std::endl;
 
     size_t expected_actual_file_size =
         npts * dim * sizeof(T) + 2 * sizeof(uint32_t);
@@ -107,7 +104,7 @@ namespace grann {
              << " size of <T>= " << sizeof(T) << std::endl;
       grann::cout << stream.str();
       throw grann::ANNException(stream.str(), -1, __FUNCSIG__, __FILE__,
-                                  __LINE__);
+                                __LINE__);
     }
 
     data = new T[npts * dim];
@@ -117,7 +114,6 @@ namespace grann {
     //                  << getValues<T>(data + (npts - 2) * dim, dim);
     //    grann::cout << "Finished reading bin file." << std::endl;
   }
-
 
   inline void wait_for_keystroke() {
     int a;
@@ -131,12 +127,11 @@ namespace grann {
     // OLS
     //_u64            read_blk_size = 64 * 1024 * 1024;
 
-  
     // cached_ifstream reader(bin_file, read_blk_size);
     // size_t actual_file_size = reader.get_file_size();
     // END OLS
     grann::cout << "Reading bin file " << bin_file.c_str() << " ..."
-                  << std::endl;
+                << std::endl;
     std::ifstream reader(bin_file, std::ios::binary | std::ios::ate);
     uint64_t      fsize = reader.tellg();
     reader.seekg(0);
@@ -162,8 +157,8 @@ namespace grann {
     writer.write((char*) &npts_i32, sizeof(int));
     writer.write((char*) &ndims_i32, sizeof(int));
     grann::cout << "bin: #pts = " << npts << ", #dims = " << ndims
-                  << ", size = " << npts * ndims * sizeof(T) + 2 * sizeof(int)
-                  << "B" << std::endl;
+                << ", size = " << npts * ndims * sizeof(T) + 2 * sizeof(int)
+                << "B" << std::endl;
 
     //    data = new T[npts_u64 * ndims_u64];
     writer.write((char*) data, npts * ndims * sizeof(T));
@@ -194,14 +189,14 @@ namespace grann {
              << " size of <T>= " << sizeof(T) << std::endl;
       grann::cout << stream.str() << std::endl;
       throw grann::ANNException(stream.str(), -1, __FUNCSIG__, __FILE__,
-                                  __LINE__);
+                                __LINE__);
     }
     rounded_dim = ROUND_UP(dim, 8);
     grann::cout << "Metadata: #pts = " << npts << ", #dims = " << dim
-                  << ", aligned_dim = " << rounded_dim << "..." << std::flush;
+                << ", aligned_dim = " << rounded_dim << "..." << std::flush;
     size_t allocSize = npts * rounded_dim * sizeof(T);
     grann::cout << "allocating aligned memory, " << allocSize << " bytes..."
-                  << std::flush;
+                << std::flush;
     alloc_aligned(((void**) &data), allocSize, 8 * sizeof(T));
     grann::cout << "done. Copying data..." << std::flush;
 
@@ -211,7 +206,6 @@ namespace grann {
     }
     grann::cout << " done." << std::endl;
   }
-
 
   template<typename T>
   inline void load_aligned_bin(const std::string& bin_file, T*& data,
@@ -235,12 +229,6 @@ namespace grann {
       }
     }
   }
-
-
-
-  
-
-
 
   // this function will take in_file of n*d dimensions and save the output as a
   // floating point matrix
@@ -364,8 +352,7 @@ struct SimpleNeighbor {
 inline bool file_exists(const std::string& name) {
   struct stat buffer;
   auto        val = stat(name.c_str(), &buffer);
-  grann::cout << " Stat(" << name.c_str() << ") returned: " << val
-                << std::endl;
+  grann::cout << " Stat(" << name.c_str() << ") returned: " << val << std::endl;
   return (val == 0);
 }
 
@@ -374,7 +361,7 @@ inline _u64 get_file_size(const std::string& fname) {
   if (!reader.fail() && reader.is_open()) {
     _u64 end_pos = reader.tellg();
     grann::cout << " Tellg: " << reader.tellg() << " as u64: " << end_pos
-                  << std::endl;
+                << std::endl;
     reader.close();
     return end_pos;
   } else {
@@ -392,11 +379,11 @@ inline bool validate_file_size(const std::string& name) {
   in.read((char*) &expected_file_size, sizeof(uint64_t));
   if (actual_file_size != expected_file_size) {
     grann::cout << "Error loading" << name
-                  << ". Expected "
-                     "size (metadata): "
-                  << expected_file_size
-                  << ", actual file size : " << actual_file_size
-                  << ". Exitting." << std::endl;
+                << ". Expected "
+                   "size (metadata): "
+                << expected_file_size
+                << ", actual file size : " << actual_file_size << ". Exitting."
+                << std::endl;
     in.close();
     return false;
   }
@@ -413,12 +400,12 @@ inline void printProcessMemory(const char* message) {
   HANDLE                  h = GetCurrentProcess();
   GetProcessMemoryInfo(h, &counters, sizeof(counters));
   grann::cout << message << " [Peaking Working Set size: "
-                << counters.PeakWorkingSetSize * 1.0 / (1024 * 1024 * 1024)
-                << "GB Working set size: "
-                << counters.WorkingSetSize * 1.0 / (1024 * 1024 * 1024)
-                << "GB Private bytes "
-                << counters.PagefileUsage * 1.0 / (1024 * 1024 * 1024) << "GB]"
-                << std::endl;
+              << counters.PeakWorkingSetSize * 1.0 / (1024 * 1024 * 1024)
+              << "GB Working set size: "
+              << counters.WorkingSetSize * 1.0 / (1024 * 1024 * 1024)
+              << "GB Private bytes "
+              << counters.PagefileUsage * 1.0 / (1024 * 1024 * 1024) << "GB]"
+              << std::endl;
 }
 #else
 

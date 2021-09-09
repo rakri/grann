@@ -15,10 +15,6 @@
 
 namespace {
 
-
-
-
-
   static inline float _mm256_reduce_add_ps(__m256 x) {
     /* ( x3+x7, x2+x6, x1+x5, x0+x4 ) */
     const __m128 x128 =
@@ -91,9 +87,6 @@ namespace grann {
     }
   };
 
-  
-  
-  
   template<typename T>
   class DistanceInnerProduct : public Distance<T> {
    public:

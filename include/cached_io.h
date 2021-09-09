@@ -36,7 +36,7 @@ class cached_ifstream {
     cache_buf = new char[cacheSize];
     reader.read(cache_buf, cacheSize);
     grann::cout << "Opened: " << filename.c_str() << ", size: " << fsize
-                  << ", cache_size: " << cacheSize << std::endl;
+                << ", cache_size: " << cacheSize << std::endl;
   }
 
   size_t get_file_size() {
@@ -60,7 +60,7 @@ class cached_ifstream {
                << std::endl;
         grann::cout << stream.str() << std::endl;
         throw grann::ANNException(stream.str(), -1, __FUNCSIG__, __FILE__,
-                                    __LINE__);
+                                  __LINE__);
       }
       memcpy(read_buf, cache_buf + cur_off, cached_bytes);
 
@@ -104,7 +104,7 @@ class cached_ofstream {
     assert(cache_size > 0);
     cache_buf = new char[cache_size];
     grann::cout << "Opened: " << filename.c_str()
-                  << ", cache_size: " << cache_size << std::endl;
+                << ", cache_size: " << cache_size << std::endl;
   }
 
   ~cached_ofstream() {

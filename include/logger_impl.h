@@ -44,10 +44,10 @@ namespace grann {
     GRANN_DLLEXPORT virtual int sync();
 
    private:
-    FILE*              _fp;
-    char*              _buf;
-    int                _bufVamana;
-    std::mutex         _mutex;
+    FILE*               _fp;
+    char*               _buf;
+    int                 _bufVamana;
+    std::mutex          _mutex;
     ANNVamana::LogLevel _logLevel;
 
     int  flush();

@@ -9,12 +9,15 @@
 
 namespace grann {
 
-typedef std::lock_guard<std::mutex> LockGuard; // Use this datastructure to create per vertex locks if we want to update the graph during index build 
+  typedef std::lock_guard<std::mutex>
+      LockGuard;  // Use this datastructure to create per vertex locks if we
+                  // want to update the graph during index build
 
-// Neighbor contains infromation of the name of the neighbor and associated distance
+  // Neighbor contains infromation of the name of the neighbor and associated
+  // distance
   struct SimpleNeighbor {
-    _u32 id;
-    float    distance;
+    _u32  id;
+    float distance;
 
     SimpleNeighbor() = default;
     SimpleNeighbor(unsigned id, float distance) : id(id), distance(distance) {
@@ -33,13 +36,14 @@ typedef std::lock_guard<std::mutex> LockGuard; // Use this datastructure to crea
     }
   };
 
-typedef std::vector<SimpleNeighbor>        vecNgh;
+  typedef std::vector<SimpleNeighbor> vecNgh;
 
-// Simple Neighbor with a flag, for remembering whether we already explored out of a vertex or not.
+  // Simple Neighbor with a flag, for remembering whether we already explored
+  // out of a vertex or not.
   struct Neighbor {
-    _u32 id = 0;
-    float    distance = std::numeric_limits<float>::max();
-    bool     flag = true;
+    _u32  id = 0;
+    float distance = std::numeric_limits<float>::max();
+    bool  flag = true;
 
     Neighbor() = default;
     Neighbor(unsigned id, float distance, bool f = true)
@@ -54,8 +58,9 @@ typedef std::vector<SimpleNeighbor>        vecNgh;
     }
   };
 
-// Given a  neighbor array of size K starting with pointer addr which is sorted by distance, and a new neighbor nn, insert it in correct place if it can fit. Else dont do anything. 
-// If element is already in Pool, returns K+1.
+  // Given a  neighbor array of size K starting with pointer addr which is
+  // sorted by distance, and a new neighbor nn, insert it in correct place if it
+  // can fit. Else dont do anything. If element is already in Pool, returns K+1.
   static inline unsigned InsertIntoPool(Neighbor *addr, unsigned K,
                                         Neighbor nn) {
     // find the location to insert
@@ -93,8 +98,6 @@ typedef std::vector<SimpleNeighbor>        vecNgh;
     return right;
   }
 
-
-
   template<typename T>
   class ANNIndex {
    public:
@@ -106,18 +109,23 @@ typedef std::vector<SimpleNeighbor>        vecNgh;
 
     virtual void build(Parameters &build_params) = 0;
 
-//returns # results found (will be <= res_count)
-    virtual _u32 search(const T * query, _u32 res_count, Parameters &search_params, _u32 *indices, float *distances, QueryStats *stats = nullptr) = 0;
-    
+    // returns # results found (will be <= res_count)
+    virtual _u32 search(const T *query, _u32 res_count,
+                        Parameters &search_params, _u32 *indices,
+                        float *distances, QueryStats *stats = nullptr) = 0;
+
     /*  Internals of the library */
    protected:
     Metric       _metric = grann::L2;
     Distance<T> *_distance;
 
-    T *          _data;
-    size_t       _num_points = 0;  
-    size_t       _dim;
-    size_t       _aligned_dim; // data dimension is rounded to multiple of 8 for more efficient alignment and faster floating distance comparisons. Hence _data is matrix of _num_points * _aligned_dim size
-    bool         _has_built = false;
+    T *    _data;
+    size_t _num_points = 0;
+    size_t _dim;
+    size_t _aligned_dim;  // data dimension is rounded to multiple of 8 for more
+                          // efficient alignment and faster floating distance
+                          // comparisons. Hence _data is matrix of _num_points *
+                          // _aligned_dim size
+    bool _has_built = false;
   };
 }  // namespace grann

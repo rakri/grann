@@ -29,15 +29,11 @@
 #include <vector>
 #include <mutex>
 
-
-
-
 //#include "distance.h"
 //#include "neighbor.h"
 #include "parameters.h"
 
 #include "windows_customizations.h"
-
 
 // from aligned_file_reader.h
 #define MAX_IO_DEPTH 128
@@ -63,7 +59,6 @@
 #define SECTOR_LEN 4096
 #define MAX_N_SECTOR_READS 128
 
-
 typedef uint64_t _u64;
 typedef int64_t  _s64;
 typedef uint32_t _u32;
@@ -73,16 +68,15 @@ typedef int16_t  _s16;
 typedef uint8_t  _u8;
 typedef int8_t   _s8;
 
-
 namespace grann {
   static const size_t MAX_SIZE_OF_STREAMBUF = 2LL * 1024 * 1024 * 1024;
 
   enum Metric { L2 = 0, INNER_PRODUCT = 1, FAST_L2 = 2, PQ = 3 };
-};
+};  // namespace grann
 
 // USEFUL MACROS FOR VAMANA
 #define VAMANA_SLACK_FACTOR 1.3
 
 #define ESTIMATE_VAMANA_RAM_USAGE(size, dim, datasize, degree) \
-  (1.30 * (((double) size * dim) * datasize +           \
+  (1.30 * (((double) size * dim) * datasize +                  \
            ((double) size * degree) * sizeof(unsigned) * VAMANA_SLACK_FACTOR))

@@ -40,8 +40,8 @@ namespace math_utils {
   // Calculate the closest pivot for each point and store it in vector
   // closest_centers_ivf (which needs to be allocated outside)
   // Additionally, if inverted vamana is not null (and pre-allocated), it will
-  // return inverted vamana for each center Additionally, if pts_norms_squared is
-  // not null, then it will assume that point norms are pre-computed and use
+  // return inverted vamana for each center Additionally, if pts_norms_squared
+  // is not null, then it will assume that point norms are pre-computed and use
   // those
   // values
 

@@ -4,7 +4,6 @@
 #pragma once
 #include "utils.h"
 
-
 template<typename T>
 void gen_random_slice(const std::string base_file,
                       const std::string output_prefix, double sampling_rate);
