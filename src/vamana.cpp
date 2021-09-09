@@ -99,7 +99,7 @@ namespace grann {
 
     for (size_t i = 0; i < this->_num_points; i++)
       for (size_t j = 0; j < this->_aligned_dim; j++)
-        center[j] += _data[i * this->_aligned_dim + j];
+        center[j] += this->_data[i * this->_aligned_dim + j];
 
     for (size_t j = 0; j < this->_aligned_dim; j++)
       center[j] /= this->_num_points;
@@ -304,14 +304,17 @@ namespace grann {
   template<typename T>
   void Vamana<T>::build(Parameters &build_parameters) {
     grann::cout << "Starting vamana build..." << std::endl;
+    grann::Timer link_timer;
 
-    unsigned num_threads = parameters.Get<unsigned>("num_threads");
-    unsigned list_size = parameters.Get<unsigned>("L");
-    unsigned degree_bound = parameters.Get<unsigned>("R");
-    float    alpha = parameters.Get<float>("alpha");
+    unsigned num_threads = build_parameters.Get<unsigned>("num_threads");
+    unsigned L = build_parameters.Get<unsigned>("L");
+    unsigned degree_bound = build_parameters.Get<unsigned>("R");
+    float    alpha = build_parameters.Get<float>("alpha");
 
     if (num_threads != 0)
       omp_set_num_threads(num_threads);
+
+  this->_start_node = calculate_entry_point();
 
 #pragma omp parallel for schedule(static, 64)
     for (_u32 location = 0; location < this->_num_points; location++) {
@@ -320,21 +323,21 @@ namespace grann {
       std::vector<Neighbor> pool;
       std::vector<Neighbor> tmp;
       tsl::robin_set<_u32>  visited;
-      pool.reserve(2 * list_size);
-      tmp.reserve(2 * list_size);
-      visited.reserve(20 * list_size);
+      pool.reserve(2 * L);
+      tmp.reserve(2 * L);
+      visited.reserve(20 * L);
 
       std::vector<_u32> pruned_list;
       std::vector<_u32> init_ids;
-      get_expanded_nodes(location, list_size, init_ids, pool, visited);
+      get_expanded_nodes(location, L, init_ids, pool, visited);
 
-      for (unsigned i = 0; i < pool.size(); i++)
-        /*      if (pool[i].id == location) {
+/*      for (unsigned i = 0; i < pool.size(); i++)
+              if (pool[i].id == location) {
                 pool.erase(pool.begin() + i);
                 visited.erase(location);
                 break;
               }*/
-        prune_neighbors(location, pool, parameters, pruned_list);
+        prune_neighbors(location, pool, build_parameters, pruned_list);
 
       _out_nbrs[location].reserve((_u64)(VAMANA_SLACK_FACTOR * degree_bound));
       {
@@ -342,7 +345,7 @@ namespace grann {
         for (auto link : pruned_list)
           _out_nbrs[location].emplace_back(link);
       }
-      inter_insert(location, pruned_list, parameters, 0);  // add reverse edge
+      inter_insert(location, pruned_list, build_parameters, 0);  // add reverse edges
 
       grann::cout << "Starting final cleanup.." << std::flush;
 #pragma omp parallel for schedule(dynamic, 65536)
@@ -363,7 +366,7 @@ namespace grann {
               dummy_visited.insert(cur_nbr);
             }
           }
-          prune_neighbors(node, dummy_pool, parameters, new_out_neighbors);
+          prune_neighbors(node, dummy_pool, build_parameters, new_out_neighbors);
 
           _out_nbrs[node].clear();
           for (auto id : new_out_neighbors)
