@@ -36,17 +36,17 @@ namespace math_utils {
       uint32_t* center_ids, float* const dist_matrix, _u64 k = 1);
 
   // Given data in num_points * new_dim row major
-  // Pivots stored in full_pivot_data as k * new_dim row major
-  // Calculate the closest pivot for each point and store it in vector
+  // Centers stored in centers as k * new_dim row major
+  // Calculate the closest center for each point and store it in vector
   // closest_centers_ivf (which needs to be allocated outside)
-  // Additionally, if inverted vamana is not null (and pre-allocated), it will
-  // return inverted vamana for each center Additionally, if pts_norms_squared
+  // Additionally, if inverted index is not null (and pre-allocated), it will
+  // return inverted index for each center Additionally, if pts_norms_squared
   // is not null, then it will assume that point norms are pre-computed and use
   // those
   // values
 
   void compute_closest_centers(float* data, _u64 num_points, _u64 dim,
-                               float* pivot_data, _u64 num_centers, _u64 k,
+                               float* centers, _u64 num_centers, _u64 k,
                                uint32_t*            closest_centers_ivf,
                                std::vector<_u64>* inverted_index = nullptr,
                                float*               pts_norms_squared = nullptr);
@@ -56,7 +56,7 @@ namespace math_utils {
   // Nearest centers need to be provided in closst_centers.
 
   void process_residuals(float* data_load, _u64 num_points, _u64 dim,
-                         float* cur_pivot_data, _u64 num_centers,
+                         float* centers, _u64 num_centers,
                          uint32_t* closest_centers, bool to_subtract);
 
 
@@ -83,11 +83,11 @@ namespace math_utils {
                    const _u64 num_centers, const _u64 max_reps,
                    std::vector<_u64>* closest_docs, uint32_t* closest_center);
 
-  // assumes already memory allocated for pivot_data as new
-  // float[num_centers*dim] and select randomly num_centers points as pivots
-  void selecting_pivots(float* data, _u64 num_points, _u64 dim,
-                        float* pivot_data, _u64 num_centers);
+  // assumes already memory allocated for center_data as new
+  // float[num_centers*dim] and select randomly num_centers points as centers
+  void random_centers(float* data, _u64 num_points, _u64 dim,
+                        float* centers, _u64 num_centers);
 
-  void kmeanspp_selecting_pivots(float* data, _u64 num_points, _u64 dim,
-                                 float* pivot_data, _u64 num_centers);
+  void kmeans_plus_plus_centers(float* data, _u64 num_points, _u64 dim,
+                                 float* centers, _u64 num_centers);
 }; // namespace math_utils

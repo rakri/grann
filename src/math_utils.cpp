@@ -352,7 +352,7 @@ namespace math_utils {
   // assumes memory allocated for centers as new
   // float[num_centers*dim]
   // and select randomly num_centers points as centers
-  void selecting_pivots(float* data, _u64 num_points, _u64 dim,
+  void random_centers(float* data, _u64 num_points, _u64 dim,
                         float* centers, _u64 num_centers) {
     //	centers = new float[num_centers * dim];
 
@@ -376,7 +376,7 @@ namespace math_utils {
     }
   }
 
-  void kmeanspp_selecting_pivots(float* data, _u64 num_points, _u64 dim,
+  void kmeans_plus_plus_centers(float* data, _u64 num_points, _u64 dim,
                                  float* centers, _u64 num_centers) {
     if (num_points > 1 << 23) {
       grann::cout << "ERROR: n_pts " << num_points
@@ -384,7 +384,7 @@ namespace math_utils {
                      "8388608. Falling back to random center "
                      "selection."
                   << std::endl;
-      selecting_pivots(data, num_points, dim, centers, num_centers);
+      random_centers(data, num_points, dim, centers, num_centers);
       return;
     }
 

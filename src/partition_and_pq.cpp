@@ -304,7 +304,7 @@ int generate_pq_pivots(const float *passed_train_data, _u64 num_train,
                   cur_chunk_size * sizeof(float));
     }
 
-    math_utils::kmeanspp_selecting_pivots(cur_data.get(), num_train, cur_chunk_size,
+    math_utils::kmeans_plus_plus_centers(cur_data.get(), num_train, cur_chunk_size,
                                       cur_pivot_data.get(), num_centers);
 
     math_utils::run_lloyds(cur_data.get(), num_train, cur_chunk_size,
@@ -882,7 +882,7 @@ int partition(const std::string data_file, const float sampling_rate,
   // Process Global k-means for kmeans_partitioning Step
   grann::cout << "Processing global k-means (kmeans_partitioning Step)"
               << std::endl;
-  math_utils::kmeanspp_selecting_pivots(train_data_float, num_train, train_dim,
+  math_utils::kmeans_plus_plus_centers(train_data_float, num_train, train_dim,
                                     pivot_data, num_parts);
 
   math_utils::run_lloyds(train_data_float, num_train, train_dim, pivot_data,
@@ -945,7 +945,7 @@ int partition_with_ram_budget(const std::string data_file,
     // Process Global k-means for kmeans_partitioning Step
     grann::cout << "Processing global k-means (kmeans_partitioning Step)"
                 << std::endl;
-    math_utils::kmeanspp_selecting_pivots(train_data_float, num_train, train_dim,
+    math_utils::kmeans_plus_plus_centers(train_data_float, num_train, train_dim,
                                       pivot_data, num_parts);
 
     math_utils::run_lloyds(train_data_float, num_train, train_dim, pivot_data,
