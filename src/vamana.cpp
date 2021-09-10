@@ -370,6 +370,11 @@ namespace grann {
             this->_out_nbrs[node].emplace_back(id);
         }
       }
+
+    this->_max_degree = 0;
+    for (_u32 i = 0; i < this->_num_points; i++) 
+    this->_max_degree = this->_max_degree > this->_out_nbrs[i].size() ? this->_max_degree : this->_out_nbrs[i].size();
+
       grann::cout << "done. Build time: "
                   << ((double) build_timer.elapsed() / (double) 1000000) << "s"
                   << std::endl;
