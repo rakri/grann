@@ -43,11 +43,6 @@ namespace grann {
                       const unsigned degree, const unsigned maxc,
                       std::vector<Neighbor> &result);
 
-    void occlude_list(std::vector<Neighbor> &pool, const float alpha,
-                      const unsigned degree, const unsigned maxc,
-                      std::vector<Neighbor> &result,
-                      std::vector<float> &   occlude_factor);
-
     void prune_neighbors(const unsigned location, std::vector<Neighbor> &pool,
                          const Parameters &     parameter,
                          std::vector<unsigned> &pruned_list);

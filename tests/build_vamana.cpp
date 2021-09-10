@@ -36,7 +36,6 @@ int build_in_memory_vamana(const std::string&     data_path,
   std::chrono::duration<double> diff =
       std::chrono::high_resolution_clock::now() - s;
 
-  std::cout << "Vamanaing time: " << diff.count() << "\n";
   vamana.save(save_path.c_str());
 
   return 0;

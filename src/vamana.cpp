@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <atomic>
+
 #include "utils.h"
 #include "vamana.h"
 
@@ -13,7 +15,7 @@ namespace grann {
                     std::vector<_u32> &list_of_ids)
       : GraphIndex<T>(m, filename, list_of_ids) {
     grann::cout << "Initialized Vamana Object with " << this->_num_points
-                << "points, dim=" << this->_dim << std::endl;
+                << " points, dim=" << this->_dim << std::endl;
   }
 
   // save the graph vamana on a file as an adjacency list. For each point,
@@ -150,25 +152,19 @@ namespace grann {
                                  best_L_nodes);
   }
 
-  template<typename T>
-  void Vamana<T>::occlude_list(std::vector<Neighbor> &pool, const float alpha,
-                               const unsigned degree, const unsigned maxc,
-                               std::vector<Neighbor> &result) {
-    auto               pool_size = (_u32) pool.size();
-    std::vector<float> occlude_factor(pool_size, 0);
-    occlude_list(pool, alpha, degree, maxc, result, occlude_factor);
-  }
 
   template<typename T>
   void Vamana<T>::occlude_list(std::vector<Neighbor> &pool,
                                      const float alpha, const unsigned degree,
                                      const unsigned         maxc,
-                                     std::vector<Neighbor> &result,
-                                     std::vector<float> &   occlude_factor) {
+                                     std::vector<Neighbor> &result) {
     if (pool.empty())
       return;
     assert(std::is_sorted(pool.begin(), pool.end()));
     assert(!pool.empty());
+
+    auto               pool_size = (_u32) pool.size();
+    std::vector<float> occlude_factor(pool_size, 0);
 
       unsigned start = 0;
       while (result.size() < degree && (start) < pool.size() && start < maxc) {
@@ -212,9 +208,8 @@ namespace grann {
 
     std::vector<Neighbor> result;
     result.reserve(degree_bound);
-    std::vector<float> occlude_factor(pool.size(), 0);
 
-    occlude_list(pool, alpha, degree_bound, maxc, result, occlude_factor);
+    occlude_list(pool, alpha, degree_bound, maxc, result);
 
     /* Add all the nodes in result into a variable called cut_graph
      * So this contains all the neighbors of id location
@@ -314,8 +309,20 @@ namespace grann {
 
   this->_start_node = calculate_entry_point();
 
+  _u32 progress_milestone = (_u32) (this->_num_points/20);
+  std::atomic<int> milestone_marker{0};
+
 #pragma omp parallel for schedule(static, 64)
     for (_u32 location = 0; location < this->_num_points; location++) {
+
+      if (location % progress_milestone == 0) {
+      ++milestone_marker;
+
+
+    std::stringstream msg;
+    msg << (milestone_marker*5)<<"\% of build completed" << std::endl;
+    std::cout << msg.str();
+      } 
 
       std::vector<Neighbor> pool;
       std::vector<Neighbor> tmp;
@@ -328,13 +335,7 @@ namespace grann {
       std::vector<_u32> init_ids;
       get_expanded_nodes(location, L, init_ids, pool, visited);
 
-/*      for (unsigned i = 0; i < pool.size(); i++)
-              if (pool[i].id == location) {
-                pool.erase(pool.begin() + i);
-                visited.erase(location);
-                break;
-              }*/
-        prune_neighbors(location, pool, build_parameters, pruned_list);
+      prune_neighbors(location, pool, build_parameters, pruned_list);
 
       this->_out_nbrs[location].reserve((_u64)(VAMANA_SLACK_FACTOR * degree_bound));
       {
@@ -371,14 +372,14 @@ namespace grann {
         }
       }
 
-    this->_max_degree = 0;
-    for (_u32 i = 0; i < this->_num_points; i++) 
-    this->_max_degree = this->_max_degree > this->_out_nbrs[i].size() ? this->_max_degree : this->_out_nbrs[i].size();
+      std::cout<<"done.." << std::endl;
+      this->_has_built = true;
+      this->update_degree_stats();
 
-      grann::cout << "done. Build time: "
+      grann::cout << "Build completed in time: "
                   << ((double) build_timer.elapsed() / (double) 1000000) << "s"
                   << std::endl;
-      this->_has_built = true;
+
     }
 
     template<typename T>

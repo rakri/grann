@@ -49,6 +49,8 @@ namespace grann {
         tsl::robin_set<_u32> &   expanded_nodes_ids,
         std::vector<Neighbor> &best_L_nodes, QueryStats *stats = nullptr);
 
+    void update_degree_stats();
+    
     std::vector<std::mutex>
         _locks;  // Per node lock to be initialized at build time, dont
                  // initialize in constructor to save memory for pure search
