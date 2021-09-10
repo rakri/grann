@@ -20,10 +20,6 @@ typedef int FileHandle;
 #include "cached_io.h"
 
 
-#ifdef EXEC_ENV_OLS
-#include "content_buf.h"
-#include "memory_mapped_files.h"
-#endif
 
 namespace grann {
 

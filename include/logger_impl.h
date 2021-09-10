@@ -8,14 +8,9 @@
 #include <sstream>
 #include <mutex>
 
-#ifdef EXEC_ENV_OLS
-#include "IANNVamana.h"
-#include "ANNLogging.h"
-#endif
 
 #include "ann_exception.h"
 
-#ifndef EXEC_ENV_OLS
 namespace ANNVamana {
   enum LogLevel {
     LL_Debug = 0,
@@ -27,7 +22,6 @@ namespace ANNVamana {
     LL_Count
   };
 };
-#endif
 
 namespace grann {
   class ANNStreamBuf : public std::basic_streambuf<char> {
@@ -67,11 +61,7 @@ namespace grann {
 // overflows/missing text are not a concern).
 // This implies calling code _must_ either print std::endl or std::flush
 // to ensure that the message is written immediately.
-#ifdef EXEC_ENV_OLS
-    static const int BUFFER_SIZE = 1024;
-#else
     static const int BUFFER_SIZE = 0;
-#endif
 
     ANNStreamBuf(const ANNStreamBuf&);
     ANNStreamBuf& operator=(const ANNStreamBuf&);

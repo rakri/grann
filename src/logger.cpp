@@ -1,9 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#ifdef EXEC_ENV_OLS
-#include "ANNLoggingImpl.hpp"
-#endif
 
 #include "essentials.h"
 #include "logger_impl.h"
@@ -29,11 +26,7 @@ namespace grann {
     _fp = fp;
     _logLevel = (_fp == stdout) ? ANNVamana::LogLevel::LL_Info
                                 : ANNVamana::LogLevel::LL_Error;
-#ifdef EXEC_ENV_OLS
-    _buf = new char[BUFFER_SIZE + 1];  // See comment in the header
-#else
     _buf = new char[BUFFER_SIZE];  // See comment in the header
-#endif
 
     std::memset(_buf, 0, (BUFFER_SIZE) * sizeof(char));
     setp(_buf, _buf + BUFFER_SIZE);
@@ -73,13 +66,8 @@ namespace grann {
     return num;
   }
   void ANNStreamBuf::logImpl(char* str, int num) {
-#ifdef EXEC_ENV_OLS
-    str[num] = '\0';  // Safe. See the c'tor.
-    DiskANNLogging(_logLevel, str);
-#else
     fwrite(str, sizeof(char), num, _fp);
     fflush(_fp);
-#endif
   }
 
 }  // namespace grann
