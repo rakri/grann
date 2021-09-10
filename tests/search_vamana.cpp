@@ -102,11 +102,13 @@ int search_memory_vamana(int argc, char** argv) {
 
   grann::Parameters paras;
   std::string       recall_string = "Recall@" + std::to_string(recall_at);
-  std::cout << std::setw(4) << "Ls" << std::setw(12) << "QPS " << std::setw(18)
-            << "Mean Latency (mus)" << std::setw(15) << "99.9 Latency"
-            << std::setw(12) << recall_string << std::endl;
+  std::cout << std::setw(4) << "Ls" << std::setw(12) << "QPS " << std::setw(22)
+            << "Mean Latency (mus)" << std::setw(15) << "99.9\% Latency"
+            << std::setw(12) << recall_string << std::setw(16) << "Mean Cmps."
+            << std::setw(12) << "Mean Hops" << std::setw(16) << "99.9\% Cmps."
+            << std::setw(12) << "99.9\% Hops" << std::endl;
   std::cout << "==============================================================="
-               "==============="
+               "=========================================================="
             << std::endl;
 
   std::vector<std::vector<uint32_t>> query_result_ids(Lvec.size());
@@ -120,6 +122,7 @@ int search_memory_vamana(int argc, char** argv) {
     query_result_ids[test_id].resize(recall_at * query_num);
     query_result_dists[test_id].resize(recall_at * query_num);
 
+    std::vector<grann::QueryStats> stats(query_num);
     auto s = std::chrono::high_resolution_clock::now();
     omp_set_num_threads(num_threads);
 #pragma omp parallel for schedule(dynamic, 1)
@@ -127,7 +130,8 @@ int search_memory_vamana(int argc, char** argv) {
       auto qs = std::chrono::high_resolution_clock::now();
       vamana.search(query + i * query_aligned_dim, recall_at, search_params,
                     query_result_ids[test_id].data() + i * recall_at,
-                    query_result_dists[test_id].data() + i * recall_at);
+                    query_result_dists[test_id].data() + i * recall_at,
+                    (stats.data() + i));
       auto qe = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double> diff = qe - qs;
       latency_stats[i] = diff.count() * 1000000;
@@ -150,10 +154,28 @@ int search_memory_vamana(int argc, char** argv) {
     }
     mean_latency /= query_num;
 
-    std::cout << std::setw(4) << L << std::setw(12) << qps << std::setw(18)
+    float mean_cmps = grann::get_mean_stats(
+        stats.data(), query_num,
+        [](const grann::QueryStats& stats) { return stats.n_cmps; });
+
+    float mean_hops = grann::get_mean_stats(
+        stats.data(), query_num,
+        [](const grann::QueryStats& stats) { return stats.n_hops; });
+
+    float cmps_999 = grann::get_percentile_stats(
+        stats.data(), query_num, 0.999,
+        [](const grann::QueryStats& stats) { return stats.n_cmps; });
+
+    float hops_999 = grann::get_percentile_stats(
+        stats.data(), query_num, 0.999,
+        [](const grann::QueryStats& stats) { return stats.n_hops; });
+
+    std::cout << std::setw(4) << L << std::setw(12) << qps << std::setw(22)
               << (float) mean_latency << std::setw(15)
               << (float) latency_stats[(_u64)(0.999 * query_num)]
-              << std::setw(12) << recall << std::endl;
+              << std::setw(12) << recall << std::setw(16) << mean_cmps
+              << std::setw(12) << mean_hops << std::setw(16) << cmps_999
+              << std::setw(12) << hops_999 << std::endl;
   }
 
   std::cout << "Done searching. Now saving results " << std::endl;
