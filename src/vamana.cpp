@@ -28,7 +28,7 @@ namespace grann {
     out.write((char *) &vamana_size, sizeof(uint64_t));
     out.write((char *) &this->_max_degree, sizeof(unsigned));
     out.write((char *) &this->_start_node, sizeof(unsigned));
-    for (unsigned i = 0; i < this->_num_points + this->_num_steiner_pts; i++) {
+    for (unsigned i = 0; i < this->_num_points; i++) {
       unsigned GK = (unsigned) this->_out_nbrs[i].size();
       out.write((char *) &GK, sizeof(unsigned));
       out.write((char *) this->_out_nbrs[i].data(), GK * sizeof(unsigned));
@@ -41,7 +41,7 @@ namespace grann {
 
     grann::cout << "Avg degree: "
                 << ((float) total_gr_edges) /
-                       ((float) (this->_num_points + this->_num_steiner_pts))
+                       ((float) (this->_num_points))
                 << std::endl;
   }
 
@@ -74,8 +74,8 @@ namespace grann {
     }
     if (this->_out_nbrs.size() != this->_num_points) {
       grann::cout << "ERROR. mismatch in number of points. Graph has "
-                  << _out_nbrs.size() << " points and loaded dataset has "
-                  << _num_points << " points. " << std::endl;
+                  << this->_out_nbrs.size() << " points and loaded dataset has "
+                  << this->_num_points << " points. " << std::endl;
       return;
     }
 
@@ -145,7 +145,7 @@ namespace grann {
     if (init_ids.size() == 0)
       init_ids.emplace_back(this->_start_node);
 
-    greedy_search_to_fixed_point(node_coords, l_build, init_ids,
+    this->greedy_search_to_fixed_point(node_coords, l_build, init_ids,
                                  expanded_nodes_info, expanded_nodes_ids,
                                  best_L_nodes);
   }
@@ -159,8 +159,8 @@ namespace grann {
     occlude_list(pool, alpha, degree, maxc, result, occlude_factor);
   }
 
-  template<typename T, typename TagT>
-  void Vamana<T, TagT>::occlude_list(std::vector<Neighbor> &pool,
+  template<typename T>
+  void Vamana<T>::occlude_list(std::vector<Neighbor> &pool,
                                      const float alpha, const unsigned degree,
                                      const unsigned         maxc,
                                      std::vector<Neighbor> &result,
@@ -173,10 +173,6 @@ namespace grann {
     float cur_alpha = 1;
     while (cur_alpha <= alpha && result.size() < degree) {
       unsigned start = 0;
-      float    eps =
-          cur_alpha +
-          0.01;  // used for MIPS, where we store a value of eps in cur_alpha to
-                 // denote pruned out entries which we can skip in later rounds.
       while (result.size() < degree && (start) < pool.size() && start < maxc) {
         auto &p = pool[start];
         if (occlude_factor[start] > cur_alpha) {
@@ -251,7 +247,7 @@ namespace grann {
     for (auto des : src_pool) {
       /* des.id is the id of the neighbors of n */
       /* des_pool contains the neighbors of the neighbors of n */
-      auto &                des_pool = _out_nbrs[des];
+      auto &                des_pool = this->_out_nbrs[des];
       std::vector<unsigned> copy_of_neighbors;
       bool                  prune_needed = false;
       {
@@ -289,7 +285,7 @@ namespace grann {
           }
         }
         std::vector<unsigned> new_out_neighbors;
-        prune_neighbors(des, dummy_pool, parameter, new_out_neighbors);
+        prune_neighbors(des, dummy_pool, parameters, new_out_neighbors);
         {
           LockGuard guard(this->_locks[des]);
           this->_out_nbrs[des].clear();
@@ -304,7 +300,7 @@ namespace grann {
   template<typename T>
   void Vamana<T>::build(Parameters &build_parameters) {
     grann::cout << "Starting vamana build..." << std::endl;
-    grann::Timer link_timer;
+    grann::Timer build_timer;
 
     this->_locks_enabled = true; // we dont need locks for pure search on a pre-built index
     this->_locks = std::vector<std::mutex>(this->_num_points);
@@ -312,7 +308,6 @@ namespace grann {
     unsigned num_threads = build_parameters.Get<unsigned>("num_threads");
     unsigned L = build_parameters.Get<unsigned>("L");
     unsigned degree_bound = build_parameters.Get<unsigned>("R");
-    float    alpha = build_parameters.Get<float>("alpha");
 
     if (num_threads != 0)
       omp_set_num_threads(num_threads);
@@ -321,7 +316,6 @@ namespace grann {
 
 #pragma omp parallel for schedule(static, 64)
     for (_u32 location = 0; location < this->_num_points; location++) {
-      auto offset_data = this->_data + (size_t) this->_aligned_dim * location;
 
       std::vector<Neighbor> pool;
       std::vector<Neighbor> tmp;
@@ -342,23 +336,23 @@ namespace grann {
               }*/
         prune_neighbors(location, pool, build_parameters, pruned_list);
 
-      _out_nbrs[location].reserve((_u64)(VAMANA_SLACK_FACTOR * degree_bound));
+      this->_out_nbrs[location].reserve((_u64)(VAMANA_SLACK_FACTOR * degree_bound));
       {
         LockGuard guard(this->_locks[location]);
         for (auto link : pruned_list)
-          _out_nbrs[location].emplace_back(link);
+          this->_out_nbrs[location].emplace_back(link);
       }
-      inter_insert(location, pruned_list, build_parameters, 0);  // add reverse edges
-
+      inter_insert(location, pruned_list, build_parameters);  // add reverse edges
+    }
       grann::cout << "Starting final cleanup.." << std::flush;
 #pragma omp parallel for schedule(dynamic, 65536)
-      for (_s64 node = 0; node < this->_num_points; node++) {
-        if (_out_nbrs[node].size() > degree_bound) {
+      for (_u64 node = 0; node < this->_num_points; node++) {
+        if (this->_out_nbrs[node].size() > degree_bound) {
           tsl::robin_set<unsigned> dummy_visited(0);
           std::vector<Neighbor>    dummy_pool(0);
           std::vector<unsigned>    new_out_neighbors;
 
-          for (auto cur_nbr : _out_nbrs[node]) {
+          for (auto cur_nbr : this->_out_nbrs[node]) {
             if (dummy_visited.find(cur_nbr) == dummy_visited.end() &&
                 cur_nbr != node) {
               float dist = this->_distance->compare(
@@ -371,21 +365,21 @@ namespace grann {
           }
           prune_neighbors(node, dummy_pool, build_parameters, new_out_neighbors);
 
-          _out_nbrs[node].clear();
+          this->_out_nbrs[node].clear();
           for (auto id : new_out_neighbors)
-            _out_nbrs[node].emplace_back(id);
+            this->_out_nbrs[node].emplace_back(id);
         }
       }
       grann::cout << "done. Build time: "
-                  << ((double) link_timer.elapsed() / (double) 1000000) << "s"
+                  << ((double) build_timer.elapsed() / (double) 1000000) << "s"
                   << std::endl;
-      _has_built = true;
+      this->_has_built = true;
     }
 
     template<typename T>
     _u32 Vamana<T>::search(const T *query, _u32 res_count, Parameters &search_params,
-                _u32 *indices, float *distances, QueryStats *stats = nullptr) {
-      _u32 search_list_size = search_params.get<_u32>("L");
+                _u32 *indices, float *distances, QueryStats *stats) {
+      _u32 search_list_size = search_params.Get<_u32>("L");
       std::vector<unsigned>    init_ids;
       tsl::robin_set<unsigned> visited(10 * search_list_size);
       std::vector<Neighbor>    top_candidate_list, expanded_nodes_info;
@@ -394,7 +388,7 @@ namespace grann {
       init_ids.emplace_back(this->_start_node);
       
       auto algo_fetched_count =
-          greedy_search_to_fixed_point(query, search_list_size, init_ids, expanded_nodes_info,
+          this->greedy_search_to_fixed_point(query, search_list_size, init_ids, expanded_nodes_info,
                                        expanded_nodes_ids, top_candidate_list, stats);
 
  //     size_t pos = 0;

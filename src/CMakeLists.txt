@@ -9,7 +9,7 @@ else()
 	#file(GLOB CPP_SOURCES *.cpp)
 	set(CPP_SOURCES ann_exception.cpp recall_utils.cpp index.cpp graph_index.cpp
         linux_aligned_file_reader.cpp math_utils.cpp memory_mapper.cpp
-        partition_and_pq.cpp logger.cpp utils.cpp)
+        partition_and_pq.cpp logger.cpp utils.cpp vamana.cpp)
 	add_library(${PROJECT_NAME} ${CPP_SOURCES})
 	add_library(${PROJECT_NAME}_s STATIC ${CPP_SOURCES})
 endif()
