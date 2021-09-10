@@ -304,10 +304,10 @@ int generate_pq_pivots(const float *passed_train_data, size_t num_train,
                   cur_chunk_size * sizeof(float));
     }
 
-    kmeans::kmeanspp_selecting_pivots(cur_data.get(), num_train, cur_chunk_size,
+    math_utils::kmeanspp_selecting_pivots(cur_data.get(), num_train, cur_chunk_size,
                                       cur_pivot_data.get(), num_centers);
 
-    kmeans::run_lloyds(cur_data.get(), num_train, cur_chunk_size,
+    math_utils::run_lloyds(cur_data.get(), num_train, cur_chunk_size,
                        cur_pivot_data.get(), num_centers, max_k_means_reps,
                        NULL, closest_center.get());
 
@@ -882,10 +882,10 @@ int partition(const std::string data_file, const float sampling_rate,
   // Process Global k-means for kmeans_partitioning Step
   grann::cout << "Processing global k-means (kmeans_partitioning Step)"
               << std::endl;
-  kmeans::kmeanspp_selecting_pivots(train_data_float, num_train, train_dim,
+  math_utils::kmeanspp_selecting_pivots(train_data_float, num_train, train_dim,
                                     pivot_data, num_parts);
 
-  kmeans::run_lloyds(train_data_float, num_train, train_dim, pivot_data,
+  math_utils::run_lloyds(train_data_float, num_train, train_dim, pivot_data,
                      num_parts, max_k_means_reps, NULL, NULL);
 
   grann::cout << "Saving global k-center pivots" << std::endl;
@@ -945,10 +945,10 @@ int partition_with_ram_budget(const std::string data_file,
     // Process Global k-means for kmeans_partitioning Step
     grann::cout << "Processing global k-means (kmeans_partitioning Step)"
                 << std::endl;
-    kmeans::kmeanspp_selecting_pivots(train_data_float, num_train, train_dim,
+    math_utils::kmeanspp_selecting_pivots(train_data_float, num_train, train_dim,
                                       pivot_data, num_parts);
 
-    kmeans::run_lloyds(train_data_float, num_train, train_dim, pivot_data,
+    math_utils::run_lloyds(train_data_float, num_train, train_dim, pivot_data,
                        num_parts, max_k_means_reps, NULL, NULL);
 
     // now pivots are ready. need to stream base points and assign them to

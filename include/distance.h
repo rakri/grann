@@ -10,7 +10,7 @@
 #include <immintrin.h>
 #endif
 
-#include <cosine_similarity.h>
+
 #include <iostream>
 
 namespace {
@@ -37,12 +37,6 @@ namespace grann {
     }
   };
 
-  template<typename T>
-  class DistanceCosine : public Distance<T> {
-    float compare(const T *a, const T *b, unsigned length) const {
-      return grann::compute_cosine_similarity<T>(a, b, length);
-    }
-  };
 
   class DistanceL2Int8 : public Distance<int8_t> {
    public:

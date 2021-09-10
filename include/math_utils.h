@@ -59,9 +59,6 @@ namespace math_utils {
                          float* cur_pivot_data, size_t num_centers,
                          uint32_t* closest_centers, bool to_subtract);
 
-}  // namespace math_utils
-
-namespace kmeans {
 
   // run Lloyds one iteration
   // Given data in row major num_points * dim, and centers in row major
@@ -93,4 +90,4 @@ namespace kmeans {
 
   void kmeanspp_selecting_pivots(float* data, size_t num_points, size_t dim,
                                  float* pivot_data, size_t num_centers);
-}  // namespace kmeans
+}; // namespace math_utils

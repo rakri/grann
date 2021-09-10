@@ -223,9 +223,6 @@ namespace math_utils {
     }
   }
 
-}  // namespace math_utils
-
-namespace kmeans {
 
   // run Lloyds one iteration
   // Given data in row major num_points * dim, and centers in row major
@@ -462,4 +459,4 @@ namespace kmeans {
     delete[] dist;
   }
 
-}  // namespace kmeans
+}  // namespace math_utils

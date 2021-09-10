@@ -8,13 +8,8 @@
 #include <malloc.h>
 #endif
 
-#ifdef _WINDOWS
-#include <Windows.h>
-typedef HANDLE FileHandle;
-#else
 #include <unistd.h>
 typedef int FileHandle;
-#endif
 
 #include "logger.h"
 #include "cached_io.h"
@@ -112,12 +107,6 @@ namespace grann {
   template<typename T>
   inline void load_bin(const std::string& bin_file, T*& data, size_t& npts,
                        size_t& dim) {
-    // OLS
-    //_u64            read_blk_size = 64 * 1024 * 1024;
-
-    // cached_ifstream reader(bin_file, read_blk_size);
-    // size_t actual_file_size = reader.get_file_size();
-    // END OLS
     grann::cout << "Reading bin file " << bin_file.c_str() << " ..."
                 << std::endl;
     std::ifstream reader(bin_file, std::ios::binary | std::ios::ate);
@@ -344,29 +333,4 @@ inline void wait_for_keystroke() {
   }
 
 
-inline bool validate_file_size(const std::string& name) {
-  std::ifstream in(std::string(name), std::ios::binary);
-  in.seekg(0, in.end);
-  size_t actual_file_size = in.tellg();
-  in.seekg(0, in.beg);
-  size_t expected_file_size;
-  in.read((char*) &expected_file_size, sizeof(uint64_t));
-  if (actual_file_size != expected_file_size) {
-    grann::cout << "Error loading" << name
-                << ". Expected "
-                   "size (metadata): "
-                << expected_file_size
-                << ", actual file size : " << actual_file_size << ". Exitting."
-                << std::endl;
-    in.close();
-    return false;
-  }
-  in.close();
-  return true;
-}
-
-
-inline void printProcessMemory(const char* message) {
-  grann::cout << message << std::endl;
-}
 
