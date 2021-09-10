@@ -106,16 +106,8 @@ namespace grann {
     data = new T[npts * dim];
     reader.read((char*) data, npts * dim * sizeof(T));
 
-    //    grann::cout << "Last bytes: "
-    //                  << getValues<T>(data + (npts - 2) * dim, dim);
-    //    grann::cout << "Finished reading bin file." << std::endl;
   }
 
-  inline void wait_for_keystroke() {
-    int a;
-    std::cout << "Press any number to continue.." << std::endl;
-    std::cin >> a;
-  }
 
   template<typename T>
   inline void load_bin(const std::string& bin_file, T*& data, size_t& npts,
@@ -319,28 +311,10 @@ namespace grann {
     for (size_t d = 0; d < max_prefetch_size; d += 64)
       _mm_prefetch((const char*) vec + d, _MM_HINT_T1);
   }
+
+  
+
 };  // namespace grann
-
-/*
-struct SimpleNeighbor {
-  SimpleNeighbor() = default;
-
-  SimpleNeighbor(size_t pivo_id, float pivo_dist)
-      : piv_id{pivo_id}, piv_dist{pivo_dist} {
-  }
-
-  bool operator<(const SimpleNeighbor& p) const {
-    return p.piv_dist < piv_dist;
-  }
-
-  bool operator>(const SimpleNeighbor& p) const {
-    return p.piv_dist > piv_dist;
-  }
-
-  size_t piv_id;
-  float  piv_dist;
-};
-*/
 
 inline bool file_exists(const std::string& name) {
   struct stat buffer;
@@ -363,6 +337,13 @@ inline _u64 get_file_size(const std::string& fname) {
   }
 }
 
+inline void wait_for_keystroke() {
+    int a;
+    std::cout << "Press any number to continue.." << std::endl;
+    std::cin >> a;
+  }
+
+
 inline bool validate_file_size(const std::string& name) {
   std::ifstream in(std::string(name), std::ios::binary);
   in.seekg(0, in.end);
@@ -384,33 +365,8 @@ inline bool validate_file_size(const std::string& name) {
   return true;
 }
 
-#ifdef _WINDOWS
-#include <intrin.h>
-#include <Psapi.h>
-
-inline void printProcessMemory(const char* message) {
-  PROCESS_MEMORY_COUNTERS counters;
-  HANDLE                  h = GetCurrentProcess();
-  GetProcessMemoryInfo(h, &counters, sizeof(counters));
-  grann::cout << message << " [Peaking Working Set size: "
-              << counters.PeakWorkingSetSize * 1.0 / (1024 * 1024 * 1024)
-              << "GB Working set size: "
-              << counters.WorkingSetSize * 1.0 / (1024 * 1024 * 1024)
-              << "GB Private bytes "
-              << counters.PagefileUsage * 1.0 / (1024 * 1024 * 1024) << "GB]"
-              << std::endl;
-}
-#else
-
-// need to check and change this
-inline bool avx2Supported() {
-  return true;
-}
 
 inline void printProcessMemory(const char* message) {
   grann::cout << message << std::endl;
 }
-#endif
 
-extern bool AvxSupportedCPU;
-extern bool Avx2SupportedCPU;
