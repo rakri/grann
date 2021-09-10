@@ -400,7 +400,7 @@ namespace grann {
       for (_u32 i = 0; i < res_count; i++) {
         if (i >= res_count)
         break;
-                        indices[i] = top_candidate_list[i].id;
+                        indices[i] = this->idmap[top_candidate_list[i].id];
                         distances[i] = top_candidate_list[i].distance;
       }
       return std::min(res_count, algo_fetched_count);

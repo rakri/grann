@@ -79,12 +79,30 @@ namespace grann {
                         _aligned_dim);
 
     this->_distance = ::get_distance_function<T>(m);
+
+    if (list_of_ids.size() != _num_points && list_of_ids.size() != 0) {
+            std::stringstream stream;
+      stream << "Mismatch in number of points in data and id_map."
+             << std::endl;
+      std::cerr << stream.str() << std::endl;
+      throw grann::ANNException(stream.str(), -1, __FUNCSIG__, __FILE__,
+                                __LINE__);
+    }
+    idmap = new _u32[_num_points];
+    if (list_of_ids.size() != 0)
+    std::memcpy(idmap, list_of_ids.data(), _num_points*sizeof(_u32));
+    else {
+      for (_u32 i = 0; i < _num_points; i++) {
+        idmap[i] = i;
+      }
+    }
   }
 
   template<typename T>
   ANNIndex<T>::~ANNIndex() {
     delete this->_distance;
     aligned_free(_data);
+    delete[] idmap;
   }
 
   // EXPORTS
