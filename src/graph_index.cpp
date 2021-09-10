@@ -197,7 +197,7 @@ namespace grann {
 
     grann::cout << std::setprecision(3)
               << (100.0 * unreachable_count) / this->_num_points
-              << "\% points are unreachable." << std::endl;
+              << "\% points are unreachable and " << std::flush;
     grann::cout << in_degrees[this->_num_points - 1].first
               << " is the most popular in-degree node." << std::endl;
   }

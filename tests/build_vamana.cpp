@@ -14,7 +14,7 @@
 #endif
 
 template<typename T>
-int build_in_memory_vamana(const std::string&   data_path,
+int build_vamana_index(const std::string&   data_path,
                            const grann::Metric& metric, const unsigned R,
                            const unsigned L, const float alpha,
                            const std::string& save_path,
@@ -75,13 +75,13 @@ int main(int argc, char** argv) {
   const unsigned    num_threads = (unsigned) atoi(argv[ctr++]);
 
   if (std::string(argv[1]) == std::string("int8"))
-    build_in_memory_vamana<int8_t>(data_path, metric, R, L, alpha, save_path,
+    build_vamana_index<int8_t>(data_path, metric, R, L, alpha, save_path,
                                    num_threads);
   else if (std::string(argv[1]) == std::string("uint8"))
-    build_in_memory_vamana<uint8_t>(data_path, metric, R, L, alpha, save_path,
+    build_vamana_index<uint8_t>(data_path, metric, R, L, alpha, save_path,
                                     num_threads);
   else if (std::string(argv[1]) == std::string("float"))
-    build_in_memory_vamana<float>(data_path, metric, R, L, alpha, save_path,
+    build_vamana_index<float>(data_path, metric, R, L, alpha, save_path,
                                   num_threads);
   else
     std::cout << "Unsupported type. Use float/int8/uint8" << std::endl;

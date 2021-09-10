@@ -15,7 +15,7 @@ namespace grann {
                     std::vector<_u32> &list_of_ids)
       : GraphIndex<T>(m, filename, list_of_ids) {
     grann::cout << "Initialized Vamana Object with " << this->_num_points
-                << " points, dim=" << this->_dim << std::endl;
+                << " points, dim=" << this->_dim << "." << std::endl;
   }
 
   // save the graph vamana on a file as an adjacency list. For each point,
@@ -40,10 +40,6 @@ namespace grann {
     out.seekp(0, std::ios::beg);
     out.write((char *) &vamana_size, sizeof(uint64_t));
     out.close();
-
-    grann::cout << "Avg degree: "
-                << ((float) total_gr_edges) / ((float) (this->_num_points))
-                << std::endl;
   }
 
   // load the vamana from file and update the width (max_degree), ep
@@ -198,8 +194,6 @@ namespace grann {
     if (pool.size() == 0)
       return;
 
-    //_max_degree = (std::max)(this->_max_degree, degree_bound);
-
     // sort the pool based on distance to query
     std::sort(pool.begin(), pool.end());
 
@@ -208,7 +202,7 @@ namespace grann {
 
     occlude_list(pool, alpha, degree_bound, maxc, result);
 
-    /* Add all the nodes in result into a variable called cut_graph
+    /* Add all the nodes in result into a variable called pruned_list
      * So this contains all the neighbors of id location
      */
     pruned_list.clear();
@@ -287,13 +281,16 @@ namespace grann {
 
   template<typename T>
   void Vamana<T>::build(Parameters &build_parameters) {
-    grann::cout << "Starting vamana build over " << this->_num_points
-                << " points in " << this->_dim << " dims." << std::endl;
     grann::Timer build_timer;
 
     unsigned num_threads = build_parameters.Get<unsigned>("num_threads");
     unsigned L = build_parameters.Get<unsigned>("L");
     unsigned degree_bound = build_parameters.Get<unsigned>("R");
+    float alpha = build_parameters.Get<float>("alpha");
+
+    grann::cout << "Starting vamana build with listSize L=" << L
+                << ", degree bound R=" << degree_bound << ", and alpha=" << alpha <<  std::endl;
+
 
     this->_locks_enabled =
         true;  // we dont need locks for pure search on a pre-built index
@@ -306,6 +303,7 @@ namespace grann {
       omp_set_num_threads(num_threads);
 
     this->_start_node = calculate_entry_point();
+    grann::cout<<"Medoid identified as "<< this->_start_node<< std::endl;
 
     _u32             progress_milestone = (_u32)(this->_num_points / 20);
     std::atomic<int> milestone_marker{0};
@@ -370,11 +368,11 @@ namespace grann {
       }
     }
 
-    grann::cout << "done.." << std::endl;
+    grann::cout << "done." << std::endl;
     this->_has_built = true;
     this->update_degree_stats();
 
-    grann::cout << "Build completed in time: "
+    grann::cout << "Total build time: "
                 << ((double) build_timer.elapsed() / (double) 1000000) << "s"
                 << std::endl;
   }
