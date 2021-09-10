@@ -68,7 +68,7 @@ namespace grann {
    * best_L_nodes: ids of closest L nodes in list
    */
   template<typename T>
-  void GraphIndex<T>::greedy_search_to_fixed_point(
+  _u32 GraphIndex<T>::greedy_search_to_fixed_point(
       const T *node_coords, const unsigned Lsize,
       const std::vector<unsigned> &init_ids,
       std::vector<Neighbor> &      expanded_nodes_info,
@@ -138,6 +138,7 @@ namespace grann {
       stats->n_hops = hops;
       stats->n_cmps = cmps;
     }
+    return l;
   }
 
   // EXPORTS

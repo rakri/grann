@@ -306,6 +306,9 @@ namespace grann {
     grann::cout << "Starting vamana build..." << std::endl;
     grann::Timer link_timer;
 
+    this->_locks_enabled = true; // we dont need locks for pure search on a pre-built index
+    this->_locks = std::vector<std::mutex>(this->_num_points);
+
     unsigned num_threads = build_parameters.Get<unsigned>("num_threads");
     unsigned L = build_parameters.Get<unsigned>("L");
     unsigned degree_bound = build_parameters.Get<unsigned>("R");
@@ -380,28 +383,28 @@ namespace grann {
     }
 
     template<typename T>
-    std::pair<uint32_t, uint32_t> Vamana<T>::search(
-        const T *query, const size_t K, const unsigned L, unsigned *indices) {
+    _u32 Vamana<T>::search(const T *query, _u32 res_count, Parameters &search_params,
+                _u32 *indices, float *distances, QueryStats *stats = nullptr) {
+      _u32 search_list_size = search_params.get<_u32>("L");
       std::vector<unsigned>    init_ids;
-      tsl::robin_set<unsigned> visited(10 * L);
-      std::vector<Neighbor>    best_L_nodes, expanded_nodes_info;
+      tsl::robin_set<unsigned> visited(10 * search_list_size);
+      std::vector<Neighbor>    top_candidate_list, expanded_nodes_info;
       tsl::robin_set<unsigned> expanded_nodes_ids;
 
-      if (init_ids.size() == 0) {
-        init_ids.emplace_back(_start_node);
-      }
-      auto retval =
-          greedy_search_to_fixed_point(query, L, init_ids, expanded_nodes_info,
-                                       expanded_nodes_ids, best_L_nodes);
+      init_ids.emplace_back(this->_start_node);
+      
+      auto algo_fetched_count =
+          greedy_search_to_fixed_point(query, search_list_size, init_ids, expanded_nodes_info,
+                                       expanded_nodes_ids, top_candidate_list, stats);
 
-      size_t pos = 0;
-      for (auto it : best_L_nodes) {
-        indices[pos] = it.id;
-        pos++;
-        if (pos == K)
-          break;
+ //     size_t pos = 0;
+      for (_u32 i = 0; i < res_count; i++) {
+        if (i >= res_count)
+        break;
+                        indices[i] = top_candidate_list[i].id;
+                        distances[i] = top_candidate_list[i].distance;
       }
-      return retval;
+      return std::min(res_count, algo_fetched_count);
     }
 
     // EXPORTS
