@@ -13,7 +13,6 @@
 #include <Windows.h>
 #endif
 
-#include "memory_mapper.h"
 
 template<typename T>
 int build_in_memory_vamana(const std::string&     data_path,
