@@ -139,6 +139,6 @@ endif()
 
 # formatter
 if (LINUX)
-	add_custom_command(TARGET gen_random_slice PRE_BUILD COMMAND clang-format -i ../../../include/*.h ../../../include/dll/*.h ../../../src/*.cpp  ../../../tests/*.cpp ../../../src/dll/*.cpp ../../../tests/utils/*.cpp)
+	add_custom_command(TARGET gen_random_slice PRE_BUILD COMMAND clang-format -i ../../../include/*.h ../../../src/*.cpp  ../../../tests/*.cpp ../../../tests/utils/*.cpp)
 endif()
 
