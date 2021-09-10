@@ -10,9 +10,9 @@
 
 namespace math_utils {
 
-  float calc_distance(float* vec_1, float* vec_2, size_t dim) {
+  float calc_distance(float* vec_1, float* vec_2, _u64 dim) {
     float dist = 0;
-    for (size_t j = 0; j < dim; j++) {
+    for (_u64 j = 0; j < dim; j++) {
       dist += (vec_1[j] - vec_2[j]) * (vec_1[j] - vec_2[j]);
     }
     return dist;
@@ -21,8 +21,8 @@ namespace math_utils {
   // compute l2-squared norms of data stored in row major num_points * dim,
   // needs
   // to be pre-allocated
-  void compute_vecs_l2sq(float* vecs_l2sq, float* data, const size_t num_points,
-                         const size_t dim) {
+  void compute_vecs_l2sq(float* vecs_l2sq, float* data, const _u64 num_points,
+                         const _u64 dim) {
 #pragma omp parallel for schedule(static, 8192)
     for (int64_t n_iter = 0; n_iter < (_s64) num_points; n_iter++) {
       vecs_l2sq[n_iter] =
@@ -31,7 +31,7 @@ namespace math_utils {
     }
   }
 
-  void rotate_data(float* data, size_t num_points, size_t dim,
+  void rotate_data(float* data, _u64 num_points, _u64 dim,
                             float* rot_mat, float*& new_mat,
                             bool transpose_rot) {
     CBLAS_TRANSPOSE transpose = CblasNoTrans;
@@ -59,10 +59,10 @@ namespace math_utils {
 
   // Ideally used only by compute_closest_centers
   void compute_closest_centers_in_block(
-      const float* const data, const size_t num_points, const size_t dim,
-      const float* const centers, const size_t num_centers,
+      const float* const data, const _u64 num_points, const _u64 dim,
+      const float* const centers, const _u64 num_centers,
       const float* const docs_l2sq, const float* const centers_l2sq,
-      uint32_t* center_ids, float* const dist_matrix, size_t k) {
+      uint32_t* center_ids, float* const dist_matrix, _u64 k) {
     if (k > num_centers) {
       grann::cout << "ERROR: k (" << k << ") > num_center(" << num_centers
                   << ")" << std::endl;
@@ -72,10 +72,10 @@ namespace math_utils {
     float* ones_a = new float[num_centers];
     float* ones_b = new float[num_points];
 
-    for (size_t i = 0; i < num_centers; i++) {
+    for (_u64 i = 0; i < num_centers; i++) {
       ones_a[i] = 1.0;
     }
-    for (size_t i = 0; i < num_points; i++) {
+    for (_u64 i = 0; i < num_points; i++) {
       ones_b[i] = 1.0;
     }
 
@@ -99,7 +99,7 @@ namespace math_utils {
       for (int64_t i = 0; i < (_s64) num_points; i++) {
         float  min = std::numeric_limits<float>::max();
         float* current = dist_matrix + (i * num_centers);
-        for (size_t j = 0; j < num_centers; j++) {
+        for (_u64 j = 0; j < num_centers; j++) {
           if (current[j] < min) {
             center_ids[i] = (uint32_t) j;
             min = current[j];
@@ -111,11 +111,11 @@ namespace math_utils {
       for (int64_t i = 0; i < (_s64) num_points; i++) {
         std::priority_queue<grann::SimpleNeighbor> top_k_queue;
         float* current = dist_matrix + (i * num_centers);
-        for (size_t j = 0; j < num_centers; j++) {
+        for (_u64 j = 0; j < num_centers; j++) {
           grann::SimpleNeighbor this_center(j, current[j]);
           top_k_queue.push(this_center);
         }
-        for (size_t j = 0; j < k; j++) {
+        for (_u64 j = 0; j < k; j++) {
           grann::SimpleNeighbor this_center = top_k_queue.top();
           center_ids[i * k + j] = (uint32_t) this_center.id;
           top_k_queue.pop();
@@ -135,10 +135,10 @@ namespace math_utils {
   // indices is an empty vector. Additionally, if pts_norms_squared is not null,
   // then it will assume that point norms are pre-computed and use those values
 
-  void compute_closest_centers(float* data, size_t num_points, size_t dim,
-                               float* centers, size_t num_centers, size_t k,
+  void compute_closest_centers(float* data, _u64 num_points, _u64 dim,
+                               float* centers, _u64 num_centers, _u64 k,
                                uint32_t*            closest_centers_ivf,
-                               std::vector<size_t>* inverted_index,
+                               std::vector<_u64>* inverted_index,
                                float*               pts_norms_squared) {
     if (k > num_centers) {
       grann::cout << "ERROR: k (" << k << ") > num_center(" << num_centers
@@ -152,8 +152,8 @@ namespace math_utils {
     if (!is_norm_given_for_pts)
       pts_norms_squared = new float[num_points];
 
-    size_t block_size = std::min(num_points, MAX_BLOCK_SIZE);
-    size_t N_BLOCKS = (num_points % block_size) == 0
+    _u64 block_size = std::min(num_points, MAX_BLOCK_SIZE);
+    _u64 N_BLOCKS = (num_points % block_size) == 0
                           ? (num_points / block_size)
                           : (num_points / block_size) + 1;
 
@@ -164,9 +164,9 @@ namespace math_utils {
     uint32_t* closest_centers = new uint32_t[block_size * k];
     float*    distance_matrix = new float[num_centers * block_size];
 
-    for (size_t cur_blk = 0; cur_blk < N_BLOCKS; cur_blk++) {
+    for (_u64 cur_blk = 0; cur_blk < N_BLOCKS; cur_blk++) {
       float* data_cur_blk = data + cur_blk * block_size * dim;
-      size_t num_pts_blk =
+      _u64 num_pts_blk =
           std::min(block_size, num_points - cur_blk * block_size);
       float* pts_norms_blk = pts_norms_squared + cur_blk * block_size;
 
@@ -180,8 +180,8 @@ namespace math_utils {
            j <
            std::min((_s64) num_points, (_s64)((cur_blk + 1) * block_size));
            j++) {
-        for (size_t l = 0; l < k; l++) {
-          size_t this_center_id =
+        for (_u64 l = 0; l < k; l++) {
+          _u64 this_center_id =
               closest_centers[(j - cur_blk * block_size) * k + l];
           closest_centers_ivf[j * k + l] = (uint32_t) this_center_id;
           if (inverted_index != nullptr) {
@@ -201,15 +201,15 @@ namespace math_utils {
   // if to_subtract is 1, will subtract nearest center from each row. Else will
   // add. Output will be in base_data iself.
   // Nearest centers need to be provided in closst_centers.
-  void process_residuals(float* base_data, size_t num_points, size_t dim,
-                         float* centers, size_t num_centers,
+  void process_residuals(float* base_data, _u64 num_points, _u64 dim,
+                         float* centers, _u64 num_centers,
                          uint32_t* closest_centers, bool to_subtract) {
     grann::cout << "Processing residuals of " << num_points << " points in "
                 << dim << " dimensions using " << num_centers << " centers "
                 << std::endl;
 #pragma omp parallel for schedule(static, 8192)
     for (int64_t n_iter = 0; n_iter < (_s64) num_points; n_iter++) {
-      for (size_t d_iter = 0; d_iter < dim; d_iter++) {
+      for (_u64 d_iter = 0; d_iter < dim; d_iter++) {
         if (to_subtract == 1)
           base_data[n_iter * dim + d_iter] =
               base_data[n_iter * dim + d_iter] -
@@ -231,9 +231,9 @@ namespace math_utils {
   // closest_centers == nullptr, will allocate memory and return. Similarly, if
   // closest_docs == nullptr, will allocate memory and return.
 
-  float lloyds_iter(float* data, size_t num_points, size_t dim, float* centers,
-                    size_t num_centers, float* docs_l2sq,
-                    std::vector<size_t>* closest_docs,
+  float lloyds_iter(float* data, _u64 num_points, _u64 dim, float* centers,
+                    _u64 num_centers, float* docs_l2sq,
+                    std::vector<_u64>* closest_docs,
                     uint32_t*&           closest_center) {
     bool compute_residual = true;
     // Timer timer;
@@ -241,9 +241,9 @@ namespace math_utils {
     if (closest_center == nullptr)
       closest_center = new uint32_t[num_points];
     if (closest_docs == nullptr)
-      closest_docs = new std::vector<size_t>[num_centers];
+      closest_docs = new std::vector<_u64>[num_centers];
     else
-      for (size_t c = 0; c < num_centers; ++c)
+      for (_u64 c = 0; c < num_centers; ++c)
         closest_docs[c].clear();
 
     math_utils::compute_closest_centers(data, num_points, dim, centers,
@@ -252,22 +252,22 @@ namespace math_utils {
 
     //	grann::cout << "closest centerss calculation done " << std::endl;
 
-    memset(centers, 0, sizeof(float) * (size_t) num_centers * (size_t) dim);
+    memset(centers, 0, sizeof(float) * (_u64) num_centers * (_u64) dim);
 
 #pragma omp parallel for schedule(static, 1)
     for (int64_t c = 0; c < (_s64) num_centers; ++c) {
-      float*  center = centers + (size_t) c * (size_t) dim;
+      float*  center = centers + (_u64) c * (_u64) dim;
       double* cluster_sum = new double[dim];
-      for (size_t i = 0; i < dim; i++)
+      for (_u64 i = 0; i < dim; i++)
         cluster_sum[i] = 0.0;
-      for (size_t i = 0; i < closest_docs[c].size(); i++) {
+      for (_u64 i = 0; i < closest_docs[c].size(); i++) {
         float* current = data + ((closest_docs[c][i]) * dim);
-        for (size_t j = 0; j < dim; j++) {
+        for (_u64 j = 0; j < dim; j++) {
           cluster_sum[j] += (double) current[j];
         }
       }
       if (closest_docs[c].size() > 0) {
-        for (size_t i = 0; i < dim; i++)
+        for (_u64 i = 0; i < dim; i++)
           center[i] =
               (float) (cluster_sum[i] / ((double) closest_docs[c].size()));
       }
@@ -276,21 +276,21 @@ namespace math_utils {
 
     float residual = 0.0;
     if (compute_residual) {
-      size_t BUF_PAD = 32;
-      size_t CHUNK_SIZE = 2 * 8192;
-      size_t nchunks =
+      _u64 BUF_PAD = 32;
+      _u64 CHUNK_SIZE = 2 * 8192;
+      _u64 nchunks =
           num_points / CHUNK_SIZE + (num_points % CHUNK_SIZE == 0 ? 0 : 1);
       std::vector<float> residuals(nchunks * BUF_PAD, 0.0);
 
 #pragma omp parallel for schedule(static, 32)
       for (int64_t chunk = 0; chunk < (_s64) nchunks; ++chunk)
-        for (size_t d = chunk * CHUNK_SIZE;
+        for (_u64 d = chunk * CHUNK_SIZE;
              d < num_points && d < (chunk + 1) * CHUNK_SIZE; ++d)
           residuals[chunk * BUF_PAD] += math_utils::calc_distance(
               data + (d * dim),
-              centers + (size_t) closest_center[d] * (size_t) dim, dim);
+              centers + (_u64) closest_center[d] * (_u64) dim, dim);
 
-      for (size_t chunk = 0; chunk < nchunks; ++chunk)
+      for (_u64 chunk = 0; chunk < nchunks; ++chunk)
         residual += residuals[chunk * BUF_PAD];
     }
 
@@ -301,18 +301,18 @@ namespace math_utils {
   // If you pass nullptr for closest_docs and closest_center, it will NOT return
   // the
   // results, else it will assume appriate allocation as closest_docs = new
-  // vector<size_t> [num_centers], and closest_center = new size_t[num_points]
+  // vector<_u64> [num_centers], and closest_center = new _u64[num_points]
   // Final centers are output in centers as row major num_centers * dim
   //
-  float run_lloyds(float* data, size_t num_points, size_t dim, float* centers,
-                   const size_t num_centers, const size_t max_reps,
-                   std::vector<size_t>* closest_docs,
+  float run_lloyds(float* data, _u64 num_points, _u64 dim, float* centers,
+                   const _u64 num_centers, const _u64 max_reps,
+                   std::vector<_u64>* closest_docs,
                    uint32_t*            closest_center) {
     float residual = std::numeric_limits<float>::max();
     bool  ret_closest_docs = true;
     bool  ret_closest_center = true;
     if (closest_docs == nullptr) {
-      closest_docs = new std::vector<size_t>[num_centers];
+      closest_docs = new std::vector<_u64>[num_centers];
       ret_closest_docs = false;
     }
     if (closest_center == nullptr) {
@@ -325,7 +325,7 @@ namespace math_utils {
 
     float old_residual;
     // Timer timer;
-    for (size_t i = 0; i < max_reps; ++i) {
+    for (_u64 i = 0; i < max_reps; ++i) {
       old_residual = residual;
 
       residual = lloyds_iter(data, num_points, dim, centers, num_centers,
@@ -352,21 +352,21 @@ namespace math_utils {
   // assumes memory allocated for centers as new
   // float[num_centers*dim]
   // and select randomly num_centers points as centers
-  void selecting_pivots(float* data, size_t num_points, size_t dim,
-                        float* centers, size_t num_centers) {
+  void selecting_pivots(float* data, _u64 num_points, _u64 dim,
+                        float* centers, _u64 num_centers) {
     //	centers = new float[num_centers * dim];
 
-    std::vector<size_t> picked;
+    std::vector<_u64> picked;
     grann::cout << "Selecting " << num_centers << " centers from " << num_points
                 << " points using ";
     std::random_device rd;
     auto               x = rd();
     grann::cout << "random seed " << x << std::endl;
     std::mt19937                          generator(x);
-    std::uniform_int_distribution<size_t> distribution(0, num_points - 1);
+    std::uniform_int_distribution<_u64> distribution(0, num_points - 1);
 
-    size_t tmp_center;
-    for (size_t j = 0; j < num_centers; j++) {
+    _u64 tmp_center;
+    for (_u64 j = 0; j < num_centers; j++) {
       tmp_center = distribution(generator);
       if (std::find(picked.begin(), picked.end(), tmp_center) != picked.end())
         continue;
@@ -376,8 +376,8 @@ namespace math_utils {
     }
   }
 
-  void kmeanspp_selecting_pivots(float* data, size_t num_points, size_t dim,
-                                 float* centers, size_t num_centers) {
+  void kmeanspp_selecting_pivots(float* data, _u64 num_points, _u64 dim,
+                                 float* centers, _u64 num_centers) {
     if (num_points > 1 << 23) {
       grann::cout << "ERROR: n_pts " << num_points
                   << " currently not supported for k-means++, maximum is "
@@ -388,7 +388,7 @@ namespace math_utils {
       return;
     }
 
-    std::vector<size_t> picked;
+    std::vector<_u64> picked;
     grann::cout << "Selecting " << num_centers << " centers from " << num_points
                 << " points using ";
     std::random_device rd;
@@ -396,9 +396,9 @@ namespace math_utils {
     grann::cout << "random seed " << x << ": " << std::flush;
     std::mt19937                          generator(x);
     std::uniform_real_distribution<>      distribution(0, 1);
-    std::uniform_int_distribution<size_t> int_dist(0, num_points - 1);
-    size_t                                init_id = int_dist(generator);
-    size_t                                num_picked = 1;
+    std::uniform_int_distribution<_u64> int_dist(0, num_points - 1);
+    _u64                                init_id = int_dist(generator);
+    _u64                                num_picked = 1;
 
     picked.push_back(init_id);
     std::memcpy(centers, data + init_id * dim, dim * sizeof(float));
@@ -412,14 +412,14 @@ namespace math_utils {
     }
 
     double dart_val;
-    size_t tmp_center;
+    _u64 tmp_center;
     bool   sum_flag = false;
 
     while (num_picked < num_centers) {
       dart_val = distribution(generator);
 
       double sum = 0;
-      for (size_t i = 0; i < num_points; i++) {
+      for (_u64 i = 0; i < num_points; i++) {
         sum = sum + dist[i];
       }
       if (sum == 0)
@@ -428,7 +428,7 @@ namespace math_utils {
       dart_val *= sum;
 
       double prefix_sum = 0;
-      for (size_t i = 0; i < (num_points); i++) {
+      for (_u64 i = 0; i < (num_points); i++) {
         tmp_center = i;
         if (dart_val >= prefix_sum && dart_val < prefix_sum + dist[i]) {
           break;

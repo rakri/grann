@@ -32,7 +32,7 @@ typedef int FileHandle;
 #include "gperftools/malloc_extension.h"
 
 namespace grann {
-  const size_t   TRAINING_SET_SIZE = 100000;
+  const _u64   TRAINING_SET_SIZE = 100000;
   const double   SPACE_FOR_CACHED_NODES_IN_GB = 0.25;
   const double   THRESHOLD_FOR_CACHING_IN_GB = 1.0;
   const uint32_t NUM_NODES_TO_CACHE = 250000;
@@ -43,12 +43,12 @@ namespace grann {
   class DiskANN;
 
   inline void load_truthset(const std::string& bin_file, uint32_t*& ids,
-                            float*& dists, size_t& npts, size_t& dim) {
+                            float*& dists, _u64& npts, _u64& dim) {
     _u64            read_blk_size = 64 * 1024 * 1024;
     cached_ifstream reader(bin_file, read_blk_size);
     grann::cout << "Reading truthset file " << bin_file.c_str() << " ..."
                 << std::endl;
-    size_t actual_file_size = reader.get_file_size();
+    _u64 actual_file_size = reader.get_file_size();
 
     int npts_i32, dim_i32;
     reader.read((char*) &npts_i32, sizeof(int));
@@ -61,13 +61,13 @@ namespace grann {
 
     int truthset_type = -1;  // 1 means truthset has ids and distances, 2 means
                              // only ids, -1 is error
-    size_t expected_file_size_with_dists =
+    _u64 expected_file_size_with_dists =
         2 * npts * dim * sizeof(uint32_t) + 2 * sizeof(uint32_t);
 
     if (actual_file_size == expected_file_size_with_dists)
       truthset_type = 1;
 
-    size_t expected_file_size_just_ids =
+    _u64 expected_file_size_just_ids =
         npts * dim * sizeof(uint32_t) + 2 * sizeof(uint32_t);
 
     if (actual_file_size == expected_file_size_just_ids)
@@ -97,12 +97,12 @@ namespace grann {
 
   inline void prune_truthset_for_range(
       const std::string& bin_file, float range,
-      std::vector<std::vector<_u32>>& groundtruth, size_t& npts) {
+      std::vector<std::vector<_u32>>& groundtruth, _u64& npts) {
     _u64            read_blk_size = 64 * 1024 * 1024;
     cached_ifstream reader(bin_file, read_blk_size);
     grann::cout << "Reading truthset file " << bin_file.c_str() << " ..."
                 << std::endl;
-    size_t actual_file_size = reader.get_file_size();
+    _u64 actual_file_size = reader.get_file_size();
 
     int npts_i32, dim_i32;
     reader.read((char*) &npts_i32, sizeof(int));
@@ -117,7 +117,7 @@ namespace grann {
 
     int truthset_type = -1;  // 1 means truthset has ids and distances, 2 means
                              // only ids, -1 is error
-    size_t expected_file_size_with_dists =
+    _u64 expected_file_size_with_dists =
         2 * npts * dim * sizeof(uint32_t) + 2 * sizeof(uint32_t);
 
     if (actual_file_size == expected_file_size_with_dists)
@@ -171,7 +171,7 @@ namespace grann {
     cached_ifstream reader(bin_file, read_blk_size);
     grann::cout << "Reading truthset file " << bin_file.c_str() << " ..."
                 << std::endl;
-    size_t actual_file_size = reader.get_file_size();
+    _u64 actual_file_size = reader.get_file_size();
 
     int npts_u32, total_u32;
     reader.read((char*) &npts_u32, sizeof(int));
@@ -183,7 +183,7 @@ namespace grann {
     grann::cout << "Metadata: #pts = " << gt_num
                 << ", #total_results = " << total_res << "..." << std::endl;
 
-    size_t expected_file_size =
+    _u64 expected_file_size =
         2 * sizeof(_u32) + gt_num * sizeof(_u32) + total_res * sizeof(_u32);
 
     if (actual_file_size != expected_file_size) {

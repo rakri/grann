@@ -55,7 +55,7 @@ using maxPQIFCS =
     std::priority_queue<pairIF, std::vector<pairIF>, cmpmaxstruct>;
 
 template<class T>
-T *aligned_malloc(const size_t n, const size_t alignment) {
+T *aligned_malloc(const _u64 n, const _u64 alignment) {
 #ifdef _WINDOWS
   return (T *) _aligned_malloc(sizeof(T) * n, alignment);
 #else
@@ -78,11 +78,11 @@ void compute_l2sq(float *const points_l2sq, const float *const matrix,
 }
 
 void distsq_to_points(
-    const size_t dim,
+    const _u64 dim,
     float *      dist_matrix,  // Col Major, cols are queries, rows are points
-    size_t npoints, const float *const points,
+    _u64 npoints, const float *const points,
     const float *const points_l2sq,  // points in Col major
-    size_t nqueries, const float *const queries,
+    _u64 nqueries, const float *const queries,
     const float *const queries_l2sq,  // queries in Col major
     float *ones_vec = nullptr)  // Scratchspace of num_data size and init to 1.0
 {
@@ -106,9 +106,9 @@ void distsq_to_points(
 }
 
 void inner_prod_to_points(
-    const size_t dim,
+    const _u64 dim,
     float *      dist_matrix,  // Col Major, cols are queries, rows are points
-    size_t npoints, const float *const points, size_t nqueries,
+    _u64 npoints, const float *const points, _u64 nqueries,
     const float *const queries,
     float *ones_vec = nullptr)  // Scratchspace of num_data size and init to 1.0
 {
@@ -126,15 +126,15 @@ void inner_prod_to_points(
     delete[] ones_vec;
 }
 
-void exact_knn(const size_t dim, const size_t k,
+void exact_knn(const _u64 dim, const _u64 k,
                int *const closest_points,  // k * num_queries preallocated, col
                                            // major, queries columns
                float *const dist_closest_points,  // k * num_queries
                                                   // preallocated, Dist to
                                                   // corresponding closes_points
-               size_t             npoints,
+               _u64             npoints,
                const float *const points,  // points in Col major
-               size_t nqueries, const float *const queries,
+               _u64 nqueries, const float *const queries,
                bool use_mip = false)  // queries in Col major
 {
   float *points_l2sq = new float[npoints];
@@ -151,8 +151,8 @@ void exact_knn(const size_t dim, const size_t k,
     std::cout << " L2 ";
   std::cout << "distance fn. " << std::endl;
 
-  size_t q_batch_size = (1 << 9);
-  float *dist_matrix = new float[(size_t) q_batch_size * (size_t) npoints];
+  _u64 q_batch_size = (1 << 9);
+  float *dist_matrix = new float[(_u64) q_batch_size * (_u64) npoints];
 
   for (_u64 b = 0; b < div_round_up(nqueries, q_batch_size); ++b) {
     int64_t q_b = b * q_batch_size;
@@ -226,8 +226,8 @@ inline int get_num_parts(const char *filename) {
 }
 
 template<typename T>
-inline void load_bin_as_float(const char *filename, float *&data, size_t &npts,
-                              size_t &ndims, int part_num) {
+inline void load_bin_as_float(const char *filename, float *&data, _u64 &npts,
+                              _u64 &ndims, int part_num) {
   std::ifstream reader(filename, std::ios::binary);
   std::cout << "Reading bin file " << filename << " ...\n";
   int npts_i32, ndims_i32;
@@ -263,8 +263,8 @@ inline void load_bin_as_float(const char *filename, float *&data, size_t &npts,
 }
 
 template<typename T>
-inline void save_bin(const std::string filename, T *data, size_t npts,
-                     size_t ndims) {
+inline void save_bin(const std::string filename, T *data, _u64 npts,
+                     _u64 ndims) {
   std::ofstream writer(filename, std::ios::binary | std::ios::out);
   std::cout << "Writing bin: " << filename << "\n";
   int npts_i32 = (int) npts, ndims_i32 = (int) ndims;
@@ -282,7 +282,7 @@ inline void save_bin(const std::string filename, T *data, size_t npts,
 
 inline void save_groundtruth_as_one_file(const std::string filename,
                                          int32_t *data, float *distances,
-                                         size_t npts, size_t ndims) {
+                                         _u64 npts, _u64 ndims) {
   std::ofstream writer(filename, std::ios::binary | std::ios::out);
   int           npts_i32 = (int) npts, ndims_i32 = (int) ndims;
   writer.write((char *) &npts_i32, sizeof(int));
@@ -302,10 +302,10 @@ inline void save_groundtruth_as_one_file(const std::string filename,
 
 template<typename T>
 int aux_main(char **argc) {
-  size_t      npoints, nqueries, dim;
+  _u64      npoints, nqueries, dim;
   std::string base_file(argc[2]);
   std::string query_file(argc[3]);
-  size_t      k = atoi(argc[4]);
+  _u64      k = atoi(argc[4]);
   bool        use_mip = false;
   std::string gt_file(argc[5]);
   if (std::string(argc[6]) == std::string("mips"))
@@ -323,7 +323,7 @@ int aux_main(char **argc) {
   float *dist_closest_points = new float[nqueries * k];
 
   for (int p = 0; p < num_parts; p++) {
-    size_t start_id = p * PARTSIZE;
+    _u64 start_id = p * PARTSIZE;
     load_bin_as_float<T>(base_file.c_str(), base_data, npoints, dim, p);
     int *  closest_points_part = new int[nqueries * k];
     float *dist_closest_points_part = new float[nqueries * k];

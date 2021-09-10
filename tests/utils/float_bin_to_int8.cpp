@@ -30,8 +30,8 @@ int main(int argc, char** argv) {
   _u32          ndims_u32;
   reader.read((char*) &npts_u32, sizeof(_s32));
   reader.read((char*) &ndims_u32, sizeof(_s32));
-  size_t npts = npts_u32;
-  size_t ndims = ndims_u32;
+  _u64 npts = npts_u32;
+  _u64 ndims = ndims_u32;
   std::cout << "Dataset: #pts = " << npts << ", # dims = " << ndims
             << std::endl;
 

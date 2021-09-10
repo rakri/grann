@@ -24,7 +24,7 @@ namespace grann {
   template<typename T>
   void Vamana<T>::save(const char *filename) {
     long long     total_gr_edges = 0;
-    size_t        vamana_size = 0;
+    _u64        vamana_size = 0;
     std::ofstream out(std::string(filename), std::ios::binary | std::ios::out);
 
     out.write((char *) &vamana_size, sizeof(uint64_t));
@@ -51,13 +51,13 @@ namespace grann {
   template<typename T>
   void Vamana<T>::load(const char *filename) {
     std::ifstream in(filename, std::ios::binary);
-    size_t        expected_file_size;
+    _u64        expected_file_size;
     in.read((char *) &expected_file_size, sizeof(_u64));
     in.read((char *) &this->_max_degree, sizeof(unsigned));
     in.read((char *) &this->_start_node, sizeof(unsigned));
     grann::cout << "Loading vamana index " << filename << "..." << std::flush;
 
-    size_t   cc = 0;
+    _u64   cc = 0;
     unsigned nodes = 0;
     while (!in.eof()) {
       unsigned k;
@@ -95,14 +95,14 @@ namespace grann {
   unsigned Vamana<T>::calculate_entry_point() {
     // allocate and init centroid
     float *center = new float[this->_aligned_dim]();
-    for (size_t j = 0; j < this->_aligned_dim; j++)
+    for (_u64 j = 0; j < this->_aligned_dim; j++)
       center[j] = 0;
 
-    for (size_t i = 0; i < this->_num_points; i++)
-      for (size_t j = 0; j < this->_aligned_dim; j++)
+    for (_u64 i = 0; i < this->_num_points; i++)
+      for (_u64 j = 0; j < this->_aligned_dim; j++)
         center[j] += this->_data[i * this->_aligned_dim + j];
 
-    for (size_t j = 0; j < this->_aligned_dim; j++)
+    for (_u64 j = 0; j < this->_aligned_dim; j++)
       center[j] /= this->_num_points;
 
     // compute all to one distance
@@ -111,10 +111,10 @@ namespace grann {
     for (_s64 i = 0; i < (_s64) this->_num_points; i++) {
       // extract point and distance reference
       float &  dist = distances[i];
-      const T *cur_vec = this->_data + (i * (size_t) this->_aligned_dim);
+      const T *cur_vec = this->_data + (i * (_u64) this->_aligned_dim);
       dist = 0;
       float diff = 0;
-      for (size_t j = 0; j < this->_aligned_dim; j++) {
+      for (_u64 j = 0; j < this->_aligned_dim; j++) {
         diff = (center[j] - cur_vec[j]) * (center[j] - cur_vec[j]);
         dist += diff;
       }
@@ -136,7 +136,7 @@ namespace grann {
 
   template<typename T>
   void Vamana<T>::get_expanded_nodes(
-      const size_t node_id, const unsigned l_build,
+      const _u64 node_id, const unsigned l_build,
       std::vector<unsigned>     init_ids,
       std::vector<Neighbor> &   expanded_nodes_info,
       tsl::robin_set<unsigned> &expanded_nodes_ids) {
@@ -176,8 +176,8 @@ namespace grann {
         if (occlude_factor[t] > alpha)
           continue;
         float djk = this->_distance->compare(
-            this->_data + this->_aligned_dim * (size_t) pool[t].id,
-            this->_data + this->_aligned_dim * (size_t) p.id,
+            this->_data + this->_aligned_dim * (_u64) pool[t].id,
+            this->_data + this->_aligned_dim * (_u64) p.id,
             (unsigned) this->_aligned_dim);
         occlude_factor[t] =
             (std::max)(occlude_factor[t], pool[t].distance / djk);
@@ -256,8 +256,8 @@ namespace grann {
         tsl::robin_set<unsigned> dummy_visited(0);
         std::vector<Neighbor>    dummy_pool(0);
 
-        size_t reserveSize =
-            (size_t)(std::ceil(1.05 * VAMANA_SLACK_FACTOR * degree_bound));
+        _u64 reserveSize =
+            (_u64)(std::ceil(1.05 * VAMANA_SLACK_FACTOR * degree_bound));
         dummy_visited.reserve(reserveSize);
         dummy_pool.reserve(reserveSize);
 
@@ -265,8 +265,8 @@ namespace grann {
           if (dummy_visited.find(cur_nbr) == dummy_visited.end() &&
               cur_nbr != des) {
             float dist = this->_distance->compare(
-                this->_data + this->_aligned_dim * (size_t) des,
-                this->_data + this->_aligned_dim * (size_t) cur_nbr,
+                this->_data + this->_aligned_dim * (_u64) des,
+                this->_data + this->_aligned_dim * (_u64) cur_nbr,
                 (unsigned) this->_aligned_dim);
             dummy_pool.emplace_back(Neighbor(cur_nbr, dist, true));
             dummy_visited.insert(cur_nbr);
@@ -355,8 +355,8 @@ namespace grann {
           if (dummy_visited.find(cur_nbr) == dummy_visited.end() &&
               cur_nbr != node) {
             float dist = this->_distance->compare(
-                this->_data + this->_aligned_dim * (size_t) node,
-                this->_data + this->_aligned_dim * (size_t) cur_nbr,
+                this->_data + this->_aligned_dim * (_u64) node,
+                this->_data + this->_aligned_dim * (_u64) cur_nbr,
                 (unsigned) this->_aligned_dim);
             dummy_pool.emplace_back(Neighbor(cur_nbr, dist, true));
             dummy_visited.insert(cur_nbr);
@@ -395,7 +395,7 @@ namespace grann {
         query, search_list_size, init_ids, expanded_nodes_info,
         expanded_nodes_ids, top_candidate_list, stats);
 
-    //     size_t pos = 0;
+    //     _u64 pos = 0;
     for (_u32 i = 0; i < res_count; i++) {
       if (i >= res_count)
         break;

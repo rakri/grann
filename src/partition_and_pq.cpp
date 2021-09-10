@@ -31,7 +31,7 @@ void gen_random_slice(const std::string base_file,
       x);  // Standard mersenne_twister_engine seeded with rd()
   std::uniform_real_distribution<float> distribution(0, 1);
 
-  size_t   npts, nd;
+  _u64   npts, nd;
   uint32_t npts_u32, nd_u32;
   uint32_t num_sampled_pts_u32 = 0;
   uint32_t one_const = 1;
@@ -49,7 +49,7 @@ void gen_random_slice(const std::string base_file,
   nd = nd_u32;
   std::unique_ptr<T[]> cur_row = std::make_unique<T[]>(nd);
 
-  for (size_t i = 0; i < npts; i++) {
+  for (_u64 i = 0; i < npts; i++) {
     base_reader.read((char *) cur_row.get(), sizeof(T) * nd);
     float sample = distribution(generator);
     if (sample < sampling_rate) {
@@ -80,8 +80,8 @@ void gen_random_slice(const std::string base_file,
 
 template<typename T>
 void gen_random_slice(const std::string data_file, double p_val,
-                      float *&sampled_data, size_t &slice_size, size_t &ndims) {
-  size_t                          npts;
+                      float *&sampled_data, _u64 &slice_size, _u64 &ndims) {
+  _u64                          npts;
   uint32_t                        npts32, ndims32;
   std::vector<std::vector<float>> sampled_vectors;
 
@@ -100,24 +100,24 @@ void gen_random_slice(const std::string data_file, double p_val,
   p_val = p_val < 1 ? p_val : 1;
 
   std::random_device rd;  // Will be used to obtain a seed for the random number
-  size_t             x = rd();
+  _u64             x = rd();
   std::mt19937       generator((unsigned) x);
   std::uniform_real_distribution<float> distribution(0, 1);
 
-  for (size_t i = 0; i < npts; i++) {
+  for (_u64 i = 0; i < npts; i++) {
     base_reader.read((char *) cur_vector_T.get(), ndims * sizeof(T));
     float rnd_val = distribution(generator);
     if (rnd_val < p_val) {
       std::vector<float> cur_vector_float;
-      for (size_t d = 0; d < ndims; d++)
+      for (_u64 d = 0; d < ndims; d++)
         cur_vector_float.push_back(cur_vector_T[d]);
       sampled_vectors.push_back(cur_vector_float);
     }
   }
   slice_size = sampled_vectors.size();
   sampled_data = new float[slice_size * ndims];
-  for (size_t i = 0; i < slice_size; i++) {
-    for (size_t j = 0; j < ndims; j++) {
+  for (_u64 i = 0; i < slice_size; i++) {
+    for (_u64 j = 0; j < ndims; j++) {
       sampled_data[i * ndims + j] = sampled_vectors[i][j];
     }
   }
@@ -126,8 +126,8 @@ void gen_random_slice(const std::string data_file, double p_val,
 // same as above, but samples from the matrix inputdata instead of a file of
 // npts*ndims to return sampled_data of size slice_size*ndims.
 template<typename T>
-void gen_random_slice(const T *inputdata, size_t npts, size_t ndims,
-                      double p_val, float *&sampled_data, size_t &slice_size) {
+void gen_random_slice(const T *inputdata, _u64 npts, _u64 ndims,
+                      double p_val, float *&sampled_data, _u64 &slice_size) {
   std::vector<std::vector<float>> sampled_vectors;
   const T *                       cur_vector_T;
 
@@ -135,25 +135,25 @@ void gen_random_slice(const T *inputdata, size_t npts, size_t ndims,
 
   std::random_device
                rd;  // Will be used to obtain a seed for the random number engine
-  size_t       x = rd();
+  _u64       x = rd();
   std::mt19937 generator(
       (unsigned) x);  // Standard mersenne_twister_engine seeded with rd()
   std::uniform_real_distribution<float> distribution(0, 1);
 
-  for (size_t i = 0; i < npts; i++) {
+  for (_u64 i = 0; i < npts; i++) {
     cur_vector_T = inputdata + ndims * i;
     float rnd_val = distribution(generator);
     if (rnd_val < p_val) {
       std::vector<float> cur_vector_float;
-      for (size_t d = 0; d < ndims; d++)
+      for (_u64 d = 0; d < ndims; d++)
         cur_vector_float.push_back(cur_vector_T[d]);
       sampled_vectors.push_back(cur_vector_float);
     }
   }
   slice_size = sampled_vectors.size();
   sampled_data = new float[slice_size * ndims];
-  for (size_t i = 0; i < slice_size; i++) {
-    for (size_t j = 0; j < ndims; j++) {
+  for (_u64 i = 0; i < slice_size; i++) {
+    for (_u64 j = 0; j < ndims; j++) {
       sampled_data[i * ndims + j] = sampled_vectors[i][j];
     }
   }
@@ -164,7 +164,7 @@ void gen_random_slice(const T *inputdata, size_t npts, size_t ndims,
 // num_pq_chunks (if it divides dimension, else rounded) chunks, and runs
 // k-means in each chunk to compute the PQ pivots and stores in bin format in
 // file pq_pivots_path as a s num_centers*dim floating point binary file
-int generate_pq_pivots(const float *passed_train_data, size_t num_train,
+int generate_pq_pivots(const float *passed_train_data, _u64 num_train,
                        unsigned dim, unsigned num_centers,
                        unsigned num_pq_chunks, unsigned max_k_means_reps,
                        std::string pq_pivots_path, bool make_zero_mean) {
@@ -188,7 +188,7 @@ int generate_pq_pivots(const float *passed_train_data, size_t num_train,
   std::unique_ptr<float[]> full_pivot_data;
 
   if (file_exists(pq_pivots_path)) {
-    size_t file_dim, file_num_centers;
+    _u64 file_dim, file_num_centers;
     grann::load_bin<float>(pq_pivots_path, full_pivot_data, file_num_centers,
                            file_dim);
     if (file_dim == dim && file_num_centers == num_centers) {
@@ -224,11 +224,11 @@ int generate_pq_pivots(const float *passed_train_data, size_t num_train,
   std::vector<uint32_t> rearrangement;
   std::vector<uint32_t> chunk_offsets;
 
-  size_t low_val = (size_t) std::floor((double) dim / (double) num_pq_chunks);
-  size_t high_val = (size_t) std::ceil((double) dim / (double) num_pq_chunks);
-  size_t max_num_high = dim - (low_val * num_pq_chunks);
-  size_t cur_num_high = 0;
-  size_t cur_bin_threshold = high_val;
+  _u64 low_val = (_u64) std::floor((double) dim / (double) num_pq_chunks);
+  _u64 high_val = (_u64) std::ceil((double) dim / (double) num_pq_chunks);
+  _u64 max_num_high = dim - (low_val * num_pq_chunks);
+  _u64 cur_num_high = 0;
+  _u64 cur_bin_threshold = high_val;
 
   std::vector<std::vector<uint32_t>> bin_to_dims(num_pq_chunks);
   tsl::robin_map<uint32_t, uint32_t> dim_to_bin;
@@ -281,8 +281,8 @@ int generate_pq_pivots(const float *passed_train_data, size_t num_train,
 
   full_pivot_data.reset(new float[num_centers * dim]);
 
-  for (size_t i = 0; i < num_pq_chunks; i++) {
-    size_t cur_chunk_size = chunk_offsets[i + 1] - chunk_offsets[i];
+  for (_u64 i = 0; i < num_pq_chunks; i++) {
+    _u64 cur_chunk_size = chunk_offsets[i + 1] - chunk_offsets[i];
 
     if (cur_chunk_size == 0)
       continue;
@@ -319,9 +319,9 @@ int generate_pq_pivots(const float *passed_train_data, size_t num_train,
   }
 
   grann::save_bin<float>(pq_pivots_path.c_str(), full_pivot_data.get(),
-                         (size_t) num_centers, dim);
+                         (_u64) num_centers, dim);
   std::string centroids_path = pq_pivots_path + "_centroid.bin";
-  grann::save_bin<float>(centroids_path.c_str(), centroid.get(), (size_t) dim,
+  grann::save_bin<float>(centroids_path.c_str(), centroid.get(), (_u64) dim,
                          1);
   std::string rearrangement_path = pq_pivots_path + "_rearrangement_perm.bin";
   grann::save_bin<uint32_t>(rearrangement_path.c_str(), rearrangement.data(),
@@ -348,8 +348,8 @@ int generate_pq_data_from_pivots(const std::string data_file,
   _u32            basedim32;
   base_reader.read((char *) &npts32, sizeof(uint32_t));
   base_reader.read((char *) &basedim32, sizeof(uint32_t));
-  size_t num_points = npts32;
-  size_t dim = basedim32;
+  _u64 num_points = npts32;
+  _u64 dim = basedim32;
 
   std::unique_ptr<float[]>    full_pivot_data;
   std::unique_ptr<float[]>    centroid;
@@ -389,8 +389,8 @@ int generate_pq_data_from_pivots(const std::string data_file,
                                 __FUNCSIG__, __FILE__, __LINE__);
     }
 
-    size_t file_num_centers;
-    size_t file_dim;
+    _u64 file_num_centers;
+    _u64 file_dim;
     grann::load_bin<float>(pq_pivots_path, full_pivot_data, file_num_centers,
                            file_dim);
 
@@ -423,7 +423,7 @@ int generate_pq_data_from_pivots(const std::string data_file,
   compressed_file_writer.write((char *) &num_points, sizeof(uint32_t));
   compressed_file_writer.write((char *) &num_pq_chunks_u32, sizeof(uint32_t));
 
-  size_t block_size = num_points <= BLOCK_SIZE ? num_points : BLOCK_SIZE;
+  _u64 block_size = num_points <= BLOCK_SIZE ? num_points : BLOCK_SIZE;
 
 #ifdef SAVE_INFLATED_PQ
   std::ofstream inflated_file_writer(inflated_pq_file, std::ios::binary);
@@ -446,12 +446,12 @@ int generate_pq_data_from_pivots(const std::string data_file,
   std::unique_ptr<float[]> block_data_tmp =
       std::make_unique<float[]>(block_size * dim);
 
-  size_t num_blocks = DIV_ROUND_UP(num_points, block_size);
+  _u64 num_blocks = DIV_ROUND_UP(num_points, block_size);
 
-  for (size_t block = 0; block < num_blocks; block++) {
-    size_t start_id = block * block_size;
-    size_t end_id = (std::min)((block + 1) * block_size, num_points);
-    size_t cur_blk_size = end_id - start_id;
+  for (_u64 block = 0; block < num_blocks; block++) {
+    _u64 start_id = block * block_size;
+    _u64 end_id = (std::min)((block + 1) * block_size, num_points);
+    _u64 cur_blk_size = end_id - start_id;
 
     base_reader.read((char *) (block_data_T.get()),
                      sizeof(T) * (cur_blk_size * dim));
@@ -474,8 +474,8 @@ int generate_pq_data_from_pivots(const std::string data_file,
       }
     }
 
-    for (size_t i = 0; i < num_pq_chunks; i++) {
-      size_t cur_chunk_size = chunk_offsets[i + 1] - chunk_offsets[i];
+    for (_u64 i = 0; i < num_pq_chunks; i++) {
+      _u64 cur_chunk_size = chunk_offsets[i + 1] - chunk_offsets[i];
       if (cur_chunk_size == 0)
         continue;
 
@@ -547,28 +547,28 @@ int generate_pq_data_from_pivots(const std::string data_file,
   return 0;
 }
 
-int estimate_cluster_sizes(float *test_data_float, size_t num_test,
-                           float *pivots, const size_t num_centers,
-                           const size_t test_dim, const size_t k_base,
-                           std::vector<size_t> &cluster_sizes) {
+int estimate_cluster_sizes(float *test_data_float, _u64 num_test,
+                           float *pivots, const _u64 num_centers,
+                           const _u64 test_dim, const _u64 k_base,
+                           std::vector<_u64> &cluster_sizes) {
   cluster_sizes.clear();
 
-  size_t *shard_counts = new size_t[num_centers];
+  _u64 *shard_counts = new _u64[num_centers];
 
-  for (size_t i = 0; i < num_centers; i++) {
+  for (_u64 i = 0; i < num_centers; i++) {
     shard_counts[i] = 0;
   }
 
-  size_t block_size = num_test <= BLOCK_SIZE ? num_test : BLOCK_SIZE;
+  _u64 block_size = num_test <= BLOCK_SIZE ? num_test : BLOCK_SIZE;
   _u32 * block_closest_centers = new _u32[block_size * k_base];
   float *block_data_float;
 
-  size_t num_blocks = DIV_ROUND_UP(num_test, block_size);
+  _u64 num_blocks = DIV_ROUND_UP(num_test, block_size);
 
-  for (size_t block = 0; block < num_blocks; block++) {
-    size_t start_id = block * block_size;
-    size_t end_id = (std::min)((block + 1) * block_size, num_test);
-    size_t cur_blk_size = end_id - start_id;
+  for (_u64 block = 0; block < num_blocks; block++) {
+    _u64 start_id = block * block_size;
+    _u64 end_id = (std::min)((block + 1) * block_size, num_test);
+    _u64 cur_blk_size = end_id - start_id;
 
     block_data_float = test_data_float + start_id * test_dim;
 
@@ -576,18 +576,18 @@ int estimate_cluster_sizes(float *test_data_float, size_t num_test,
                                         test_dim, pivots, num_centers, k_base,
                                         block_closest_centers);
 
-    for (size_t p = 0; p < cur_blk_size; p++) {
-      for (size_t p1 = 0; p1 < k_base; p1++) {
-        size_t shard_id = block_closest_centers[p * k_base + p1];
+    for (_u64 p = 0; p < cur_blk_size; p++) {
+      for (_u64 p1 = 0; p1 < k_base; p1++) {
+        _u64 shard_id = block_closest_centers[p * k_base + p1];
         shard_counts[shard_id]++;
       }
     }
   }
 
   grann::cout << "Estimated cluster sizes: ";
-  for (size_t i = 0; i < num_centers; i++) {
+  for (_u64 i = 0; i < num_centers; i++) {
     _u32 cur_shard_count = (_u32) shard_counts[i];
-    cluster_sizes.push_back((size_t) cur_shard_count);
+    cluster_sizes.push_back((_u64) cur_shard_count);
     grann::cout << cur_shard_count << " ";
   }
   grann::cout << std::endl;
@@ -598,8 +598,8 @@ int estimate_cluster_sizes(float *test_data_float, size_t num_test,
 
 template<typename T>
 int shard_data_into_clusters(const std::string data_file, float *pivots,
-                             const size_t num_centers, const size_t dim,
-                             const size_t k_base, std::string prefix_path) {
+                             const _u64 num_centers, const _u64 dim,
+                             const _u64 k_base, std::string prefix_path) {
   _u64 read_blk_size = 64 * 1024 * 1024;
   //  _u64 write_blk_size = 64 * 1024 * 1024;
   // create cached reader + writer
@@ -608,21 +608,21 @@ int shard_data_into_clusters(const std::string data_file, float *pivots,
   _u32            basedim32;
   base_reader.read((char *) &npts32, sizeof(uint32_t));
   base_reader.read((char *) &basedim32, sizeof(uint32_t));
-  size_t num_points = npts32;
+  _u64 num_points = npts32;
   if (basedim32 != dim) {
     grann::cout << "Error. dimensions dont match for train set and base set"
                 << std::endl;
     return -1;
   }
 
-  std::unique_ptr<size_t[]> shard_counts =
-      std::make_unique<size_t[]>(num_centers);
+  std::unique_ptr<_u64[]> shard_counts =
+      std::make_unique<_u64[]>(num_centers);
   std::vector<std::ofstream> shard_data_writer(num_centers);
   std::vector<std::ofstream> shard_idmap_writer(num_centers);
   _u32                       dummy_size = 0;
   _u32                       const_one = 1;
 
-  for (size_t i = 0; i < num_centers; i++) {
+  for (_u64 i = 0; i < num_centers; i++) {
     std::string data_filename =
         prefix_path + "_subshard-" + std::to_string(i) + ".bin";
     std::string idmap_filename =
@@ -638,19 +638,19 @@ int shard_data_into_clusters(const std::string data_file, float *pivots,
     shard_counts[i] = 0;
   }
 
-  size_t block_size = num_points <= BLOCK_SIZE ? num_points : BLOCK_SIZE;
+  _u64 block_size = num_points <= BLOCK_SIZE ? num_points : BLOCK_SIZE;
   std::unique_ptr<_u32[]> block_closest_centers =
       std::make_unique<_u32[]>(block_size * k_base);
   std::unique_ptr<T[]> block_data_T = std::make_unique<T[]>(block_size * dim);
   std::unique_ptr<float[]> block_data_float =
       std::make_unique<float[]>(block_size * dim);
 
-  size_t num_blocks = DIV_ROUND_UP(num_points, block_size);
+  _u64 num_blocks = DIV_ROUND_UP(num_points, block_size);
 
-  for (size_t block = 0; block < num_blocks; block++) {
-    size_t start_id = block * block_size;
-    size_t end_id = (std::min)((block + 1) * block_size, num_points);
-    size_t cur_blk_size = end_id - start_id;
+  for (_u64 block = 0; block < num_blocks; block++) {
+    _u64 start_id = block * block_size;
+    _u64 end_id = (std::min)((block + 1) * block_size, num_points);
+    _u64 cur_blk_size = end_id - start_id;
 
     base_reader.read((char *) block_data_T.get(),
                      sizeof(T) * (cur_blk_size * dim));
@@ -661,9 +661,9 @@ int shard_data_into_clusters(const std::string data_file, float *pivots,
                                         dim, pivots, num_centers, k_base,
                                         block_closest_centers.get());
 
-    for (size_t p = 0; p < cur_blk_size; p++) {
-      for (size_t p1 = 0; p1 < k_base; p1++) {
-        size_t   shard_id = block_closest_centers[p * k_base + p1];
+    for (_u64 p = 0; p < cur_blk_size; p++) {
+      for (_u64 p1 = 0; p1 < k_base; p1++) {
+        _u64   shard_id = block_closest_centers[p * k_base + p1];
         uint32_t original_point_map_id = (uint32_t)(start_id + p);
         shard_data_writer[shard_id].write(
             (char *) (block_data_T.get() + p * dim), sizeof(T) * dim);
@@ -674,9 +674,9 @@ int shard_data_into_clusters(const std::string data_file, float *pivots,
     }
   }
 
-  size_t total_count = 0;
+  _u64 total_count = 0;
   grann::cout << "Actual shard sizes: " << std::flush;
-  for (size_t i = 0; i < num_centers; i++) {
+  for (_u64 i = 0; i < num_centers; i++) {
     _u32 cur_shard_count = (_u32) shard_counts[i];
     total_count += cur_shard_count;
     grann::cout << cur_shard_count << " ";
@@ -698,8 +698,8 @@ int shard_data_into_clusters(const std::string data_file, float *pivots,
 // each shard, and retrieve the actual vectors on demand.
 template<typename T>
 int shard_data_into_clusters_only_ids(const std::string data_file,
-                                      float *pivots, const size_t num_centers,
-                                      const size_t dim, const size_t k_base,
+                                      float *pivots, const _u64 num_centers,
+                                      const _u64 dim, const _u64 k_base,
                                       std::string prefix_path) {
   _u64 read_blk_size = 64 * 1024 * 1024;
   //  _u64 write_blk_size = 64 * 1024 * 1024;
@@ -709,21 +709,21 @@ int shard_data_into_clusters_only_ids(const std::string data_file,
   _u32            basedim32;
   base_reader.read((char *) &npts32, sizeof(uint32_t));
   base_reader.read((char *) &basedim32, sizeof(uint32_t));
-  size_t num_points = npts32;
+  _u64 num_points = npts32;
   if (basedim32 != dim) {
     grann::cout << "Error. dimensions dont match for train set and base set"
                 << std::endl;
     return -1;
   }
 
-  std::unique_ptr<size_t[]> shard_counts =
-      std::make_unique<size_t[]>(num_centers);
+  std::unique_ptr<_u64[]> shard_counts =
+      std::make_unique<_u64[]>(num_centers);
 
   std::vector<std::ofstream> shard_idmap_writer(num_centers);
   _u32                       dummy_size = 0;
   _u32                       const_one = 1;
 
-  for (size_t i = 0; i < num_centers; i++) {
+  for (_u64 i = 0; i < num_centers; i++) {
     std::string idmap_filename =
         prefix_path + "_subshard-" + std::to_string(i) + "_ids_uint32.bin";
     shard_idmap_writer[i] =
@@ -733,19 +733,19 @@ int shard_data_into_clusters_only_ids(const std::string data_file,
     shard_counts[i] = 0;
   }
 
-  size_t block_size = num_points <= BLOCK_SIZE ? num_points : BLOCK_SIZE;
+  _u64 block_size = num_points <= BLOCK_SIZE ? num_points : BLOCK_SIZE;
   std::unique_ptr<_u32[]> block_closest_centers =
       std::make_unique<_u32[]>(block_size * k_base);
   std::unique_ptr<T[]> block_data_T = std::make_unique<T[]>(block_size * dim);
   std::unique_ptr<float[]> block_data_float =
       std::make_unique<float[]>(block_size * dim);
 
-  size_t num_blocks = DIV_ROUND_UP(num_points, block_size);
+  _u64 num_blocks = DIV_ROUND_UP(num_points, block_size);
 
-  for (size_t block = 0; block < num_blocks; block++) {
-    size_t start_id = block * block_size;
-    size_t end_id = (std::min)((block + 1) * block_size, num_points);
-    size_t cur_blk_size = end_id - start_id;
+  for (_u64 block = 0; block < num_blocks; block++) {
+    _u64 start_id = block * block_size;
+    _u64 end_id = (std::min)((block + 1) * block_size, num_points);
+    _u64 cur_blk_size = end_id - start_id;
 
     base_reader.read((char *) block_data_T.get(),
                      sizeof(T) * (cur_blk_size * dim));
@@ -756,9 +756,9 @@ int shard_data_into_clusters_only_ids(const std::string data_file,
                                         dim, pivots, num_centers, k_base,
                                         block_closest_centers.get());
 
-    for (size_t p = 0; p < cur_blk_size; p++) {
-      for (size_t p1 = 0; p1 < k_base; p1++) {
-        size_t   shard_id = block_closest_centers[p * k_base + p1];
+    for (_u64 p = 0; p < cur_blk_size; p++) {
+      for (_u64 p1 = 0; p1 < k_base; p1++) {
+        _u64   shard_id = block_closest_centers[p * k_base + p1];
         uint32_t original_point_map_id = (uint32_t)(start_id + p);
         shard_idmap_writer[shard_id].write((char *) &original_point_map_id,
                                            sizeof(uint32_t));
@@ -767,9 +767,9 @@ int shard_data_into_clusters_only_ids(const std::string data_file,
     }
   }
 
-  size_t total_count = 0;
+  _u64 total_count = 0;
   grann::cout << "Actual shard sizes: " << std::flush;
-  for (size_t i = 0; i < num_centers; i++) {
+  for (_u64 i = 0; i < num_centers; i++) {
     _u32 cur_shard_count = (_u32) shard_counts[i];
     total_count += cur_shard_count;
     grann::cout << cur_shard_count << " ";
@@ -796,8 +796,8 @@ int retrieve_shard_data_from_ids(const std::string data_file,
   _u32            basedim32;
   base_reader.read((char *) &npts32, sizeof(uint32_t));
   base_reader.read((char *) &basedim32, sizeof(uint32_t));
-  size_t num_points = npts32;
-  size_t dim = basedim32;
+  _u64 num_points = npts32;
+  _u64 dim = basedim32;
 
   _u32 dummy_size = 0;
 
@@ -813,20 +813,20 @@ int retrieve_shard_data_from_ids(const std::string data_file,
   _u32 num_written = 0;
   grann::cout << "Shard has " << shard_size << " points" << std::endl;
 
-  size_t block_size = num_points <= BLOCK_SIZE ? num_points : BLOCK_SIZE;
+  _u64 block_size = num_points <= BLOCK_SIZE ? num_points : BLOCK_SIZE;
   std::unique_ptr<T[]> block_data_T = std::make_unique<T[]>(block_size * dim);
 
-  size_t num_blocks = DIV_ROUND_UP(num_points, block_size);
+  _u64 num_blocks = DIV_ROUND_UP(num_points, block_size);
 
-  for (size_t block = 0; block < num_blocks; block++) {
-    size_t start_id = block * block_size;
-    size_t end_id = (std::min)((block + 1) * block_size, num_points);
-    size_t cur_blk_size = end_id - start_id;
+  for (_u64 block = 0; block < num_blocks; block++) {
+    _u64 start_id = block * block_size;
+    _u64 end_id = (std::min)((block + 1) * block_size, num_points);
+    _u64 cur_blk_size = end_id - start_id;
 
     base_reader.read((char *) block_data_T.get(),
                      sizeof(T) * (cur_blk_size * dim));
 
-    for (size_t p = 0; p < cur_blk_size; p++) {
+    for (_u64 p = 0; p < cur_blk_size; p++) {
       uint32_t original_point_map_id = (uint32_t)(start_id + p);
       if (cur_pos == shard_size)
         break;
@@ -858,10 +858,10 @@ int retrieve_shard_data_from_ids(const std::string data_file,
 
 template<typename T>
 int partition(const std::string data_file, const float sampling_rate,
-              size_t num_parts, size_t max_k_means_reps,
-              const std::string prefix_path, size_t k_base) {
-  size_t train_dim;
-  size_t num_train;
+              _u64 num_parts, _u64 max_k_means_reps,
+              const std::string prefix_path, _u64 k_base) {
+  _u64 train_dim;
+  _u64 num_train;
   float *train_data_float;
 
   gen_random_slice<T>(data_file, sampling_rate, train_data_float, num_train,
@@ -889,7 +889,7 @@ int partition(const std::string data_file, const float sampling_rate,
                      num_parts, max_k_means_reps, nullptr, nullptr);
 
   grann::cout << "Saving global k-center pivots" << std::endl;
-  grann::save_bin<float>(output_file.c_str(), pivot_data, (size_t) num_parts,
+  grann::save_bin<float>(output_file.c_str(), pivot_data, (_u64) num_parts,
                          train_dim);
 
   // now pivots are ready. need to stream base points and assign them to
@@ -905,12 +905,12 @@ int partition(const std::string data_file, const float sampling_rate,
 template<typename T>
 int partition_with_ram_budget(const std::string data_file,
                               const double sampling_rate, double ram_budget,
-                              size_t            graph_degree,
-                              const std::string prefix_path, size_t k_base) {
-  size_t train_dim;
-  size_t num_train;
+                              _u64            graph_degree,
+                              const std::string prefix_path, _u64 k_base) {
+  _u64 train_dim;
+  _u64 num_train;
   float *train_data_float;
-  size_t max_k_means_reps = 10;
+  _u64 max_k_means_reps = 10;
 
   int  num_parts = 3;
   bool fit_in_ram = false;
@@ -918,8 +918,8 @@ int partition_with_ram_budget(const std::string data_file,
   gen_random_slice<T>(data_file, sampling_rate, train_data_float, num_train,
                       train_dim);
 
-  size_t test_dim;
-  size_t num_test;
+  _u64 test_dim;
+  _u64 num_test;
   float *test_data_float;
   gen_random_slice<T>(data_file, sampling_rate, test_data_float, num_test,
                       test_dim);
@@ -954,7 +954,7 @@ int partition_with_ram_budget(const std::string data_file,
     // now pivots are ready. need to stream base points and assign them to
     // closest clusters.
 
-    std::vector<size_t> cluster_sizes;
+    std::vector<_u64> cluster_sizes;
     estimate_cluster_sizes(test_data_float, num_test, pivot_data, num_parts,
                            train_dim, k_base, cluster_sizes);
 
@@ -978,7 +978,7 @@ int partition_with_ram_budget(const std::string data_file,
   }
 
   grann::cout << "Saving global k-center pivots" << std::endl;
-  grann::save_bin<float>(output_file.c_str(), pivot_data, (size_t) num_parts,
+  grann::save_bin<float>(output_file.c_str(), pivot_data, (_u64) num_parts,
                          train_dim);
 
   shard_data_into_clusters_only_ids<T>(data_file, pivot_data, num_parts,
@@ -1002,46 +1002,46 @@ gen_random_slice<float>(const std::string base_file,
                         const std::string output_prefix, double sampling_rate);
 
 template void  gen_random_slice<float>(const float *inputdata,
-                                                      size_t npts, size_t ndims,
+                                                      _u64 npts, _u64 ndims,
                                                       double  p_val,
                                                       float *&sampled_data,
-                                                      size_t &slice_size);
+                                                      _u64 &slice_size);
 template void  gen_random_slice<uint8_t>(
-    const uint8_t *inputdata, size_t npts, size_t ndims, double p_val,
-    float *&sampled_data, size_t &slice_size);
+    const uint8_t *inputdata, _u64 npts, _u64 ndims, double p_val,
+    float *&sampled_data, _u64 &slice_size);
 template void  gen_random_slice<int8_t>(
-    const int8_t *inputdata, size_t npts, size_t ndims, double p_val,
-    float *&sampled_data, size_t &slice_size);
+    const int8_t *inputdata, _u64 npts, _u64 ndims, double p_val,
+    float *&sampled_data, _u64 &slice_size);
 
 template void  gen_random_slice<float>(
     const std::string data_file, double p_val, float *&sampled_data,
-    size_t &slice_size, size_t &ndims);
+    _u64 &slice_size, _u64 &ndims);
 template void  gen_random_slice<uint8_t>(
     const std::string data_file, double p_val, float *&sampled_data,
-    size_t &slice_size, size_t &ndims);
+    _u64 &slice_size, _u64 &ndims);
 template void  gen_random_slice<int8_t>(
     const std::string data_file, double p_val, float *&sampled_data,
-    size_t &slice_size, size_t &ndims);
+    _u64 &slice_size, _u64 &ndims);
 
 template  int partition<int8_t>(
-    const std::string data_file, const float sampling_rate, size_t num_centers,
-    size_t max_k_means_reps, const std::string prefix_path, size_t k_base);
+    const std::string data_file, const float sampling_rate, _u64 num_centers,
+    _u64 max_k_means_reps, const std::string prefix_path, _u64 k_base);
 template  int partition<uint8_t>(
-    const std::string data_file, const float sampling_rate, size_t num_centers,
-    size_t max_k_means_reps, const std::string prefix_path, size_t k_base);
+    const std::string data_file, const float sampling_rate, _u64 num_centers,
+    _u64 max_k_means_reps, const std::string prefix_path, _u64 k_base);
 template  int partition<float>(
-    const std::string data_file, const float sampling_rate, size_t num_centers,
-    size_t max_k_means_reps, const std::string prefix_path, size_t k_base);
+    const std::string data_file, const float sampling_rate, _u64 num_centers,
+    _u64 max_k_means_reps, const std::string prefix_path, _u64 k_base);
 
 template  int partition_with_ram_budget<int8_t>(
     const std::string data_file, const double sampling_rate, double ram_budget,
-    size_t graph_degree, const std::string prefix_path, size_t k_base);
+    _u64 graph_degree, const std::string prefix_path, _u64 k_base);
 template  int partition_with_ram_budget<uint8_t>(
     const std::string data_file, const double sampling_rate, double ram_budget,
-    size_t graph_degree, const std::string prefix_path, size_t k_base);
+    _u64 graph_degree, const std::string prefix_path, _u64 k_base);
 template  int partition_with_ram_budget<float>(
     const std::string data_file, const double sampling_rate, double ram_budget,
-    size_t graph_degree, const std::string prefix_path, size_t k_base);
+    _u64 graph_degree, const std::string prefix_path, _u64 k_base);
 
 template  int retrieve_shard_data_from_ids<float>(
     const std::string data_file, std::string idmap_filename,

@@ -55,7 +55,7 @@
 
 #define SECTOR_LEN 4096
 #define MAX_N_SECTOR_READS 128
-#define MAX_BLOCK_SIZE (size_t) 10000000
+#define MAX_BLOCK_SIZE (_u64) 10000000
 typedef uint64_t _u64;
 typedef int64_t  _s64;
 typedef uint32_t _u32;
@@ -66,7 +66,7 @@ typedef uint8_t  _u8;
 typedef int8_t   _s8;
 
 namespace grann {
-  static const size_t MAX_SIZE_OF_STREAMBUF = 2LL * 1024 * 1024 * 1024;
+  static const _u64 MAX_SIZE_OF_STREAMBUF = 2LL * 1024 * 1024 * 1024;
 
   enum Metric { L2 = 0, INNER_PRODUCT = 1, FAST_L2 = 2, PQ = 3 };
 };  // namespace grann

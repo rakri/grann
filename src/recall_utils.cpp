@@ -28,12 +28,12 @@ namespace grann {
     double             total_recall = 0;
     std::set<unsigned> gt, res;
 
-    for (size_t i = 0; i < num_queries; i++) {
+    for (_u64 i = 0; i < num_queries; i++) {
       gt.clear();
       res.clear();
       unsigned *gt_vec = gold_std + dim_gs * i;
       unsigned *res_vec = our_results + dim_or * i;
-      size_t    tie_breaker = recall_at;
+      _u64    tie_breaker = recall_at;
       if (gs_dist != nullptr) {
         tie_breaker = recall_at - 1;
         float *gt_dist_vec = gs_dist + dim_gs * i;
@@ -63,7 +63,7 @@ namespace grann {
     double             total_recall = 0;
     std::set<unsigned> gt, res;
 
-    for (size_t i = 0; i < num_queries; i++) {
+    for (_u64 i = 0; i < num_queries; i++) {
       gt.clear();
       res.clear();
 

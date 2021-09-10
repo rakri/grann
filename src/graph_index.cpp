@@ -22,13 +22,13 @@ namespace grann {
         if ((m + 1) < nbr_list.size()) {
           auto nextn = nbr_list[m + 1];
           grann::prefetch_vector(
-              (const char *) this->_data + this->_aligned_dim * (size_t) nextn,
+              (const char *) this->_data + this->_aligned_dim * (_u64) nextn,
               sizeof(T) * this->_aligned_dim);
         }
 
         total_comparisons++;
         float dist = this->_distance->compare(
-            node_coords, this->_data + this->_aligned_dim * (size_t) id,
+            node_coords, this->_data + this->_aligned_dim * (_u64) id,
             (unsigned) this->_aligned_dim);
 
         if (dist >= best_L_nodes[curListSize - 1].distance &&
@@ -87,7 +87,7 @@ namespace grann {
     for (auto id : init_ids) {
       nn = Neighbor(id,
                     this->_distance->compare(
-                        this->_data + this->_aligned_dim * (size_t) id,
+                        this->_data + this->_aligned_dim * (_u64) id,
                         node_coords, (unsigned) this->_aligned_dim),
                     true);
       if (inserted_into_pool.find(id) == inserted_into_pool.end()) {

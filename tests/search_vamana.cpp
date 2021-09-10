@@ -23,7 +23,7 @@ int search_memory_vamana(int argc, char** argv) {
   T*                query = nullptr;
   unsigned*         gt_ids = nullptr;
   float*            gt_dists = nullptr;
-  size_t            query_num, query_dim, query_aligned_dim, gt_num, gt_dim;
+  _u64            query_num, query_dim, query_aligned_dim, gt_num, gt_dim;
   std::vector<_u64> Lvec;
 
   _u32          ctr = 2;

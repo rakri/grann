@@ -121,9 +121,9 @@ namespace grann {
     _u32 *       idmap = nullptr;
 
     T *    _data;
-    size_t _num_points = 0;
-    size_t _dim;
-    size_t _aligned_dim;  // data dimension is rounded to multiple of 8 for more
+    _u64 _num_points = 0;
+    _u64 _dim;
+    _u64 _aligned_dim;  // data dimension is rounded to multiple of 8 for more
                           // efficient alignment and faster floating distance
                           // comparisons. Hence _data is matrix of _num_points *
                           // _aligned_dim size

@@ -18,7 +18,7 @@ typedef int FileHandle;
 
 namespace grann {
 
-  inline void alloc_aligned(void** ptr, size_t size, size_t align) {
+  inline void alloc_aligned(void** ptr, _u64 size, _u64 align) {
     *ptr = nullptr;
     assert(IS_ALIGNED(size, align));
 #ifndef _WINDOWS
@@ -44,7 +44,7 @@ namespace grann {
 
   // get_bin_metadata functions START
   inline void get_bin_metadata_impl(std::basic_istream<char>& reader,
-                                    size_t& nrows, size_t& ncols) {
+                                    _u64& nrows, _u64& ncols) {
     int nrows_32, ncols_32;
     reader.read((char*) &nrows_32, sizeof(int));
     reader.read((char*) &ncols_32, sizeof(int));
@@ -52,18 +52,18 @@ namespace grann {
     ncols = ncols_32;
   }
 
-  inline void get_bin_metadata(const std::string& bin_file, size_t& nrows,
-                               size_t& ncols) {
+  inline void get_bin_metadata(const std::string& bin_file, _u64& nrows,
+                               _u64& ncols) {
     std::ifstream reader(bin_file.c_str(), std::ios::binary);
     get_bin_metadata_impl(reader, nrows, ncols);
   }
   // get_bin_metadata functions END
 
   template<typename T>
-  inline std::string getValues(T* data, size_t num) {
+  inline std::string getValues(T* data, _u64 num) {
     std::stringstream stream;
     stream << "[";
-    for (size_t i = 0; i < num; i++) {
+    for (_u64 i = 0; i < num; i++) {
       stream << std::to_string(data[i]) << ",";
     }
     stream << "]" << std::endl;
@@ -74,8 +74,8 @@ namespace grann {
   // load_bin functions START
   template<typename T>
   inline void load_bin_impl(std::basic_istream<char>& reader,
-                            size_t actual_file_size, T*& data, size_t& npts,
-                            size_t& dim) {
+                            _u64 actual_file_size, T*& data, _u64& npts,
+                            _u64& dim) {
     int npts_i32, dim_i32;
     reader.read((char*) &npts_i32, sizeof(int));
     reader.read((char*) &dim_i32, sizeof(int));
@@ -85,7 +85,7 @@ namespace grann {
     grann::cout << "Metadata: #pts = " << npts << ", #dims = " << dim << "."
                 << std::endl;
 
-    size_t expected_actual_file_size =
+    _u64 expected_actual_file_size =
         npts * dim * sizeof(T) + 2 * sizeof(uint32_t);
     if (actual_file_size != expected_actual_file_size) {
       std::stringstream stream;
@@ -105,8 +105,8 @@ namespace grann {
 
 
   template<typename T>
-  inline void load_bin(const std::string& bin_file, T*& data, size_t& npts,
-                       size_t& dim) {
+  inline void load_bin(const std::string& bin_file, T*& data, _u64& npts,
+                       _u64& dim) {
     grann::cout << "Reading bin file " << bin_file.c_str() << " ..."
                 << std::endl;
     std::ifstream reader(bin_file, std::ios::binary | std::ios::ate);
@@ -119,15 +119,15 @@ namespace grann {
 
   template<typename T>
   inline void load_bin(const std::string& bin_file, std::unique_ptr<T[]>& data,
-                       size_t& npts, size_t& dim) {
+                       _u64& npts, _u64& dim) {
     T* ptr;
     load_bin<T>(bin_file, ptr, npts, dim);
     data.reset(ptr);
   }
 
   template<typename T>
-  inline void save_bin(const std::string& filename, T* data, size_t npts,
-                       size_t ndims) {
+  inline void save_bin(const std::string& filename, T* data, _u64 npts,
+                       _u64 ndims) {
     std::ofstream writer(filename, std::ios::binary | std::ios::out);
     grann::cout << "Writing bin: " << filename.c_str() << std::endl;
     int npts_i32 = (int) npts, ndims_i32 = (int) ndims;
@@ -147,16 +147,16 @@ namespace grann {
 
   template<typename T>
   inline void load_aligned_bin_impl(std::basic_istream<char>& reader,
-                                    size_t actual_file_size, T*& data,
-                                    size_t& npts, size_t& dim,
-                                    size_t& rounded_dim) {
+                                    _u64 actual_file_size, T*& data,
+                                    _u64& npts, _u64& dim,
+                                    _u64& rounded_dim) {
     int npts_i32, dim_i32;
     reader.read((char*) &npts_i32, sizeof(int));
     reader.read((char*) &dim_i32, sizeof(int));
     npts = (unsigned) npts_i32;
     dim = (unsigned) dim_i32;
 
-    size_t expected_actual_file_size =
+    _u64 expected_actual_file_size =
         npts * dim * sizeof(T) + 2 * sizeof(uint32_t);
     if (actual_file_size != expected_actual_file_size) {
       std::stringstream stream;
@@ -171,10 +171,10 @@ namespace grann {
     rounded_dim = ROUND_UP(dim, 8);
     grann::cout << "Metadata: #pts = " << npts << ", #dims = " << dim
                 << ", aligned_dim = " << rounded_dim << "..." << std::flush;
-    size_t allocSize = npts * rounded_dim * sizeof(T);
+    _u64 allocSize = npts * rounded_dim * sizeof(T);
     alloc_aligned(((void**) &data), allocSize, 8 * sizeof(T));
 
-    for (size_t i = 0; i < npts; i++) {
+    for (_u64 i = 0; i < npts; i++) {
       reader.read((char*) (data + i * rounded_dim), dim * sizeof(T));
       memset(data + i * rounded_dim + dim, 0, (rounded_dim - dim) * sizeof(T));
     }
@@ -183,7 +183,7 @@ namespace grann {
 
   template<typename T>
   inline void load_aligned_bin(const std::string& bin_file, T*& data,
-                               size_t& npts, size_t& dim, size_t& rounded_dim) {
+                               _u64& npts, _u64& dim, _u64& rounded_dim) {
     grann::cout << "Reading bin file " << bin_file << " ..." << std::flush;
 
     std::ifstream reader(bin_file, std::ios::binary | std::ios::ate);
@@ -194,8 +194,8 @@ namespace grann {
   }
 
   template<typename InType, typename OutType>
-  void convert_types(const InType* srcmat, OutType* destmat, size_t npts,
-                     size_t dim) {
+  void convert_types(const InType* srcmat, OutType* destmat, _u64 npts,
+                     _u64 dim) {
 #pragma omp parallel for schedule(static, 65536)
     for (int64_t i = 0; i < (_s64) npts; i++) {
       for (uint64_t j = 0; j < dim; j++) {
@@ -234,8 +234,8 @@ namespace grann {
     out_writer.write((char*) &npts32, sizeof(uint32_t));
     out_writer.write((char*) &outdims32, sizeof(uint32_t));
 
-    size_t               BLOCK_SIZE = 100000;
-    size_t               block_size = npts <= BLOCK_SIZE ? npts : BLOCK_SIZE;
+    _u64               BLOCK_SIZE = 100000;
+    _u64               block_size = npts <= BLOCK_SIZE ? npts : BLOCK_SIZE;
     std::unique_ptr<T[]> in_block_data =
         std::make_unique<T[]>(block_size * in_dims);
     std::unique_ptr<float[]> out_block_data =
@@ -288,16 +288,16 @@ namespace grann {
   }
 
   // NOTE :: good efficiency when total_vec_size is integral multiple of 64
-  inline void prefetch_vector(const char* vec, size_t vecsize) {
-    size_t max_prefetch_size = (vecsize / 64) * 64;
-    for (size_t d = 0; d < max_prefetch_size; d += 64)
+  inline void prefetch_vector(const char* vec, _u64 vecsize) {
+    _u64 max_prefetch_size = (vecsize / 64) * 64;
+    for (_u64 d = 0; d < max_prefetch_size; d += 64)
       _mm_prefetch((const char*) vec + d, _MM_HINT_T0);
   }
 
   // NOTE :: good efficiency when total_vec_size is integral multiple of 64
-  inline void prefetch_vector_l2(const char* vec, size_t vecsize) {
-    size_t max_prefetch_size = (vecsize / 64) * 64;
-    for (size_t d = 0; d < max_prefetch_size; d += 64)
+  inline void prefetch_vector_l2(const char* vec, _u64 vecsize) {
+    _u64 max_prefetch_size = (vecsize / 64) * 64;
+    for (_u64 d = 0; d < max_prefetch_size; d += 64)
       _mm_prefetch((const char*) vec + d, _MM_HINT_T1);
   }
 

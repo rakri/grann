@@ -8,15 +8,15 @@
 
 namespace math_utils {
 
-  float calc_distance(float* vec_1, float* vec_2, size_t dim);
+  float calc_distance(float* vec_1, float* vec_2, _u64 dim);
 
   // compute l2-squared norms of data stored in row major num_points * dim,
   // needs
   // to be pre-allocated
-  void compute_vecs_l2sq(float* vecs_l2sq, float* data, const size_t num_points,
-                         const size_t dim);
+  void compute_vecs_l2sq(float* vecs_l2sq, float* data, const _u64 num_points,
+                         const _u64 dim);
 
-  void rotate_data(float* data, size_t num_points, size_t dim,
+  void rotate_data(float* data, _u64 num_points, _u64 dim,
                             float* rot_mat, float*& new_mat,
                             bool transpose_rot = false);
 
@@ -30,10 +30,10 @@ namespace math_utils {
 
   // Ideally used only by compute_closest_centers
   void compute_closest_centers_in_block(
-      const float* const data, const size_t num_points, const size_t dim,
-      const float* const centers, const size_t num_centers,
+      const float* const data, const _u64 num_points, const _u64 dim,
+      const float* const centers, const _u64 num_centers,
       const float* const docs_l2sq, const float* const centers_l2sq,
-      uint32_t* center_ids, float* const dist_matrix, size_t k = 1);
+      uint32_t* center_ids, float* const dist_matrix, _u64 k = 1);
 
   // Given data in num_points * new_dim row major
   // Pivots stored in full_pivot_data as k * new_dim row major
@@ -45,18 +45,18 @@ namespace math_utils {
   // those
   // values
 
-  void compute_closest_centers(float* data, size_t num_points, size_t dim,
-                               float* pivot_data, size_t num_centers, size_t k,
+  void compute_closest_centers(float* data, _u64 num_points, _u64 dim,
+                               float* pivot_data, _u64 num_centers, _u64 k,
                                uint32_t*            closest_centers_ivf,
-                               std::vector<size_t>* inverted_index = nullptr,
+                               std::vector<_u64>* inverted_index = nullptr,
                                float*               pts_norms_squared = nullptr);
 
   // if to_subtract is 1, will subtract nearest center from each row. Else will
   // add. Output will be in data_load iself.
   // Nearest centers need to be provided in closst_centers.
 
-  void process_residuals(float* data_load, size_t num_points, size_t dim,
-                         float* cur_pivot_data, size_t num_centers,
+  void process_residuals(float* data_load, _u64 num_points, _u64 dim,
+                         float* cur_pivot_data, _u64 num_centers,
                          uint32_t* closest_centers, bool to_subtract);
 
 
@@ -68,26 +68,26 @@ namespace math_utils {
   // If closest_centers == nullptr, will allocate memory and return.
   // Similarly, if closest_docs == nullptr, will allocate memory and return.
 
-  float lloyds_iter(float* data, size_t num_points, size_t dim, float* centers,
-                    size_t num_centers, float* docs_l2sq,
-                    std::vector<size_t>* closest_docs,
+  float lloyds_iter(float* data, _u64 num_points, _u64 dim, float* centers,
+                    _u64 num_centers, float* docs_l2sq,
+                    std::vector<_u64>* closest_docs,
                     uint32_t*&           closest_center);
 
   // Run Lloyds until max_reps or stopping criterion
   // If you pass nullptr for closest_docs and closest_center, it will NOT return
   // the results, else it will assume appriate allocation as closest_docs = new
-  // vector<size_t> [num_centers], and closest_center = new size_t[num_points]
+  // vector<_u64> [num_centers], and closest_center = new _u64[num_points]
   // Final centers are output in centers as row major num_centers * dim
   //
-  float run_lloyds(float* data, size_t num_points, size_t dim, float* centers,
-                   const size_t num_centers, const size_t max_reps,
-                   std::vector<size_t>* closest_docs, uint32_t* closest_center);
+  float run_lloyds(float* data, _u64 num_points, _u64 dim, float* centers,
+                   const _u64 num_centers, const _u64 max_reps,
+                   std::vector<_u64>* closest_docs, uint32_t* closest_center);
 
   // assumes already memory allocated for pivot_data as new
   // float[num_centers*dim] and select randomly num_centers points as pivots
-  void selecting_pivots(float* data, size_t num_points, size_t dim,
-                        float* pivot_data, size_t num_centers);
+  void selecting_pivots(float* data, _u64 num_points, _u64 dim,
+                        float* pivot_data, _u64 num_centers);
 
-  void kmeanspp_selecting_pivots(float* data, size_t num_points, size_t dim,
-                                 float* pivot_data, size_t num_centers);
+  void kmeanspp_selecting_pivots(float* data, _u64 num_points, _u64 dim,
+                                 float* pivot_data, _u64 num_centers);
 }; // namespace math_utils

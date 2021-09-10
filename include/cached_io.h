@@ -7,6 +7,7 @@
 #include <iostream>
 #include <sstream>
 
+#include "essentials.h"
 #include "logger.h"
 #include "ann_exception.h"
 
@@ -39,7 +40,7 @@ class cached_ifstream {
                 << ", cache_size: " << cacheSize << std::endl;
   }
 
-  size_t get_file_size() {
+  _u64 get_file_size() {
     return fsize;
   }
   void read(char* read_buf, uint64_t n_bytes) {
@@ -118,7 +119,7 @@ class cached_ofstream {
     grann::cout << "Finished writing " << fsize << "B" << std::endl;
   }
 
-  size_t get_file_size() {
+  _u64 get_file_size() {
     return fsize;
   }
   // writes n_bytes from write_buf to the underlying ofstream/cache
