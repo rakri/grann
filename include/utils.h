@@ -191,10 +191,7 @@ namespace grann {
     grann::cout << "Metadata: #pts = " << npts << ", #dims = " << dim
                 << ", aligned_dim = " << rounded_dim << "..." << std::flush;
     size_t allocSize = npts * rounded_dim * sizeof(T);
-    grann::cout << "allocating aligned memory, " << allocSize << " bytes..."
-                << std::flush;
     alloc_aligned(((void**) &data), allocSize, 8 * sizeof(T));
-    grann::cout << "done. Copying data..." << std::flush;
 
     for (size_t i = 0; i < npts; i++) {
       reader.read((char*) (data + i * rounded_dim), dim * sizeof(T));
