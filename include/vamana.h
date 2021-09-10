@@ -14,7 +14,7 @@ namespace grann {
    public:
     GRANN_DLLEXPORT Vamana(Metric m, const char *filename,
                            std::vector<_u32> &list_of_ids);
-    GRANN_DLLEXPORT ~Vamana();
+ //   GRANN_DLLEXPORT ~Vamana();
 
     // checks if data is consolidated, saves graph, metadata and associated
     // tags.

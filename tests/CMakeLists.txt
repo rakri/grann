@@ -12,13 +12,13 @@ else()
 	target_link_libraries(build_vamana ${PROJECT_NAME} -ltcmalloc)
 endif()
 
-#add_executable(search_vamana search_vamana.cpp )
+add_executable(search_vamana search_vamana.cpp )
 if(MSVC)
 	target_link_options(search_vamana PRIVATE /MACHINE:x64 /DEBUG:FULL)
 	target_link_libraries(search_vamana debug ${CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG}/grann_dll.lib)
 	target_link_libraries(search_vamana optimized ${CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE}/grann_dll.lib)
 else() 
-	#	target_link_libraries(search_vamana ${PROJECT_NAME} aio -ltcmalloc)
+		target_link_libraries(search_vamana ${PROJECT_NAME} aio -ltcmalloc)
 endif()
 
 

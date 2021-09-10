@@ -91,12 +91,15 @@ int search_memory_vamana(int argc, char** argv) {
   std::cout.setf(std::ios_base::fixed, std::ios_base::floatfield);
   std::cout.precision(2);
 
-  grann::Vamana<T> vamana(metric, data_file.c_str());
-  vamana.load(memory_vamana_file.c_str());  // to load NSG
+  std::vector<_u32> idmap;
+  grann::Vamana<T> vamana(metric, data_file.c_str(), idmap);
+  vamana.load(memory_vamana_file.c_str());  // to load Vamana Index
   std::cout << "Vamana loaded" << std::endl;
+  grann::Parameters search_params;
+  //search_params.Set<_u32>("L",)
 
-  if (metric == grann::FAST_L2)
-    vamana.optimize_graph();
+//  if (metric == grann::FAST_L2)
+//    vamana.optimize_graph();
 
   grann::Parameters paras;
   std::string         recall_string = "Recall@" + std::to_string(recall_at);
@@ -114,21 +117,17 @@ int search_memory_vamana(int argc, char** argv) {
 
   for (uint32_t test_id = 0; test_id < Lvec.size(); test_id++) {
     _u64 L = Lvec[test_id];
+    search_params.Set<_u32>("L", L);
     query_result_ids[test_id].resize(recall_at * query_num);
+    query_result_dists[test_id].resize(recall_at * query_num);
 
     auto s = std::chrono::high_resolution_clock::now();
     omp_set_num_threads(num_threads);
 #pragma omp parallel for schedule(dynamic, 1)
     for (int64_t i = 0; i < (int64_t) query_num; i++) {
       auto qs = std::chrono::high_resolution_clock::now();
-      if (metric == grann::FAST_L2) {
-        vamana.search_with_opt_graph(
-            query + i * query_aligned_dim, recall_at, L,
-            query_result_ids[test_id].data() + i * recall_at);
-      } else {
-        vamana.search(query + i * query_aligned_dim, recall_at, L,
-                     query_result_ids[test_id].data() + i * recall_at);
-      }
+        vamana.search(query + i * query_aligned_dim, recall_at, search_params,
+                     query_result_ids[test_id].data() + i * recall_at, query_result_dists[test_id].data() + i*recall_at);
       auto qe = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double> diff = qe - qs;
       latency_stats[i] = diff.count() * 1000000;

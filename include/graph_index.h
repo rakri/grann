@@ -16,7 +16,7 @@ namespace grann {
   class GraphIndex : public ANNIndex<T> {
    public:
     GraphIndex(Metric m, const char *filename, std::vector<_u32> &list_of_ids);
-    ~GraphIndex();
+   // ~GraphIndex();
 
   //  virtual void save(const char *filename) = 0;
   //  virtual void load(const char *filename) = 0;
