@@ -3,7 +3,7 @@
 
 #pragma once
 #include <string>
-#include "windows_customizations.h"
+
 
 #ifndef _WINDOWS
 #define __FUNCSIG__ __PRETTY_FUNCTION__
@@ -12,13 +12,13 @@
 namespace grann {
   class ANNException {
    public:
-    GRANN_DLLEXPORT ANNException(const std::string& message, int errorCode);
-    GRANN_DLLEXPORT ANNException(const std::string& message, int errorCode,
+     ANNException(const std::string& message, int errorCode);
+     ANNException(const std::string& message, int errorCode,
                                  const std::string& funcSig,
                                  const std::string& fileName,
                                  unsigned int       lineNum);
 
-    GRANN_DLLEXPORT std::string message() const;
+     std::string message() const;
 
    private:
     int          _errorCode;

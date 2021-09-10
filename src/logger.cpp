@@ -7,15 +7,15 @@
 
 #include "essentials.h"
 #include "logger_impl.h"
-#include "windows_customizations.h"
+
 
 namespace grann {
 
-  GRANN_DLLEXPORT ANNStreamBuf coutBuff(stdout);
-  GRANN_DLLEXPORT ANNStreamBuf cerrBuff(stderr);
+   ANNStreamBuf coutBuff(stdout);
+   ANNStreamBuf cerrBuff(stderr);
 
-  GRANN_DLLEXPORT std::basic_ostream<char> cout(&coutBuff);
-  GRANN_DLLEXPORT std::basic_ostream<char> cerr(&cerrBuff);
+   std::basic_ostream<char> cout(&coutBuff);
+   std::basic_ostream<char> cerr(&cerrBuff);
 
   ANNStreamBuf::ANNStreamBuf(FILE* fp) {
     if (fp == nullptr) {

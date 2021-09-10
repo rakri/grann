@@ -203,7 +203,7 @@ namespace grann {
   }
 
   // EXPORTS
-  template GRANN_DLLEXPORT class GraphIndex<float>;
-  template GRANN_DLLEXPORT class GraphIndex<int8_t>;
-  template GRANN_DLLEXPORT class GraphIndex<uint8_t>;
+  template  class GraphIndex<float>;
+  template  class GraphIndex<int8_t>;
+  template  class GraphIndex<uint8_t>;
 }  // namespace grann

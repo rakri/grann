@@ -406,7 +406,7 @@ namespace grann {
   }
 
   // EXPORTS
-  template GRANN_DLLEXPORT class Vamana<float>;
-  template GRANN_DLLEXPORT class Vamana<int8_t>;
-  template GRANN_DLLEXPORT class Vamana<uint8_t>;
+  template  class Vamana<float>;
+  template  class Vamana<int8_t>;
+  template  class Vamana<uint8_t>;
 }  // namespace grann

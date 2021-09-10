@@ -32,16 +32,16 @@ namespace ANNVamana {
 namespace grann {
   class ANNStreamBuf : public std::basic_streambuf<char> {
    public:
-    GRANN_DLLEXPORT explicit ANNStreamBuf(FILE* fp);
-    GRANN_DLLEXPORT ~ANNStreamBuf();
+     explicit ANNStreamBuf(FILE* fp);
+     ~ANNStreamBuf();
 
-    GRANN_DLLEXPORT bool is_open() const {
+     bool is_open() const {
       return true;  // because stdout and stderr are always open.
     }
-    GRANN_DLLEXPORT void        close();
-    GRANN_DLLEXPORT virtual int underflow();
-    GRANN_DLLEXPORT virtual int overflow(int c);
-    GRANN_DLLEXPORT virtual int sync();
+     void        close();
+     virtual int underflow();
+     virtual int overflow(int c);
+     virtual int sync();
 
    private:
     FILE*               _fp;

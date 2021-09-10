@@ -29,11 +29,8 @@
 #include <vector>
 #include <mutex>
 
-//#include "distance.h"
-//#include "neighbor.h"
 #include "parameters.h"
 
-#include "windows_customizations.h"
 
 // from aligned_file_reader.h
 #define MAX_IO_DEPTH 128

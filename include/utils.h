@@ -18,7 +18,7 @@ typedef int FileHandle;
 
 #include "logger.h"
 #include "cached_io.h"
-#include "windows_customizations.h"
+
 
 #ifdef EXEC_ENV_OLS
 #include "content_buf.h"

@@ -28,7 +28,7 @@ typedef int FileHandle;
 #include "cached_io.h"
 #include "essentials.h"
 #include "utils.h"
-#include "windows_customizations.h"
+
 #include "gperftools/malloc_extension.h"
 
 namespace grann {
@@ -218,13 +218,13 @@ namespace grann {
     }
   }
 
-  GRANN_DLLEXPORT double calculate_recall(unsigned  num_queries,
+   double calculate_recall(unsigned  num_queries,
                                           unsigned* gold_std, float* gs_dist,
                                           unsigned  dim_gs,
                                           unsigned* our_results,
                                           unsigned dim_or, unsigned recall_at);
 
-  GRANN_DLLEXPORT double calculate_range_search_recall(
+   double calculate_range_search_recall(
       unsigned num_queries, std::vector<std::vector<_u32>>& groundtruth,
       std::vector<std::vector<_u32>>& our_results);
 
