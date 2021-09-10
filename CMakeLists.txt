@@ -99,5 +99,5 @@ else()
 endif()
 
 add_subdirectory(src)
-#add_subdirectory(tests)
-#add_subdirectory(tests/utils)
+add_subdirectory(tests)
+add_subdirectory(tests/utils)

@@ -29,8 +29,9 @@ int build_in_memory_vamana(const std::string&     data_path,
   paras.Set<float>("alpha", alpha);
   paras.Set<bool>("saturate_graph", 0);
   paras.Set<unsigned>("num_threads", num_threads);
+  std::vector<_u32> idmap;
 
-  grann::Vamana<T> vamana(metric, data_path.c_str());
+  grann::Vamana<T> vamana(metric, data_path.c_str(), idmap);
   auto              s = std::chrono::high_resolution_clock::now();
   vamana.build(paras);
   std::chrono::duration<double> diff =
