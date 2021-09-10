@@ -811,7 +811,7 @@ int retrieve_shard_data_from_ids(const std::string data_file,
 
   _u32 cur_pos = 0;
   _u32 num_written = 0;
-  std::cout << "Shard has " << shard_size << " points" << std::endl;
+  grann::cout << "Shard has " << shard_size << " points" << std::endl;
 
   size_t block_size = num_points <= BLOCK_SIZE ? num_points : BLOCK_SIZE;
   std::unique_ptr<T[]> block_data_T = std::make_unique<T[]>(block_size * dim);

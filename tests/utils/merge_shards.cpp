@@ -35,6 +35,6 @@ int main(int argc, char **argv) {
   std::string output_medoids(argv[8]);
 
   return grann::merge_shards(vamana_prefix, vamana_suffix, idmaps_prefix,
-                               idmaps_suffix, nshards, max_degree, output_vamana,
-                               output_medoids);
+                             idmaps_suffix, nshards, max_degree, output_vamana,
+                             output_medoids);
 }

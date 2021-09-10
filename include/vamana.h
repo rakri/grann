@@ -14,7 +14,7 @@ namespace grann {
    public:
     GRANN_DLLEXPORT Vamana(Metric m, const char *filename,
                            std::vector<_u32> &list_of_ids);
- //   GRANN_DLLEXPORT ~Vamana();
+    //   GRANN_DLLEXPORT ~Vamana();
 
     // checks if data is consolidated, saves graph, metadata and associated
     // tags.
@@ -29,15 +29,14 @@ namespace grann {
 
     /*  Internals of the library */
    protected:
-  //  size_t   _num_steiner_pts;
+    //  size_t   _num_steiner_pts;
     unsigned _start_node;
 
     unsigned calculate_entry_point();
-    void get_expanded_nodes(
-      const size_t node_id, const unsigned l_build,
-      std::vector<unsigned>     init_ids,
-      std::vector<Neighbor> &   expanded_nodes_info,
-      tsl::robin_set<unsigned> &expanded_nodes_ids);
+    void     get_expanded_nodes(const size_t node_id, const unsigned l_build,
+                                std::vector<unsigned>     init_ids,
+                                std::vector<Neighbor> &   expanded_nodes_info,
+                                tsl::robin_set<unsigned> &expanded_nodes_ids);
 
     void occlude_list(std::vector<Neighbor> &pool, const float alpha,
                       const unsigned degree, const unsigned maxc,

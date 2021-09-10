@@ -146,48 +146,61 @@ namespace grann {
   template<typename T>
   void GraphIndex<T>::update_degree_stats() {
     if (!this->_has_built)
-    return;
+      return;
 
     this->_max_degree = 0;
-    std::vector<_u32> out_degrees(this->_num_points, 0);
-    std::vector<std::pair<_u32,_u32>> in_degrees(this->_num_points);
-for (_u32 i = 0; i < this->_num_points; i++) {
+    std::vector<_u32>                  out_degrees(this->_num_points, 0);
+    std::vector<std::pair<_u32, _u32>> in_degrees(this->_num_points);
+    for (_u32 i = 0; i < this->_num_points; i++) {
       in_degrees[i].first = i;
       in_degrees[i].second = 0;
-}
+    }
 
     for (_u32 i = 0; i < this->_num_points; i++) {
-    this->_max_degree = this->_max_degree > this->_out_nbrs[i].size() ? this->_max_degree : this->_out_nbrs[i].size();
-    out_degrees[i] = this->_out_nbrs[i].size();
-    for (auto &x : this->_out_nbrs[i]) {
-      in_degrees[x].second++;
+      this->_max_degree = this->_max_degree > this->_out_nbrs[i].size()
+                              ? this->_max_degree
+                              : this->_out_nbrs[i].size();
+      out_degrees[i] = this->_out_nbrs[i].size();
+      for (auto &x : this->_out_nbrs[i]) {
+        in_degrees[x].second++;
+      }
     }
-  }
 
-std::sort( in_degrees.begin( ), in_degrees.end( ), [ ]( const auto& lhs, const auto& rhs )
-{
-   return lhs.second < rhs.second;
-});
+    std::sort(in_degrees.begin(), in_degrees.end(),
+              [](const auto &lhs, const auto &rhs) {
+                return lhs.second < rhs.second;
+              });
 
-  //std::sort(in_degrees.begin(), in_degrees.end());
-  std::sort(out_degrees.begin(), out_degrees.end());
+    // std::sort(in_degrees.begin(), in_degrees.end());
+    std::sort(out_degrees.begin(), out_degrees.end());
 
     _u32 unreachable_count = 0;
-  while (unreachable_count < this->_num_points && (in_degrees[unreachable_count].second == 0)) {
-    unreachable_count++;
-  }
+    while (unreachable_count < this->_num_points &&
+           (in_degrees[unreachable_count].second == 0)) {
+      unreachable_count++;
+    }
 
-    std::cout<<std::setw(16)<<"Percentile"<<std::setw(16) << "Out Degree" << std::setw(16) <<"In Degree" << std::endl;
-    std::cout<<"=======================================================" << std::endl;
-  for (_u32 p = 0; p < 100; p+=10) {
-      std::cout<<std::setw(16)<<p<<std::setw(16) << out_degrees[(_u64)((p/100.0)*this->_num_points)] << std::setw(16) <<in_degrees[(_u64)((p/100.0)*this->_num_points)].second << std::endl;
-  }
-      std::cout<<std::setw(16)<<"100"<<std::setw(16) << out_degrees[this->_num_points-1] << std::setw(16) <<in_degrees[this->_num_points-1].second << std::endl;
+    grann::cout << std::setw(16) << "Percentile" << std::setw(16) << "Out Degree"
+              << std::setw(16) << "In Degree" << std::endl;
+    grann::cout << "======================================================="
+              << std::endl;
+    for (_u32 p = 0; p < 100; p += 10) {
+      grann::cout << std::setw(16) << p << std::setw(16)
+                << out_degrees[(_u64)((p / 100.0) * this->_num_points)]
+                << std::setw(16)
+                << in_degrees[(_u64)((p / 100.0) * this->_num_points)].second
+                << std::endl;
+    }
+    grann::cout << std::setw(16) << "100" << std::setw(16)
+              << out_degrees[this->_num_points - 1] << std::setw(16)
+              << in_degrees[this->_num_points - 1].second << std::endl;
 
-      std::cout<<std::setprecision(3)<<(100.0*unreachable_count)/this->_num_points <<"\% points are unreachable." << std::endl;
-      std::cout<<in_degrees[this->_num_points - 1].first << " is the most popular in-degree node." << std::endl; 
+    grann::cout << std::setprecision(3)
+              << (100.0 * unreachable_count) / this->_num_points
+              << "\% points are unreachable." << std::endl;
+    grann::cout << in_degrees[this->_num_points - 1].first
+              << " is the most popular in-degree node." << std::endl;
   }
-
 
   // EXPORTS
   template GRANN_DLLEXPORT class GraphIndex<float>;

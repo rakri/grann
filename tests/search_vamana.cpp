@@ -26,7 +26,7 @@ int search_memory_vamana(int argc, char** argv) {
   size_t            query_num, query_dim, query_aligned_dim, gt_num, gt_dim;
   std::vector<_u64> Lvec;
 
-  _u32            ctr = 2;
+  _u32          ctr = 2;
   grann::Metric metric;
 
   if (std::string(argv[ctr]) == std::string("mips"))
@@ -76,7 +76,7 @@ int search_memory_vamana(int argc, char** argv) {
   }
 
   grann::load_aligned_bin<T>(query_bin, query, query_num, query_dim,
-                               query_aligned_dim);
+                             query_aligned_dim);
 
   if (file_exists(truthset_bin)) {
     grann::load_truthset(truthset_bin, gt_ids, gt_dists, gt_num, gt_dim);
@@ -91,17 +91,17 @@ int search_memory_vamana(int argc, char** argv) {
   std::cout.precision(2);
 
   std::vector<_u32> idmap;
-  grann::Vamana<T> vamana(metric, data_file.c_str(), idmap);
+  grann::Vamana<T>  vamana(metric, data_file.c_str(), idmap);
   vamana.load(memory_vamana_file.c_str());  // to load Vamana Index
   std::cout << "Vamana loaded" << std::endl;
   grann::Parameters search_params;
-  //search_params.Set<_u32>("L",)
+  // search_params.Set<_u32>("L",)
 
-//  if (metric == grann::FAST_L2)
-//    vamana.optimize_graph();
+  //  if (metric == grann::FAST_L2)
+  //    vamana.optimize_graph();
 
   grann::Parameters paras;
-  std::string         recall_string = "Recall@" + std::to_string(recall_at);
+  std::string       recall_string = "Recall@" + std::to_string(recall_at);
   std::cout << std::setw(4) << "Ls" << std::setw(12) << "QPS " << std::setw(18)
             << "Mean Latency (mus)" << std::setw(15) << "99.9 Latency"
             << std::setw(12) << recall_string << std::endl;
@@ -125,8 +125,9 @@ int search_memory_vamana(int argc, char** argv) {
 #pragma omp parallel for schedule(dynamic, 1)
     for (int64_t i = 0; i < (int64_t) query_num; i++) {
       auto qs = std::chrono::high_resolution_clock::now();
-        vamana.search(query + i * query_aligned_dim, recall_at, search_params,
-                     query_result_ids[test_id].data() + i * recall_at, query_result_dists[test_id].data() + i*recall_at);
+      vamana.search(query + i * query_aligned_dim, recall_at, search_params,
+                    query_result_ids[test_id].data() + i * recall_at,
+                    query_result_dists[test_id].data() + i * recall_at);
       auto qe = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double> diff = qe - qs;
       latency_stats[i] = diff.count() * 1000000;
@@ -139,8 +140,8 @@ int search_memory_vamana(int argc, char** argv) {
     float recall = 0;
     if (calc_recall_flag)
       recall = grann::calculate_recall(query_num, gt_ids, gt_dists, gt_dim,
-                                         query_result_ids[test_id].data(),
-                                         recall_at, recall_at);
+                                       query_result_ids[test_id].data(),
+                                       recall_at, recall_at);
 
     std::sort(latency_stats.begin(), latency_stats.end());
     double mean_latency = 0;
@@ -161,7 +162,7 @@ int search_memory_vamana(int argc, char** argv) {
     std::string cur_result_path =
         result_output_prefix + "_" + std::to_string(L) + "_idx_uint32.bin";
     grann::save_bin<_u32>(cur_result_path, query_result_ids[test_id].data(),
-                            query_num, recall_at);
+                          query_num, recall_at);
     test_id++;
   }
 

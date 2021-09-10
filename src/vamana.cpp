@@ -42,8 +42,7 @@ namespace grann {
     out.close();
 
     grann::cout << "Avg degree: "
-                << ((float) total_gr_edges) /
-                       ((float) (this->_num_points))
+                << ((float) total_gr_edges) / ((float) (this->_num_points))
                 << std::endl;
   }
 
@@ -148,16 +147,14 @@ namespace grann {
       init_ids.emplace_back(this->_start_node);
 
     this->greedy_search_to_fixed_point(node_coords, l_build, init_ids,
-                                 expanded_nodes_info, expanded_nodes_ids,
-                                 best_L_nodes);
+                                       expanded_nodes_info, expanded_nodes_ids,
+                                       best_L_nodes);
   }
 
-
   template<typename T>
-  void Vamana<T>::occlude_list(std::vector<Neighbor> &pool,
-                                     const float alpha, const unsigned degree,
-                                     const unsigned         maxc,
-                                     std::vector<Neighbor> &result) {
+  void Vamana<T>::occlude_list(std::vector<Neighbor> &pool, const float alpha,
+                               const unsigned degree, const unsigned maxc,
+                               std::vector<Neighbor> &result) {
     if (pool.empty())
       return;
     assert(std::is_sorted(pool.begin(), pool.end()));
@@ -166,27 +163,27 @@ namespace grann {
     auto               pool_size = (_u32) pool.size();
     std::vector<float> occlude_factor(pool_size, 0);
 
-      unsigned start = 0;
-      while (result.size() < degree && (start) < pool.size() && start < maxc) {
-        auto &p = pool[start];
-        if (occlude_factor[start] > alpha) {
-          start++;
-          continue;
-        }
-        occlude_factor[start] = std::numeric_limits<float>::max();
-        result.push_back(p);
-        for (unsigned t = start + 1; t < pool.size() && t < maxc; t++) {
-          if (occlude_factor[t] > alpha)
-            continue;
-          float djk = this->_distance->compare(
-              this->_data + this->_aligned_dim * (size_t) pool[t].id,
-              this->_data + this->_aligned_dim * (size_t) p.id,
-              (unsigned) this->_aligned_dim);
-          occlude_factor[t] =
-              (std::max)(occlude_factor[t], pool[t].distance / djk);
-        }
+    unsigned start = 0;
+    while (result.size() < degree && (start) < pool.size() && start < maxc) {
+      auto &p = pool[start];
+      if (occlude_factor[start] > alpha) {
         start++;
+        continue;
       }
+      occlude_factor[start] = std::numeric_limits<float>::max();
+      result.push_back(p);
+      for (unsigned t = start + 1; t < pool.size() && t < maxc; t++) {
+        if (occlude_factor[t] > alpha)
+          continue;
+        float djk = this->_distance->compare(
+            this->_data + this->_aligned_dim * (size_t) pool[t].id,
+            this->_data + this->_aligned_dim * (size_t) p.id,
+            (unsigned) this->_aligned_dim);
+        occlude_factor[t] =
+            (std::max)(occlude_factor[t], pool[t].distance / djk);
+      }
+      start++;
+    }
   }
 
   template<typename T>
@@ -290,39 +287,38 @@ namespace grann {
 
   template<typename T>
   void Vamana<T>::build(Parameters &build_parameters) {
-    grann::cout << "Starting vamana build over " << this->_num_points <<" points in " << this->_dim <<" dims." << std::endl;
+    grann::cout << "Starting vamana build over " << this->_num_points
+                << " points in " << this->_dim << " dims." << std::endl;
     grann::Timer build_timer;
 
     unsigned num_threads = build_parameters.Get<unsigned>("num_threads");
     unsigned L = build_parameters.Get<unsigned>("L");
     unsigned degree_bound = build_parameters.Get<unsigned>("R");
 
-
-    this->_locks_enabled = true; // we dont need locks for pure search on a pre-built index
+    this->_locks_enabled =
+        true;  // we dont need locks for pure search on a pre-built index
     this->_locks = std::vector<std::mutex>(this->_num_points);
     this->_out_nbrs.resize(this->_num_points);
-    for (auto & x : this->_out_nbrs)
-      x.reserve(1.05*VAMANA_SLACK_FACTOR*degree_bound);
+    for (auto &x : this->_out_nbrs)
+      x.reserve(1.05 * VAMANA_SLACK_FACTOR * degree_bound);
 
     if (num_threads != 0)
       omp_set_num_threads(num_threads);
 
-  this->_start_node = calculate_entry_point();
+    this->_start_node = calculate_entry_point();
 
-  _u32 progress_milestone = (_u32) (this->_num_points/20);
-  std::atomic<int> milestone_marker{0};
+    _u32             progress_milestone = (_u32)(this->_num_points / 20);
+    std::atomic<int> milestone_marker{0};
 
 #pragma omp parallel for schedule(static, 64)
     for (_u32 location = 0; location < this->_num_points; location++) {
-
       if (location % progress_milestone == 0) {
-      ++milestone_marker;
+        ++milestone_marker;
 
-
-    std::stringstream msg;
-    msg << (milestone_marker*5)<<"\% of build completed" << std::endl;
-    std::cout << msg.str();
-      } 
+        std::stringstream msg;
+        msg << (milestone_marker * 5) << "\% of build completed" << std::endl;
+        grann::cout << msg.str();
+      }
 
       std::vector<Neighbor> pool;
       std::vector<Neighbor> tmp;
@@ -337,78 +333,80 @@ namespace grann {
 
       prune_neighbors(location, pool, build_parameters, pruned_list);
 
-      this->_out_nbrs[location].reserve((_u64)(VAMANA_SLACK_FACTOR * degree_bound));
+      this->_out_nbrs[location].reserve(
+          (_u64)(VAMANA_SLACK_FACTOR * degree_bound));
       {
         LockGuard guard(this->_locks[location]);
         for (auto link : pruned_list)
           this->_out_nbrs[location].emplace_back(link);
       }
-      inter_insert(location, pruned_list, build_parameters);  // add reverse edges
+      inter_insert(location, pruned_list,
+                   build_parameters);  // add reverse edges
     }
-      grann::cout << "Starting final cleanup.." << std::flush;
+    grann::cout << "Starting final cleanup.." << std::flush;
 #pragma omp parallel for schedule(dynamic, 65536)
-      for (_u64 node = 0; node < this->_num_points; node++) {
-        if (this->_out_nbrs[node].size() > degree_bound) {
-          tsl::robin_set<unsigned> dummy_visited(0);
-          std::vector<Neighbor>    dummy_pool(0);
-          std::vector<unsigned>    new_out_neighbors;
+    for (_u64 node = 0; node < this->_num_points; node++) {
+      if (this->_out_nbrs[node].size() > degree_bound) {
+        tsl::robin_set<unsigned> dummy_visited(0);
+        std::vector<Neighbor>    dummy_pool(0);
+        std::vector<unsigned>    new_out_neighbors;
 
-          for (auto cur_nbr : this->_out_nbrs[node]) {
-            if (dummy_visited.find(cur_nbr) == dummy_visited.end() &&
-                cur_nbr != node) {
-              float dist = this->_distance->compare(
-                  this->_data + this->_aligned_dim * (size_t) node,
-                  this->_data + this->_aligned_dim * (size_t) cur_nbr,
-                  (unsigned) this->_aligned_dim);
-              dummy_pool.emplace_back(Neighbor(cur_nbr, dist, true));
-              dummy_visited.insert(cur_nbr);
-            }
+        for (auto cur_nbr : this->_out_nbrs[node]) {
+          if (dummy_visited.find(cur_nbr) == dummy_visited.end() &&
+              cur_nbr != node) {
+            float dist = this->_distance->compare(
+                this->_data + this->_aligned_dim * (size_t) node,
+                this->_data + this->_aligned_dim * (size_t) cur_nbr,
+                (unsigned) this->_aligned_dim);
+            dummy_pool.emplace_back(Neighbor(cur_nbr, dist, true));
+            dummy_visited.insert(cur_nbr);
           }
-          prune_neighbors(node, dummy_pool, build_parameters, new_out_neighbors);
-
-          this->_out_nbrs[node].clear();
-          for (auto id : new_out_neighbors)
-            this->_out_nbrs[node].emplace_back(id);
         }
+        prune_neighbors(node, dummy_pool, build_parameters, new_out_neighbors);
+
+        this->_out_nbrs[node].clear();
+        for (auto id : new_out_neighbors)
+          this->_out_nbrs[node].emplace_back(id);
       }
-
-      std::cout<<"done.." << std::endl;
-      this->_has_built = true;
-      this->update_degree_stats();
-
-      grann::cout << "Build completed in time: "
-                  << ((double) build_timer.elapsed() / (double) 1000000) << "s"
-                  << std::endl;
-
     }
 
-    template<typename T>
-    _u32 Vamana<T>::search(const T *query, _u32 res_count, Parameters &search_params,
-                _u32 *indices, float *distances, QueryStats *stats) {
-      _u32 search_list_size = search_params.Get<_u32>("L");
-      std::vector<unsigned>    init_ids;
-      tsl::robin_set<unsigned> visited(10 * search_list_size);
-      std::vector<Neighbor>    top_candidate_list, expanded_nodes_info;
-      tsl::robin_set<unsigned> expanded_nodes_ids;
+    grann::cout << "done.." << std::endl;
+    this->_has_built = true;
+    this->update_degree_stats();
 
-      init_ids.emplace_back(this->_start_node);
-      
-      auto algo_fetched_count =
-          this->greedy_search_to_fixed_point(query, search_list_size, init_ids, expanded_nodes_info,
-                                       expanded_nodes_ids, top_candidate_list, stats);
+    grann::cout << "Build completed in time: "
+                << ((double) build_timer.elapsed() / (double) 1000000) << "s"
+                << std::endl;
+  }
 
- //     size_t pos = 0;
-      for (_u32 i = 0; i < res_count; i++) {
-        if (i >= res_count)
+  template<typename T>
+  _u32 Vamana<T>::search(const T *query, _u32 res_count,
+                         Parameters &search_params, _u32 *indices,
+                         float *distances, QueryStats *stats) {
+    _u32                     search_list_size = search_params.Get<_u32>("L");
+    std::vector<unsigned>    init_ids;
+    tsl::robin_set<unsigned> visited(10 * search_list_size);
+    std::vector<Neighbor>    top_candidate_list, expanded_nodes_info;
+    tsl::robin_set<unsigned> expanded_nodes_ids;
+
+    init_ids.emplace_back(this->_start_node);
+
+    auto algo_fetched_count = this->greedy_search_to_fixed_point(
+        query, search_list_size, init_ids, expanded_nodes_info,
+        expanded_nodes_ids, top_candidate_list, stats);
+
+    //     size_t pos = 0;
+    for (_u32 i = 0; i < res_count; i++) {
+      if (i >= res_count)
         break;
-                        indices[i] = this->idmap[top_candidate_list[i].id];
-                        distances[i] = top_candidate_list[i].distance;
-      }
-      return std::min(res_count, algo_fetched_count);
+      indices[i] = this->idmap[top_candidate_list[i].id];
+      distances[i] = top_candidate_list[i].distance;
     }
+    return std::min(res_count, algo_fetched_count);
+  }
 
-    // EXPORTS
-    template GRANN_DLLEXPORT class Vamana<float>;
-    template GRANN_DLLEXPORT class Vamana<int8_t>;
-    template GRANN_DLLEXPORT class Vamana<uint8_t>;
-  }  // namespace grann
+  // EXPORTS
+  template GRANN_DLLEXPORT class Vamana<float>;
+  template GRANN_DLLEXPORT class Vamana<int8_t>;
+  template GRANN_DLLEXPORT class Vamana<uint8_t>;
+}  // namespace grann

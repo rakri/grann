@@ -13,13 +13,12 @@
 #include <Windows.h>
 #endif
 
-
 template<typename T>
-int build_in_memory_vamana(const std::string&     data_path,
-                          const grann::Metric& metric, const unsigned R,
-                          const unsigned L, const float alpha,
-                          const std::string& save_path,
-                          const unsigned     num_threads) {
+int build_in_memory_vamana(const std::string&   data_path,
+                           const grann::Metric& metric, const unsigned R,
+                           const unsigned L, const float alpha,
+                           const std::string& save_path,
+                           const unsigned     num_threads) {
   grann::Parameters paras;
   paras.Set<unsigned>("R", R);
   paras.Set<unsigned>("L", L);
@@ -31,7 +30,7 @@ int build_in_memory_vamana(const std::string&     data_path,
   std::vector<_u32> idmap;
 
   grann::Vamana<T> vamana(metric, data_path.c_str(), idmap);
-  auto              s = std::chrono::high_resolution_clock::now();
+  auto             s = std::chrono::high_resolution_clock::now();
   vamana.build(paras);
   std::chrono::duration<double> diff =
       std::chrono::high_resolution_clock::now() - s;
@@ -77,13 +76,13 @@ int main(int argc, char** argv) {
 
   if (std::string(argv[1]) == std::string("int8"))
     build_in_memory_vamana<int8_t>(data_path, metric, R, L, alpha, save_path,
-                                  num_threads);
+                                   num_threads);
   else if (std::string(argv[1]) == std::string("uint8"))
     build_in_memory_vamana<uint8_t>(data_path, metric, R, L, alpha, save_path,
-                                   num_threads);
+                                    num_threads);
   else if (std::string(argv[1]) == std::string("float"))
     build_in_memory_vamana<float>(data_path, metric, R, L, alpha, save_path,
-                                 num_threads);
+                                  num_threads);
   else
     std::cout << "Unsupported type. Use float/int8/uint8" << std::endl;
 }

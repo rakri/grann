@@ -16,12 +16,12 @@ namespace {
   template<>
   grann::Distance<float> *get_distance_function(grann::Metric m) {
     if (m == grann::Metric::FAST_L2) {
-      std::cout << "Using L2 Distance Function" << std::endl;
+      grann::cout << "Using L2 Distance Function" << std::endl;
       return new grann::DistanceFastL2<float>();
     } else if (m == grann::Metric::L2) {
       return new grann::DistanceL2();
     } else if (m == grann::Metric::INNER_PRODUCT) {
-      std::cout << "Using Inner Product Function" << std::endl;
+      grann::cout << "Using Inner Product Function" << std::endl;
       return new grann::DistanceInnerProduct<float>();
     } else {
       std::stringstream stream;
@@ -81,16 +81,15 @@ namespace grann {
     this->_distance = ::get_distance_function<T>(m);
 
     if (list_of_ids.size() != _num_points && list_of_ids.size() != 0) {
-            std::stringstream stream;
-      stream << "Mismatch in number of points in data and id_map."
-             << std::endl;
+      std::stringstream stream;
+      stream << "Mismatch in number of points in data and id_map." << std::endl;
       std::cerr << stream.str() << std::endl;
       throw grann::ANNException(stream.str(), -1, __FUNCSIG__, __FILE__,
                                 __LINE__);
     }
     idmap = new _u32[_num_points];
     if (list_of_ids.size() != 0)
-    std::memcpy(idmap, list_of_ids.data(), _num_points*sizeof(_u32));
+      std::memcpy(idmap, list_of_ids.data(), _num_points * sizeof(_u32));
     else {
       for (_u32 i = 0; i < _num_points; i++) {
         idmap[i] = i;

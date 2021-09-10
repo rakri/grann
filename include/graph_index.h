@@ -16,17 +16,18 @@ namespace grann {
   class GraphIndex : public ANNIndex<T> {
    public:
     GraphIndex(Metric m, const char *filename, std::vector<_u32> &list_of_ids);
-   // ~GraphIndex();
+    // ~GraphIndex();
 
-  //  virtual void save(const char *filename) = 0;
-  //  virtual void load(const char *filename) = 0;
+    //  virtual void save(const char *filename) = 0;
+    //  virtual void load(const char *filename) = 0;
 
-//    virtual void build(Parameters &build_params) = 0;
+    //    virtual void build(Parameters &build_params) = 0;
 
     // returns # results found (will be <= res_count)
-//    virtual _u32 search(const T *query, _u32 res_count,
-//                        Parameters &search_params, _u32 *indices,
-//                        float *distances, QueryStats *stats = nullptr) = 0;
+    //    virtual _u32 search(const T *query, _u32 res_count,
+    //                        Parameters &search_params, _u32 *indices,
+    //                        float *distances, QueryStats *stats = nullptr) =
+    //                        0;
 
     /*  Internals of the library */
    protected:
@@ -50,7 +51,7 @@ namespace grann {
         std::vector<Neighbor> &best_L_nodes, QueryStats *stats = nullptr);
 
     void update_degree_stats();
-    
+
     std::vector<std::mutex>
         _locks;  // Per node lock to be initialized at build time, dont
                  // initialize in constructor to save memory for pure search

@@ -118,7 +118,7 @@ namespace grann {
    protected:
     Metric       _metric = grann::L2;
     Distance<T> *_distance;
-    _u32* idmap = nullptr;
+    _u32 *       idmap = nullptr;
 
     T *    _data;
     size_t _num_points = 0;
