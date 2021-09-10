@@ -40,7 +40,7 @@ namespace grann {
         const T *&node_coords, std::vector<_u32> &nbr_list,
         std::vector<Neighbor> &best_L_nodes, const _u32 maxListSize,
         _u32 &curListSize, tsl::robin_set<_u32> &inserted_into_pool,
-        _u32 &total_comparisons, _u32 &total_hops);
+        _u32 &total_comparisons);
 
     _u32 greedy_search_to_fixed_point(
         const T *node_coords, const _u32 list_size,

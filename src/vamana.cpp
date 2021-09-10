@@ -170,12 +170,10 @@ namespace grann {
     assert(std::is_sorted(pool.begin(), pool.end()));
     assert(!pool.empty());
 
-    float cur_alpha = 1;
-    while (cur_alpha <= alpha && result.size() < degree) {
       unsigned start = 0;
       while (result.size() < degree && (start) < pool.size() && start < maxc) {
         auto &p = pool[start];
-        if (occlude_factor[start] > cur_alpha) {
+        if (occlude_factor[start] > alpha) {
           start++;
           continue;
         }
@@ -193,8 +191,6 @@ namespace grann {
         }
         start++;
       }
-      cur_alpha *= 1.2;
-    }
   }
 
   template<typename T>
@@ -299,15 +295,19 @@ namespace grann {
 
   template<typename T>
   void Vamana<T>::build(Parameters &build_parameters) {
-    grann::cout << "Starting vamana build..." << std::endl;
+    grann::cout << "Starting vamana build over " << this->_num_points <<" points in " << this->_dim <<" dims." << std::endl;
     grann::Timer build_timer;
-
-    this->_locks_enabled = true; // we dont need locks for pure search on a pre-built index
-    this->_locks = std::vector<std::mutex>(this->_num_points);
 
     unsigned num_threads = build_parameters.Get<unsigned>("num_threads");
     unsigned L = build_parameters.Get<unsigned>("L");
     unsigned degree_bound = build_parameters.Get<unsigned>("R");
+
+
+    this->_locks_enabled = true; // we dont need locks for pure search on a pre-built index
+    this->_locks = std::vector<std::mutex>(this->_num_points);
+    this->_out_nbrs.resize(this->_num_points);
+    for (auto & x : this->_out_nbrs)
+      x.reserve(1.05*VAMANA_SLACK_FACTOR*degree_bound);
 
     if (num_threads != 0)
       omp_set_num_threads(num_threads);

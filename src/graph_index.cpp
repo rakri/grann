@@ -11,7 +11,7 @@ namespace grann {
       const T *&node_coords, std::vector<_u32> &nbr_list,
       std::vector<Neighbor> &best_L_nodes, const _u32 maxListSize,
       _u32 &curListSize, tsl::robin_set<_u32> &inserted_into_pool,
-      _u32 &total_comparisons, _u32 &total_hops) {
+      _u32 &total_comparisons) {
     _u32 best_inserted_position = maxListSize;
     for (unsigned m = 0; m < nbr_list.size(); ++m) {
       unsigned id = nbr_list[m];
@@ -107,6 +107,7 @@ namespace grann {
       // unsigned nk = l;
 
       if (best_L_nodes[k].flag) {
+        hops++;
         best_L_nodes[k].flag = false;
         auto n = best_L_nodes[k].id;
         expanded_nodes_info.emplace_back(best_L_nodes[k]);
@@ -121,11 +122,11 @@ namespace grann {
         if (_locks_enabled)
           best_inserted_index = process_neighbors_into_candidate_pool(
               node_coords, des, best_L_nodes, Lsize, l, inserted_into_pool,
-              cmps, hops);
+              cmps);
         else
           best_inserted_index = process_neighbors_into_candidate_pool(
               node_coords, _out_nbrs[n], best_L_nodes, Lsize, l,
-              inserted_into_pool, cmps, hops);
+              inserted_into_pool, cmps);
 
         if (best_inserted_index <= k)
           k = best_inserted_index;
