@@ -87,7 +87,7 @@ namespace grann {
     npts = (unsigned) npts_i32;
     dim = (unsigned) dim_i32;
 
-    grann::cout << "Metadata: #pts = " << npts << ", #dims = " << dim << "..."
+    grann::cout << "Metadata: #pts = " << npts << ", #dims = " << dim << "."
                 << std::endl;
 
     size_t expected_actual_file_size =
