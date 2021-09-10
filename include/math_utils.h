@@ -16,7 +16,7 @@ namespace math_utils {
   void compute_vecs_l2sq(float* vecs_l2sq, float* data, const size_t num_points,
                          const size_t dim);
 
-  void rotate_data_randomly(float* data, size_t num_points, size_t dim,
+  void rotate_data(float* data, size_t num_points, size_t dim,
                             float* rot_mat, float*& new_mat,
                             bool transpose_rot = false);
 
@@ -24,7 +24,7 @@ namespace math_utils {
   // centers is num_centers * dim (row major)
   // data_l2sq has pre-computed squared norms of data
   // centers_l2sq has pre-computed squared norms of centers
-  // pre-allocated center_vamana will contain id of k nearest centers
+  // pre-allocated center_ids will contain id of k nearest centers
   // pre-allocated dist_matrix shound be num_points * num_centers and contain
   // squared distances
 
@@ -33,7 +33,7 @@ namespace math_utils {
       const float* const data, const size_t num_points, const size_t dim,
       const float* const centers, const size_t num_centers,
       const float* const docs_l2sq, const float* const centers_l2sq,
-      uint32_t* center_vamana, float* const dist_matrix, size_t k = 1);
+      uint32_t* center_ids, float* const dist_matrix, size_t k = 1);
 
   // Given data in num_points * new_dim row major
   // Pivots stored in full_pivot_data as k * new_dim row major
@@ -48,7 +48,7 @@ namespace math_utils {
   void compute_closest_centers(float* data, size_t num_points, size_t dim,
                                float* pivot_data, size_t num_centers, size_t k,
                                uint32_t*            closest_centers_ivf,
-                               std::vector<size_t>* inverted_vamana = NULL,
+                               std::vector<size_t>* inverted_index = NULL,
                                float*               pts_norms_squared = NULL);
 
   // if to_subtract is 1, will subtract nearest center from each row. Else will
