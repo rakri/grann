@@ -18,9 +18,9 @@ int main(int argc, char** argv) {
               << std::endl;
     return -1;
   }
-  unsigned* gold_std = NULL;
+  unsigned* gold_std = nullptr;
   float*    gs_dist = nullptr;
-  unsigned* our_results = NULL;
+  unsigned* our_results = nullptr;
   float*    or_dist = nullptr;
   size_t    points_num, points_num_gs, points_num_or;
   size_t    dim_gs;

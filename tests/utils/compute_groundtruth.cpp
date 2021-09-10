@@ -70,7 +70,7 @@ inline bool custom_dist(const std::pair<uint32_t, float> &a,
 
 void compute_l2sq(float *const points_l2sq, const float *const matrix,
                   const int64_t num_points, const int dim) {
-  assert(points_l2sq != NULL);
+  assert(points_l2sq != nullptr);
 #pragma omp parallel for schedule(static, 65536)
   for (int64_t d = 0; d < num_points; ++d)
     points_l2sq[d] = cblas_sdot(dim, matrix + (ptrdiff_t) d * (ptrdiff_t) dim,
@@ -84,10 +84,10 @@ void distsq_to_points(
     const float *const points_l2sq,  // points in Col major
     size_t nqueries, const float *const queries,
     const float *const queries_l2sq,  // queries in Col major
-    float *ones_vec = NULL)  // Scratchspace of num_data size and init to 1.0
+    float *ones_vec = nullptr)  // Scratchspace of num_data size and init to 1.0
 {
   bool ones_vec_alloc = false;
-  if (ones_vec == NULL) {
+  if (ones_vec == nullptr) {
     ones_vec = new float[nqueries > npoints ? nqueries : npoints];
     std::fill_n(ones_vec, nqueries > npoints ? nqueries : npoints, (float) 1.0);
     ones_vec_alloc = true;
@@ -110,10 +110,10 @@ void inner_prod_to_points(
     float *      dist_matrix,  // Col Major, cols are queries, rows are points
     size_t npoints, const float *const points, size_t nqueries,
     const float *const queries,
-    float *ones_vec = NULL)  // Scratchspace of num_data size and init to 1.0
+    float *ones_vec = nullptr)  // Scratchspace of num_data size and init to 1.0
 {
   bool ones_vec_alloc = false;
-  if (ones_vec == NULL) {
+  if (ones_vec == nullptr) {
     ones_vec = new float[nqueries > npoints ? nqueries : npoints];
     std::fill_n(ones_vec, nqueries > npoints ? nqueries : npoints, (float) 1.0);
     ones_vec_alloc = true;

@@ -309,7 +309,7 @@ int generate_pq_pivots(const float *passed_train_data, size_t num_train,
 
     math_utils::run_lloyds(cur_data.get(), num_train, cur_chunk_size,
                        cur_pivot_data.get(), num_centers, max_k_means_reps,
-                       NULL, closest_center.get());
+                       nullptr, closest_center.get());
 
     for (uint64_t j = 0; j < num_centers; j++) {
       std::memcpy(full_pivot_data.get() + j * dim + chunk_offsets[i],
@@ -886,7 +886,7 @@ int partition(const std::string data_file, const float sampling_rate,
                                     pivot_data, num_parts);
 
   math_utils::run_lloyds(train_data_float, num_train, train_dim, pivot_data,
-                     num_parts, max_k_means_reps, NULL, NULL);
+                     num_parts, max_k_means_reps, nullptr, nullptr);
 
   grann::cout << "Saving global k-center pivots" << std::endl;
   grann::save_bin<float>(output_file.c_str(), pivot_data, (size_t) num_parts,
@@ -949,7 +949,7 @@ int partition_with_ram_budget(const std::string data_file,
                                       pivot_data, num_parts);
 
     math_utils::run_lloyds(train_data_float, num_train, train_dim, pivot_data,
-                       num_parts, max_k_means_reps, NULL, NULL);
+                       num_parts, max_k_means_reps, nullptr, nullptr);
 
     // now pivots are ready. need to stream base points and assign them to
     // closest clusters.

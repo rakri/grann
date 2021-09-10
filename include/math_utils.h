@@ -48,8 +48,8 @@ namespace math_utils {
   void compute_closest_centers(float* data, size_t num_points, size_t dim,
                                float* pivot_data, size_t num_centers, size_t k,
                                uint32_t*            closest_centers_ivf,
-                               std::vector<size_t>* inverted_index = NULL,
-                               float*               pts_norms_squared = NULL);
+                               std::vector<size_t>* inverted_index = nullptr,
+                               float*               pts_norms_squared = nullptr);
 
   // if to_subtract is 1, will subtract nearest center from each row. Else will
   // add. Output will be in data_load iself.
@@ -65,8 +65,8 @@ namespace math_utils {
   // num_centers * dim
   // And squared lengths of data points, output the closest center to each data
   // point, update centers, and also return inverted vamana.
-  // If closest_centers == NULL, will allocate memory and return.
-  // Similarly, if closest_docs == NULL, will allocate memory and return.
+  // If closest_centers == nullptr, will allocate memory and return.
+  // Similarly, if closest_docs == nullptr, will allocate memory and return.
 
   float lloyds_iter(float* data, size_t num_points, size_t dim, float* centers,
                     size_t num_centers, float* docs_l2sq,
@@ -74,7 +74,7 @@ namespace math_utils {
                     uint32_t*&           closest_center);
 
   // Run Lloyds until max_reps or stopping criterion
-  // If you pass NULL for closest_docs and closest_center, it will NOT return
+  // If you pass nullptr for closest_docs and closest_center, it will NOT return
   // the results, else it will assume appriate allocation as closest_docs = new
   // vector<size_t> [num_centers], and closest_center = new size_t[num_points]
   // Final centers are output in centers as row major num_centers * dim

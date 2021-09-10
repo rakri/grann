@@ -55,7 +55,7 @@
 
 #define SECTOR_LEN 4096
 #define MAX_N_SECTOR_READS 128
-
+#define MAX_BLOCK_SIZE (size_t) 10000000
 typedef uint64_t _u64;
 typedef int64_t  _s64;
 typedef uint32_t _u32;

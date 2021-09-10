@@ -112,12 +112,12 @@ namespace math_utils {
         std::priority_queue<grann::SimpleNeighbor> top_k_queue;
         float* current = dist_matrix + (i * num_centers);
         for (size_t j = 0; j < num_centers; j++) {
-          grann::SimpleNeighbor this_piv(j, current[j]);
-          top_k_queue.push(this_piv);
+          grann::SimpleNeighbor this_center(j, current[j]);
+          top_k_queue.push(this_center);
         }
         for (size_t j = 0; j < k; j++) {
-          grann::SimpleNeighbor this_piv = top_k_queue.top();
-          center_ids[i * k + j] = (uint32_t) this_piv.id;
+          grann::SimpleNeighbor this_center = top_k_queue.top();
+          center_ids[i * k + j] = (uint32_t) this_center.id;
           top_k_queue.pop();
         }
       }
@@ -136,7 +136,7 @@ namespace math_utils {
   // then it will assume that point norms are pre-computed and use those values
 
   void compute_closest_centers(float* data, size_t num_points, size_t dim,
-                               float* pivot_data, size_t num_centers, size_t k,
+                               float* centers, size_t num_centers, size_t k,
                                uint32_t*            closest_centers_ivf,
                                std::vector<size_t>* inverted_index,
                                float*               pts_norms_squared) {
@@ -146,45 +146,45 @@ namespace math_utils {
       return;
     }
 
-    bool is_norm_given_for_pts = (pts_norms_squared != NULL);
+    bool is_norm_given_for_pts = (pts_norms_squared != nullptr);
 
-    float* pivs_norms_squared = new float[num_centers];
+    float* norms_squared_centers = new float[num_centers];
     if (!is_norm_given_for_pts)
       pts_norms_squared = new float[num_points];
 
-    size_t PAR_BLOCK_SIZE = num_points;
-    size_t N_BLOCKS = (num_points % PAR_BLOCK_SIZE) == 0
-                          ? (num_points / PAR_BLOCK_SIZE)
-                          : (num_points / PAR_BLOCK_SIZE) + 1;
+    size_t block_size = std::min(num_points, MAX_BLOCK_SIZE);
+    size_t N_BLOCKS = (num_points % block_size) == 0
+                          ? (num_points / block_size)
+                          : (num_points / block_size) + 1;
 
     if (!is_norm_given_for_pts)
       math_utils::compute_vecs_l2sq(pts_norms_squared, data, num_points, dim);
-    math_utils::compute_vecs_l2sq(pivs_norms_squared, pivot_data, num_centers,
+    math_utils::compute_vecs_l2sq(norms_squared_centers, centers, num_centers,
                                   dim);
-    uint32_t* closest_centers = new uint32_t[PAR_BLOCK_SIZE * k];
-    float*    distance_matrix = new float[num_centers * PAR_BLOCK_SIZE];
+    uint32_t* closest_centers = new uint32_t[block_size * k];
+    float*    distance_matrix = new float[num_centers * block_size];
 
     for (size_t cur_blk = 0; cur_blk < N_BLOCKS; cur_blk++) {
-      float* data_cur_blk = data + cur_blk * PAR_BLOCK_SIZE * dim;
+      float* data_cur_blk = data + cur_blk * block_size * dim;
       size_t num_pts_blk =
-          std::min(PAR_BLOCK_SIZE, num_points - cur_blk * PAR_BLOCK_SIZE);
-      float* pts_norms_blk = pts_norms_squared + cur_blk * PAR_BLOCK_SIZE;
+          std::min(block_size, num_points - cur_blk * block_size);
+      float* pts_norms_blk = pts_norms_squared + cur_blk * block_size;
 
       math_utils::compute_closest_centers_in_block(
-          data_cur_blk, num_pts_blk, dim, pivot_data, num_centers,
-          pts_norms_blk, pivs_norms_squared, closest_centers, distance_matrix,
+          data_cur_blk, num_pts_blk, dim, centers, num_centers,
+          pts_norms_blk, norms_squared_centers, closest_centers, distance_matrix,
           k);
 
 #pragma omp parallel for schedule(static, 1)
-      for (int64_t j = cur_blk * PAR_BLOCK_SIZE;
+      for (int64_t j = cur_blk * block_size;
            j <
-           std::min((_s64) num_points, (_s64)((cur_blk + 1) * PAR_BLOCK_SIZE));
+           std::min((_s64) num_points, (_s64)((cur_blk + 1) * block_size));
            j++) {
         for (size_t l = 0; l < k; l++) {
           size_t this_center_id =
-              closest_centers[(j - cur_blk * PAR_BLOCK_SIZE) * k + l];
+              closest_centers[(j - cur_blk * block_size) * k + l];
           closest_centers_ivf[j * k + l] = (uint32_t) this_center_id;
-          if (inverted_index != NULL) {
+          if (inverted_index != nullptr) {
 #pragma omp critical
             inverted_index[this_center_id].push_back(j);
           }
@@ -193,16 +193,16 @@ namespace math_utils {
     }
     delete[] closest_centers;
     delete[] distance_matrix;
-    delete[] pivs_norms_squared;
+    delete[] norms_squared_centers;
     if (!is_norm_given_for_pts)
       delete[] pts_norms_squared;
   }
 
   // if to_subtract is 1, will subtract nearest center from each row. Else will
-  // add. Output will be in data_load iself.
+  // add. Output will be in base_data iself.
   // Nearest centers need to be provided in closst_centers.
-  void process_residuals(float* data_load, size_t num_points, size_t dim,
-                         float* cur_pivot_data, size_t num_centers,
+  void process_residuals(float* base_data, size_t num_points, size_t dim,
+                         float* centers, size_t num_centers,
                          uint32_t* closest_centers, bool to_subtract) {
     grann::cout << "Processing residuals of " << num_points << " points in "
                 << dim << " dimensions using " << num_centers << " centers "
@@ -211,13 +211,13 @@ namespace math_utils {
     for (int64_t n_iter = 0; n_iter < (_s64) num_points; n_iter++) {
       for (size_t d_iter = 0; d_iter < dim; d_iter++) {
         if (to_subtract == 1)
-          data_load[n_iter * dim + d_iter] =
-              data_load[n_iter * dim + d_iter] -
-              cur_pivot_data[closest_centers[n_iter] * dim + d_iter];
+          base_data[n_iter * dim + d_iter] =
+              base_data[n_iter * dim + d_iter] -
+              centers[closest_centers[n_iter] * dim + d_iter];
         else
-          data_load[n_iter * dim + d_iter] =
-              data_load[n_iter * dim + d_iter] +
-              cur_pivot_data[closest_centers[n_iter] * dim + d_iter];
+          base_data[n_iter * dim + d_iter] =
+              base_data[n_iter * dim + d_iter] +
+              centers[closest_centers[n_iter] * dim + d_iter];
       }
     }
   }
@@ -228,8 +228,8 @@ namespace math_utils {
   // num_centers * dim And squared lengths of data points, output the closest
   // center to each data point, update centers, and also return inverted vamana.
   // If
-  // closest_centers == NULL, will allocate memory and return. Similarly, if
-  // closest_docs == NULL, will allocate memory and return.
+  // closest_centers == nullptr, will allocate memory and return. Similarly, if
+  // closest_docs == nullptr, will allocate memory and return.
 
   float lloyds_iter(float* data, size_t num_points, size_t dim, float* centers,
                     size_t num_centers, float* docs_l2sq,
@@ -238,9 +238,9 @@ namespace math_utils {
     bool compute_residual = true;
     // Timer timer;
 
-    if (closest_center == NULL)
+    if (closest_center == nullptr)
       closest_center = new uint32_t[num_points];
-    if (closest_docs == NULL)
+    if (closest_docs == nullptr)
       closest_docs = new std::vector<size_t>[num_centers];
     else
       for (size_t c = 0; c < num_centers; ++c)
@@ -298,7 +298,7 @@ namespace math_utils {
   }
 
   // Run Lloyds until max_reps or stopping criterion
-  // If you pass NULL for closest_docs and closest_center, it will NOT return
+  // If you pass nullptr for closest_docs and closest_center, it will NOT return
   // the
   // results, else it will assume appriate allocation as closest_docs = new
   // vector<size_t> [num_centers], and closest_center = new size_t[num_points]
@@ -311,11 +311,11 @@ namespace math_utils {
     float residual = std::numeric_limits<float>::max();
     bool  ret_closest_docs = true;
     bool  ret_closest_center = true;
-    if (closest_docs == NULL) {
+    if (closest_docs == nullptr) {
       closest_docs = new std::vector<size_t>[num_centers];
       ret_closest_docs = false;
     }
-    if (closest_center == NULL) {
+    if (closest_center == nullptr) {
       closest_center = new uint32_t[num_points];
       ret_closest_center = false;
     }
@@ -349,15 +349,15 @@ namespace math_utils {
     return residual;
   }
 
-  // assumes memory allocated for pivot_data as new
+  // assumes memory allocated for centers as new
   // float[num_centers*dim]
-  // and select randomly num_centers points as pivots
+  // and select randomly num_centers points as centers
   void selecting_pivots(float* data, size_t num_points, size_t dim,
-                        float* pivot_data, size_t num_centers) {
-    //	pivot_data = new float[num_centers * dim];
+                        float* centers, size_t num_centers) {
+    //	centers = new float[num_centers * dim];
 
     std::vector<size_t> picked;
-    grann::cout << "Selecting " << num_centers << " pivots from " << num_points
+    grann::cout << "Selecting " << num_centers << " centers from " << num_points
                 << " points using ";
     std::random_device rd;
     auto               x = rd();
@@ -365,31 +365,31 @@ namespace math_utils {
     std::mt19937                          generator(x);
     std::uniform_int_distribution<size_t> distribution(0, num_points - 1);
 
-    size_t tmp_pivot;
+    size_t tmp_center;
     for (size_t j = 0; j < num_centers; j++) {
-      tmp_pivot = distribution(generator);
-      if (std::find(picked.begin(), picked.end(), tmp_pivot) != picked.end())
+      tmp_center = distribution(generator);
+      if (std::find(picked.begin(), picked.end(), tmp_center) != picked.end())
         continue;
-      picked.push_back(tmp_pivot);
-      std::memcpy(pivot_data + j * dim, data + tmp_pivot * dim,
+      picked.push_back(tmp_center);
+      std::memcpy(centers + j * dim, data + tmp_center * dim,
                   dim * sizeof(float));
     }
   }
 
   void kmeanspp_selecting_pivots(float* data, size_t num_points, size_t dim,
-                                 float* pivot_data, size_t num_centers) {
+                                 float* centers, size_t num_centers) {
     if (num_points > 1 << 23) {
       grann::cout << "ERROR: n_pts " << num_points
                   << " currently not supported for k-means++, maximum is "
-                     "8388608. Falling back to random pivot "
+                     "8388608. Falling back to random center "
                      "selection."
                   << std::endl;
-      selecting_pivots(data, num_points, dim, pivot_data, num_centers);
+      selecting_pivots(data, num_points, dim, centers, num_centers);
       return;
     }
 
     std::vector<size_t> picked;
-    grann::cout << "Selecting " << num_centers << " pivots from " << num_points
+    grann::cout << "Selecting " << num_centers << " centers from " << num_points
                 << " points using ";
     std::random_device rd;
     auto               x = rd();
@@ -401,7 +401,7 @@ namespace math_utils {
     size_t                                num_picked = 1;
 
     picked.push_back(init_id);
-    std::memcpy(pivot_data, data + init_id * dim, dim * sizeof(float));
+    std::memcpy(centers, data + init_id * dim, dim * sizeof(float));
 
     float* dist = new float[num_points];
 
@@ -412,7 +412,7 @@ namespace math_utils {
     }
 
     double dart_val;
-    size_t tmp_pivot;
+    size_t tmp_center;
     bool   sum_flag = false;
 
     while (num_picked < num_centers) {
@@ -429,7 +429,7 @@ namespace math_utils {
 
       double prefix_sum = 0;
       for (size_t i = 0; i < (num_points); i++) {
-        tmp_pivot = i;
+        tmp_center = i;
         if (dart_val >= prefix_sum && dart_val < prefix_sum + dist[i]) {
           break;
         }
@@ -437,18 +437,18 @@ namespace math_utils {
         prefix_sum += dist[i];
       }
 
-      if (std::find(picked.begin(), picked.end(), tmp_pivot) != picked.end() &&
+      if (std::find(picked.begin(), picked.end(), tmp_center) != picked.end() &&
           (sum_flag == false))
         continue;
-      picked.push_back(tmp_pivot);
-      std::memcpy(pivot_data + num_picked * dim, data + tmp_pivot * dim,
+      picked.push_back(tmp_center);
+      std::memcpy(centers + num_picked * dim, data + tmp_center * dim,
                   dim * sizeof(float));
 
 #pragma omp parallel for schedule(static, 8192)
       for (int64_t i = 0; i < (_s64) num_points; i++) {
         dist[i] = (std::min)(
             dist[i], math_utils::calc_distance(data + i * dim,
-                                               data + tmp_pivot * dim, dim));
+                                               data + tmp_center * dim, dim));
       }
       num_picked++;
       if (num_picked % 32 == 0)
