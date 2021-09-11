@@ -101,7 +101,9 @@ namespace grann {
   template<typename T>
   class ANNIndex {
    public:
+   // make a base object, initialize distance function and load the data from filename bin file. The list of ids corresponds to the id/tag associated with each vector. 
     ANNIndex(Metric m, const char *filename, std::vector<_u32> &list_of_ids);
+    
     ~ANNIndex();
 
     virtual void save(const char *filename) = 0;

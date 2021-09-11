@@ -143,6 +143,46 @@ namespace grann {
     grann::cout << "Finished writing bin." << std::endl;
   }
 
+
+  template<typename T>
+  inline void save_data_subset_as_bin(const std::string& filename, T* base_data, _u64 npts,
+                       _u64 ndims, std::vector<_u32> &list_of_ids) {
+
+    bool valid=true;
+    for (auto &x : list_of_ids) {
+      if (x >= npts) {
+        valid = false;
+        break;
+      }
+    }
+
+    if (list_of_ids.size() == 0)
+    valid = false;
+
+    if (!valid) {
+      grann::cout<<"Invalid list of ids to save. All entries must be between 0 and " << npts << std::endl;
+    }
+
+    std::ofstream writer(filename, std::ios::binary | std::ios::out);
+    grann::cout << "Writing bin: " << filename.c_str() << std::endl;
+
+
+    int npts_i32 = (int) list_of_ids.size(), ndims_i32 = (int) ndims;
+    writer.write((char*) &npts_i32, sizeof(int));
+    writer.write((char*) &ndims_i32, sizeof(int));
+    grann::cout << "bin: #pts = " << npts_i32 << ", #dims = " << ndims
+                << ", size = " << (list_of_ids.size()) * ndims * sizeof(T) + 2 * sizeof(int)
+                << "B" << std::endl;
+
+    //    data = new T[npts_u64 * ndims_u64];
+    for (auto & id :list_of_ids) {
+    writer.write((char*) (base_data + (_u64)id* ndims), ndims * sizeof(T));
+    }
+    writer.close();
+    grann::cout << "Finished writing bin." << std::endl;
+  }
+
+
   // load_aligned_bin functions START
 
   template<typename T>
