@@ -31,7 +31,6 @@
 
 #include "parameters.h"
 
-
 // from aligned_file_reader.h
 #define MAX_IO_DEPTH 128
 

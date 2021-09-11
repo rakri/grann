@@ -101,9 +101,11 @@ namespace grann {
   template<typename T>
   class ANNIndex {
    public:
-   // make a base object, initialize distance function and load the data from filename bin file. The list of ids corresponds to the id/tag associated with each vector. 
+    // make a base object, initialize distance function and load the data from
+    // filename bin file. The list of ids corresponds to the id/tag associated
+    // with each vector.
     ANNIndex(Metric m, const char *filename, std::vector<_u32> &list_of_ids);
-    
+
     ~ANNIndex();
 
     virtual void save(const char *filename) = 0;
@@ -122,13 +124,13 @@ namespace grann {
     Distance<T> *_distance;
     _u32 *       idmap = nullptr;
 
-    T *    _data;
+    T *  _data;
     _u64 _num_points = 0;
     _u64 _dim;
     _u64 _aligned_dim;  // data dimension is rounded to multiple of 8 for more
-                          // efficient alignment and faster floating distance
-                          // comparisons. Hence _data is matrix of _num_points *
-                          // _aligned_dim size
+                        // efficient alignment and faster floating distance
+                        // comparisons. Hence _data is matrix of _num_points *
+                        // _aligned_dim size
     bool _has_built = false;
   };
 }  // namespace grann

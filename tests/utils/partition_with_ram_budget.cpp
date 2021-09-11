@@ -23,8 +23,8 @@ int main(int argc, char** argv) {
   const std::string prefix_path(argv[3]);
   const float       sampling_rate = atof(argv[4]);
   const double      ram_budget = (double) std::atof(argv[5]);
-  const _u64      graph_degree = (_u64) std::atoi(argv[6]);
-  const _u64      k_vamana = (_u64) std::atoi(argv[7]);
+  const _u64        graph_degree = (_u64) std::atoi(argv[6]);
+  const _u64        k_vamana = (_u64) std::atoi(argv[7]);
 
   if (std::string(argv[1]) == std::string("float"))
     partition_with_ram_budget<float>(data_path, sampling_rate, ram_budget,

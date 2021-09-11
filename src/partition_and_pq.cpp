@@ -31,7 +31,7 @@ void gen_random_slice(const std::string base_file,
       x);  // Standard mersenne_twister_engine seeded with rd()
   std::uniform_real_distribution<float> distribution(0, 1);
 
-  _u64   npts, nd;
+  _u64     npts, nd;
   uint32_t npts_u32, nd_u32;
   uint32_t num_sampled_pts_u32 = 0;
   uint32_t one_const = 1;
@@ -81,7 +81,7 @@ void gen_random_slice(const std::string base_file,
 template<typename T>
 void gen_random_slice(const std::string data_file, double p_val,
                       float *&sampled_data, _u64 &slice_size, _u64 &ndims) {
-  _u64                          npts;
+  _u64                            npts;
   uint32_t                        npts32, ndims32;
   std::vector<std::vector<float>> sampled_vectors;
 
@@ -100,7 +100,7 @@ void gen_random_slice(const std::string data_file, double p_val,
   p_val = p_val < 1 ? p_val : 1;
 
   std::random_device rd;  // Will be used to obtain a seed for the random number
-  _u64             x = rd();
+  _u64               x = rd();
   std::mt19937       generator((unsigned) x);
   std::uniform_real_distribution<float> distribution(0, 1);
 
@@ -126,8 +126,8 @@ void gen_random_slice(const std::string data_file, double p_val,
 // same as above, but samples from the matrix inputdata instead of a file of
 // npts*ndims to return sampled_data of size slice_size*ndims.
 template<typename T>
-void gen_random_slice(const T *inputdata, _u64 npts, _u64 ndims,
-                      double p_val, float *&sampled_data, _u64 &slice_size) {
+void gen_random_slice(const T *inputdata, _u64 npts, _u64 ndims, double p_val,
+                      float *&sampled_data, _u64 &slice_size) {
   std::vector<std::vector<float>> sampled_vectors;
   const T *                       cur_vector_T;
 
@@ -135,7 +135,7 @@ void gen_random_slice(const T *inputdata, _u64 npts, _u64 ndims,
 
   std::random_device
                rd;  // Will be used to obtain a seed for the random number engine
-  _u64       x = rd();
+  _u64         x = rd();
   std::mt19937 generator(
       (unsigned) x);  // Standard mersenne_twister_engine seeded with rd()
   std::uniform_real_distribution<float> distribution(0, 1);
@@ -304,12 +304,13 @@ int generate_pq_pivots(const float *passed_train_data, _u64 num_train,
                   cur_chunk_size * sizeof(float));
     }
 
-    math_utils::kmeans_plus_plus_centers(cur_data.get(), num_train, cur_chunk_size,
-                                      cur_pivot_data.get(), num_centers);
+    math_utils::kmeans_plus_plus_centers(cur_data.get(), num_train,
+                                         cur_chunk_size, cur_pivot_data.get(),
+                                         num_centers);
 
     math_utils::run_lloyds(cur_data.get(), num_train, cur_chunk_size,
-                       cur_pivot_data.get(), num_centers, max_k_means_reps,
-                       nullptr, closest_center.get());
+                           cur_pivot_data.get(), num_centers, max_k_means_reps,
+                           nullptr, closest_center.get());
 
     for (uint64_t j = 0; j < num_centers; j++) {
       std::memcpy(full_pivot_data.get() + j * dim + chunk_offsets[i],
@@ -321,8 +322,7 @@ int generate_pq_pivots(const float *passed_train_data, _u64 num_train,
   grann::save_bin<float>(pq_pivots_path.c_str(), full_pivot_data.get(),
                          (_u64) num_centers, dim);
   std::string centroids_path = pq_pivots_path + "_centroid.bin";
-  grann::save_bin<float>(centroids_path.c_str(), centroid.get(), (_u64) dim,
-                         1);
+  grann::save_bin<float>(centroids_path.c_str(), centroid.get(), (_u64) dim, 1);
   std::string rearrangement_path = pq_pivots_path + "_rearrangement_perm.bin";
   grann::save_bin<uint32_t>(rearrangement_path.c_str(), rearrangement.data(),
                             rearrangement.size(), 1);
@@ -547,9 +547,9 @@ int generate_pq_data_from_pivots(const std::string data_file,
   return 0;
 }
 
-int estimate_cluster_sizes(float *test_data_float, _u64 num_test,
-                           float *pivots, const _u64 num_centers,
-                           const _u64 test_dim, const _u64 k_base,
+int estimate_cluster_sizes(float *test_data_float, _u64 num_test, float *pivots,
+                           const _u64 num_centers, const _u64 test_dim,
+                           const _u64         k_base,
                            std::vector<_u64> &cluster_sizes) {
   cluster_sizes.clear();
 
@@ -559,7 +559,7 @@ int estimate_cluster_sizes(float *test_data_float, _u64 num_test,
     shard_counts[i] = 0;
   }
 
-  _u64 block_size = num_test <= BLOCK_SIZE ? num_test : BLOCK_SIZE;
+  _u64   block_size = num_test <= BLOCK_SIZE ? num_test : BLOCK_SIZE;
   _u32 * block_closest_centers = new _u32[block_size * k_base];
   float *block_data_float;
 
@@ -615,8 +615,7 @@ int shard_data_into_clusters(const std::string data_file, float *pivots,
     return -1;
   }
 
-  std::unique_ptr<_u64[]> shard_counts =
-      std::make_unique<_u64[]>(num_centers);
+  std::unique_ptr<_u64[]> shard_counts = std::make_unique<_u64[]>(num_centers);
   std::vector<std::ofstream> shard_data_writer(num_centers);
   std::vector<std::ofstream> shard_idmap_writer(num_centers);
   _u32                       dummy_size = 0;
@@ -663,7 +662,7 @@ int shard_data_into_clusters(const std::string data_file, float *pivots,
 
     for (_u64 p = 0; p < cur_blk_size; p++) {
       for (_u64 p1 = 0; p1 < k_base; p1++) {
-        _u64   shard_id = block_closest_centers[p * k_base + p1];
+        _u64     shard_id = block_closest_centers[p * k_base + p1];
         uint32_t original_point_map_id = (uint32_t)(start_id + p);
         shard_data_writer[shard_id].write(
             (char *) (block_data_T.get() + p * dim), sizeof(T) * dim);
@@ -716,8 +715,7 @@ int shard_data_into_clusters_only_ids(const std::string data_file,
     return -1;
   }
 
-  std::unique_ptr<_u64[]> shard_counts =
-      std::make_unique<_u64[]>(num_centers);
+  std::unique_ptr<_u64[]> shard_counts = std::make_unique<_u64[]>(num_centers);
 
   std::vector<std::ofstream> shard_idmap_writer(num_centers);
   _u32                       dummy_size = 0;
@@ -758,7 +756,7 @@ int shard_data_into_clusters_only_ids(const std::string data_file,
 
     for (_u64 p = 0; p < cur_blk_size; p++) {
       for (_u64 p1 = 0; p1 < k_base; p1++) {
-        _u64   shard_id = block_closest_centers[p * k_base + p1];
+        _u64     shard_id = block_closest_centers[p * k_base + p1];
         uint32_t original_point_map_id = (uint32_t)(start_id + p);
         shard_idmap_writer[shard_id].write((char *) &original_point_map_id,
                                            sizeof(uint32_t));
@@ -860,8 +858,8 @@ template<typename T>
 int partition(const std::string data_file, const float sampling_rate,
               _u64 num_parts, _u64 max_k_means_reps,
               const std::string prefix_path, _u64 k_base) {
-  _u64 train_dim;
-  _u64 num_train;
+  _u64   train_dim;
+  _u64   num_train;
   float *train_data_float;
 
   gen_random_slice<T>(data_file, sampling_rate, train_data_float, num_train,
@@ -883,10 +881,10 @@ int partition(const std::string data_file, const float sampling_rate,
   grann::cout << "Processing global k-means (kmeans_partitioning Step)"
               << std::endl;
   math_utils::kmeans_plus_plus_centers(train_data_float, num_train, train_dim,
-                                    pivot_data, num_parts);
+                                       pivot_data, num_parts);
 
   math_utils::run_lloyds(train_data_float, num_train, train_dim, pivot_data,
-                     num_parts, max_k_means_reps, nullptr, nullptr);
+                         num_parts, max_k_means_reps, nullptr, nullptr);
 
   grann::cout << "Saving global k-center pivots" << std::endl;
   grann::save_bin<float>(output_file.c_str(), pivot_data, (_u64) num_parts,
@@ -905,12 +903,12 @@ int partition(const std::string data_file, const float sampling_rate,
 template<typename T>
 int partition_with_ram_budget(const std::string data_file,
                               const double sampling_rate, double ram_budget,
-                              _u64            graph_degree,
-                              const std::string prefix_path, _u64 k_base) {
-  _u64 train_dim;
-  _u64 num_train;
+                              _u64 graph_degree, const std::string prefix_path,
+                              _u64 k_base) {
+  _u64   train_dim;
+  _u64   num_train;
   float *train_data_float;
-  _u64 max_k_means_reps = 10;
+  _u64   max_k_means_reps = 10;
 
   int  num_parts = 3;
   bool fit_in_ram = false;
@@ -918,8 +916,8 @@ int partition_with_ram_budget(const std::string data_file,
   gen_random_slice<T>(data_file, sampling_rate, train_data_float, num_train,
                       train_dim);
 
-  _u64 test_dim;
-  _u64 num_test;
+  _u64   test_dim;
+  _u64   num_test;
   float *test_data_float;
   gen_random_slice<T>(data_file, sampling_rate, test_data_float, num_test,
                       test_dim);
@@ -946,10 +944,10 @@ int partition_with_ram_budget(const std::string data_file,
     grann::cout << "Processing global k-means (kmeans_partitioning Step)"
                 << std::endl;
     math_utils::kmeans_plus_plus_centers(train_data_float, num_train, train_dim,
-                                      pivot_data, num_parts);
+                                         pivot_data, num_parts);
 
     math_utils::run_lloyds(train_data_float, num_train, train_dim, pivot_data,
-                       num_parts, max_k_means_reps, nullptr, nullptr);
+                           num_parts, max_k_means_reps, nullptr, nullptr);
 
     // now pivots are ready. need to stream base points and assign them to
     // closest clusters.
@@ -991,74 +989,75 @@ int partition_with_ram_budget(const std::string data_file,
 
 // Instantations of supported templates
 
-template void 
-                              gen_random_slice<int8_t>(const std::string base_file,
-                         const std::string output_prefix, double sampling_rate);
-template void  gen_random_slice<uint8_t>(
-    const std::string base_file, const std::string output_prefix,
-    double sampling_rate);
-template void 
-gen_random_slice<float>(const std::string base_file,
-                        const std::string output_prefix, double sampling_rate);
+template void gen_random_slice<int8_t>(const std::string base_file,
+                                       const std::string output_prefix,
+                                       double            sampling_rate);
+template void gen_random_slice<uint8_t>(const std::string base_file,
+                                        const std::string output_prefix,
+                                        double            sampling_rate);
+template void gen_random_slice<float>(const std::string base_file,
+                                      const std::string output_prefix,
+                                      double            sampling_rate);
 
-template void  gen_random_slice<float>(const float *inputdata,
-                                                      _u64 npts, _u64 ndims,
-                                                      double  p_val,
-                                                      float *&sampled_data,
-                                                      _u64 &slice_size);
-template void  gen_random_slice<uint8_t>(
-    const uint8_t *inputdata, _u64 npts, _u64 ndims, double p_val,
-    float *&sampled_data, _u64 &slice_size);
-template void  gen_random_slice<int8_t>(
-    const int8_t *inputdata, _u64 npts, _u64 ndims, double p_val,
-    float *&sampled_data, _u64 &slice_size);
+template void gen_random_slice<float>(const float *inputdata, _u64 npts,
+                                      _u64 ndims, double p_val,
+                                      float *&sampled_data, _u64 &slice_size);
+template void gen_random_slice<uint8_t>(const uint8_t *inputdata, _u64 npts,
+                                        _u64 ndims, double p_val,
+                                        float *&sampled_data, _u64 &slice_size);
+template void gen_random_slice<int8_t>(const int8_t *inputdata, _u64 npts,
+                                       _u64 ndims, double p_val,
+                                       float *&sampled_data, _u64 &slice_size);
 
-template void  gen_random_slice<float>(
-    const std::string data_file, double p_val, float *&sampled_data,
-    _u64 &slice_size, _u64 &ndims);
-template void  gen_random_slice<uint8_t>(
-    const std::string data_file, double p_val, float *&sampled_data,
-    _u64 &slice_size, _u64 &ndims);
-template void  gen_random_slice<int8_t>(
-    const std::string data_file, double p_val, float *&sampled_data,
-    _u64 &slice_size, _u64 &ndims);
+template void gen_random_slice<float>(const std::string data_file, double p_val,
+                                      float *&sampled_data, _u64 &slice_size,
+                                      _u64 &ndims);
+template void gen_random_slice<uint8_t>(const std::string data_file,
+                                        double p_val, float *&sampled_data,
+                                        _u64 &slice_size, _u64 &ndims);
+template void gen_random_slice<int8_t>(const std::string data_file,
+                                       double p_val, float *&sampled_data,
+                                       _u64 &slice_size, _u64 &ndims);
 
-template  int partition<int8_t>(
-    const std::string data_file, const float sampling_rate, _u64 num_centers,
-    _u64 max_k_means_reps, const std::string prefix_path, _u64 k_base);
-template  int partition<uint8_t>(
-    const std::string data_file, const float sampling_rate, _u64 num_centers,
-    _u64 max_k_means_reps, const std::string prefix_path, _u64 k_base);
-template  int partition<float>(
-    const std::string data_file, const float sampling_rate, _u64 num_centers,
-    _u64 max_k_means_reps, const std::string prefix_path, _u64 k_base);
+template int partition<int8_t>(const std::string data_file,
+                               const float sampling_rate, _u64 num_centers,
+                               _u64              max_k_means_reps,
+                               const std::string prefix_path, _u64 k_base);
+template int partition<uint8_t>(const std::string data_file,
+                                const float sampling_rate, _u64 num_centers,
+                                _u64              max_k_means_reps,
+                                const std::string prefix_path, _u64 k_base);
+template int partition<float>(const std::string data_file,
+                              const float sampling_rate, _u64 num_centers,
+                              _u64              max_k_means_reps,
+                              const std::string prefix_path, _u64 k_base);
 
-template  int partition_with_ram_budget<int8_t>(
+template int partition_with_ram_budget<int8_t>(
     const std::string data_file, const double sampling_rate, double ram_budget,
     _u64 graph_degree, const std::string prefix_path, _u64 k_base);
-template  int partition_with_ram_budget<uint8_t>(
+template int partition_with_ram_budget<uint8_t>(
     const std::string data_file, const double sampling_rate, double ram_budget,
     _u64 graph_degree, const std::string prefix_path, _u64 k_base);
-template  int partition_with_ram_budget<float>(
+template int partition_with_ram_budget<float>(
     const std::string data_file, const double sampling_rate, double ram_budget,
     _u64 graph_degree, const std::string prefix_path, _u64 k_base);
 
-template  int retrieve_shard_data_from_ids<float>(
-    const std::string data_file, std::string idmap_filename,
-    std::string data_filename);
-template  int retrieve_shard_data_from_ids<uint8_t>(
-    const std::string data_file, std::string idmap_filename,
-    std::string data_filename);
-template  int retrieve_shard_data_from_ids<int8_t>(
-    const std::string data_file, std::string idmap_filename,
-    std::string data_filename);
+template int retrieve_shard_data_from_ids<float>(const std::string data_file,
+                                                 std::string idmap_filename,
+                                                 std::string data_filename);
+template int retrieve_shard_data_from_ids<uint8_t>(const std::string data_file,
+                                                   std::string idmap_filename,
+                                                   std::string data_filename);
+template int retrieve_shard_data_from_ids<int8_t>(const std::string data_file,
+                                                  std::string idmap_filename,
+                                                  std::string data_filename);
 
-template  int generate_pq_data_from_pivots<int8_t>(
+template int generate_pq_data_from_pivots<int8_t>(
     const std::string data_file, unsigned num_centers, unsigned num_pq_chunks,
     std::string pq_pivots_path, std::string pq_compressed_vectors_path);
-template  int generate_pq_data_from_pivots<uint8_t>(
+template int generate_pq_data_from_pivots<uint8_t>(
     const std::string data_file, unsigned num_centers, unsigned num_pq_chunks,
     std::string pq_pivots_path, std::string pq_compressed_vectors_path);
-template  int generate_pq_data_from_pivots<float>(
+template int generate_pq_data_from_pivots<float>(
     const std::string data_file, unsigned num_centers, unsigned num_pq_chunks,
     std::string pq_pivots_path, std::string pq_compressed_vectors_path);

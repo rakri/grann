@@ -31,9 +31,8 @@ namespace math_utils {
     }
   }
 
-  void rotate_data(float* data, _u64 num_points, _u64 dim,
-                            float* rot_mat, float*& new_mat,
-                            bool transpose_rot) {
+  void rotate_data(float* data, _u64 num_points, _u64 dim, float* rot_mat,
+                   float*& new_mat, bool transpose_rot) {
     CBLAS_TRANSPOSE transpose = CblasNoTrans;
     if (transpose_rot) {
       grann::cout << "Transposing rotation matrix.." << std::flush;
@@ -131,15 +130,16 @@ namespace math_utils {
   // Calculate the k closest centers for each point and store it in vector
   // closest_centers_ivf (row major, num_points*k) (which needs to be allocated
   // outside) Additionally, if inverted_index is not null (and pre-allocated),
-  // it will return inverted index for each center, assuming each of the inverted
-  // indices is an empty vector. Additionally, if pts_norms_squared is not null,
-  // then it will assume that point norms are pre-computed and use those values
+  // it will return inverted index for each center, assuming each of the
+  // inverted indices is an empty vector. Additionally, if pts_norms_squared is
+  // not null, then it will assume that point norms are pre-computed and use
+  // those values
 
   void compute_closest_centers(float* data, _u64 num_points, _u64 dim,
                                float* centers, _u64 num_centers, _u64 k,
-                               uint32_t*            closest_centers_ivf,
+                               uint32_t*          closest_centers_ivf,
                                std::vector<_u64>* inverted_index,
-                               float*               pts_norms_squared) {
+                               float*             pts_norms_squared) {
     if (k > num_centers) {
       grann::cout << "ERROR: k (" << k << ") > num_center(" << num_centers
                   << ")" << std::endl;
@@ -154,8 +154,8 @@ namespace math_utils {
 
     _u64 block_size = std::min(num_points, MAX_BLOCK_SIZE);
     _u64 N_BLOCKS = (num_points % block_size) == 0
-                          ? (num_points / block_size)
-                          : (num_points / block_size) + 1;
+                        ? (num_points / block_size)
+                        : (num_points / block_size) + 1;
 
     if (!is_norm_given_for_pts)
       math_utils::compute_vecs_l2sq(pts_norms_squared, data, num_points, dim);
@@ -166,19 +166,17 @@ namespace math_utils {
 
     for (_u64 cur_blk = 0; cur_blk < N_BLOCKS; cur_blk++) {
       float* data_cur_blk = data + cur_blk * block_size * dim;
-      _u64 num_pts_blk =
+      _u64   num_pts_blk =
           std::min(block_size, num_points - cur_blk * block_size);
       float* pts_norms_blk = pts_norms_squared + cur_blk * block_size;
 
       math_utils::compute_closest_centers_in_block(
-          data_cur_blk, num_pts_blk, dim, centers, num_centers,
-          pts_norms_blk, norms_squared_centers, closest_centers, distance_matrix,
-          k);
+          data_cur_blk, num_pts_blk, dim, centers, num_centers, pts_norms_blk,
+          norms_squared_centers, closest_centers, distance_matrix, k);
 
 #pragma omp parallel for schedule(static, 1)
       for (int64_t j = cur_blk * block_size;
-           j <
-           std::min((_s64) num_points, (_s64)((cur_blk + 1) * block_size));
+           j < std::min((_s64) num_points, (_s64)((cur_blk + 1) * block_size));
            j++) {
         for (_u64 l = 0; l < k; l++) {
           _u64 this_center_id =
@@ -222,7 +220,6 @@ namespace math_utils {
     }
   }
 
-
   // run Lloyds one iteration
   // Given data in row major num_points * dim, and centers in row major
   // num_centers * dim And squared lengths of data points, output the closest
@@ -234,7 +231,7 @@ namespace math_utils {
   float lloyds_iter(float* data, _u64 num_points, _u64 dim, float* centers,
                     _u64 num_centers, float* docs_l2sq,
                     std::vector<_u64>* closest_docs,
-                    uint32_t*&           closest_center) {
+                    uint32_t*&         closest_center) {
     bool compute_residual = true;
     // Timer timer;
 
@@ -287,8 +284,8 @@ namespace math_utils {
         for (_u64 d = chunk * CHUNK_SIZE;
              d < num_points && d < (chunk + 1) * CHUNK_SIZE; ++d)
           residuals[chunk * BUF_PAD] += math_utils::calc_distance(
-              data + (d * dim),
-              centers + (_u64) closest_center[d] * (_u64) dim, dim);
+              data + (d * dim), centers + (_u64) closest_center[d] * (_u64) dim,
+              dim);
 
       for (_u64 chunk = 0; chunk < nchunks; ++chunk)
         residual += residuals[chunk * BUF_PAD];
@@ -306,8 +303,7 @@ namespace math_utils {
   //
   float run_lloyds(float* data, _u64 num_points, _u64 dim, float* centers,
                    const _u64 num_centers, const _u64 max_reps,
-                   std::vector<_u64>* closest_docs,
-                   uint32_t*            closest_center) {
+                   std::vector<_u64>* closest_docs, uint32_t* closest_center) {
     float residual = std::numeric_limits<float>::max();
     bool  ret_closest_docs = true;
     bool  ret_closest_center = true;
@@ -352,8 +348,8 @@ namespace math_utils {
   // assumes memory allocated for centers as new
   // float[num_centers*dim]
   // and select randomly num_centers points as centers
-  void random_centers(float* data, _u64 num_points, _u64 dim,
-                        float* centers, _u64 num_centers) {
+  void random_centers(float* data, _u64 num_points, _u64 dim, float* centers,
+                      _u64 num_centers) {
     //	centers = new float[num_centers * dim];
 
     std::vector<_u64> picked;
@@ -362,7 +358,7 @@ namespace math_utils {
     std::random_device rd;
     auto               x = rd();
     grann::cout << "random seed " << x << std::endl;
-    std::mt19937                          generator(x);
+    std::mt19937                        generator(x);
     std::uniform_int_distribution<_u64> distribution(0, num_points - 1);
 
     _u64 tmp_center;
@@ -377,7 +373,7 @@ namespace math_utils {
   }
 
   void kmeans_plus_plus_centers(float* data, _u64 num_points, _u64 dim,
-                                 float* centers, _u64 num_centers) {
+                                float* centers, _u64 num_centers) {
     if (num_points > 1 << 23) {
       grann::cout << "ERROR: n_pts " << num_points
                   << " currently not supported for k-means++, maximum is "
@@ -394,8 +390,8 @@ namespace math_utils {
     std::random_device rd;
     auto               x = rd();
     grann::cout << "random seed " << x << ": " << std::flush;
-    std::mt19937                          generator(x);
-    std::uniform_real_distribution<>      distribution(0, 1);
+    std::mt19937                        generator(x);
+    std::uniform_real_distribution<>    distribution(0, 1);
     std::uniform_int_distribution<_u64> int_dist(0, num_points - 1);
     _u64                                init_id = int_dist(generator);
     _u64                                num_picked = 1;
@@ -412,7 +408,7 @@ namespace math_utils {
     }
 
     double dart_val;
-    _u64 tmp_center;
+    _u64   tmp_center;
     bool   sum_flag = false;
 
     while (num_picked < num_centers) {

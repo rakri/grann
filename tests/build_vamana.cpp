@@ -15,10 +15,10 @@
 
 template<typename T>
 int build_vamana_index(const std::string&   data_path,
-                           const grann::Metric& metric, const unsigned R,
-                           const unsigned L, const float alpha,
-                           const std::string& save_path,
-                           const unsigned     num_threads) {
+                       const grann::Metric& metric, const unsigned R,
+                       const unsigned L, const float alpha,
+                       const std::string& save_path,
+                       const unsigned     num_threads) {
   grann::Parameters paras;
   paras.Set<unsigned>("R", R);
   paras.Set<unsigned>("L", L);
@@ -76,13 +76,13 @@ int main(int argc, char** argv) {
 
   if (std::string(argv[1]) == std::string("int8"))
     build_vamana_index<int8_t>(data_path, metric, R, L, alpha, save_path,
-                                   num_threads);
+                               num_threads);
   else if (std::string(argv[1]) == std::string("uint8"))
     build_vamana_index<uint8_t>(data_path, metric, R, L, alpha, save_path,
-                                    num_threads);
+                                num_threads);
   else if (std::string(argv[1]) == std::string("float"))
     build_vamana_index<float>(data_path, metric, R, L, alpha, save_path,
-                                  num_threads);
+                              num_threads);
   else
     std::cout << "Unsupported type. Use float/int8/uint8" << std::endl;
 }

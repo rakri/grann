@@ -16,9 +16,8 @@ namespace math_utils {
   void compute_vecs_l2sq(float* vecs_l2sq, float* data, const _u64 num_points,
                          const _u64 dim);
 
-  void rotate_data(float* data, _u64 num_points, _u64 dim,
-                            float* rot_mat, float*& new_mat,
-                            bool transpose_rot = false);
+  void rotate_data(float* data, _u64 num_points, _u64 dim, float* rot_mat,
+                   float*& new_mat, bool transpose_rot = false);
 
   // calculate closest center to data of num_points * dim (row major)
   // centers is num_centers * dim (row major)
@@ -47,9 +46,9 @@ namespace math_utils {
 
   void compute_closest_centers(float* data, _u64 num_points, _u64 dim,
                                float* centers, _u64 num_centers, _u64 k,
-                               uint32_t*            closest_centers_ivf,
+                               uint32_t*          closest_centers_ivf,
                                std::vector<_u64>* inverted_index = nullptr,
-                               float*               pts_norms_squared = nullptr);
+                               float*             pts_norms_squared = nullptr);
 
   // if to_subtract is 1, will subtract nearest center from each row. Else will
   // add. Output will be in data_load iself.
@@ -58,7 +57,6 @@ namespace math_utils {
   void process_residuals(float* data_load, _u64 num_points, _u64 dim,
                          float* centers, _u64 num_centers,
                          uint32_t* closest_centers, bool to_subtract);
-
 
   // run Lloyds one iteration
   // Given data in row major num_points * dim, and centers in row major
@@ -70,8 +68,7 @@ namespace math_utils {
 
   float lloyds_iter(float* data, _u64 num_points, _u64 dim, float* centers,
                     _u64 num_centers, float* docs_l2sq,
-                    std::vector<_u64>* closest_docs,
-                    uint32_t*&           closest_center);
+                    std::vector<_u64>* closest_docs, uint32_t*& closest_center);
 
   // Run Lloyds until max_reps or stopping criterion
   // If you pass nullptr for closest_docs and closest_center, it will NOT return
@@ -85,9 +82,9 @@ namespace math_utils {
 
   // assumes already memory allocated for center_data as new
   // float[num_centers*dim] and select randomly num_centers points as centers
-  void random_centers(float* data, _u64 num_points, _u64 dim,
-                        float* centers, _u64 num_centers);
+  void random_centers(float* data, _u64 num_points, _u64 dim, float* centers,
+                      _u64 num_centers);
 
   void kmeans_plus_plus_centers(float* data, _u64 num_points, _u64 dim,
-                                 float* centers, _u64 num_centers);
-}; // namespace math_utils
+                                float* centers, _u64 num_centers);
+};  // namespace math_utils

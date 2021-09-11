@@ -32,7 +32,7 @@ typedef int FileHandle;
 #include "gperftools/malloc_extension.h"
 
 namespace grann {
-  const _u64   TRAINING_SET_SIZE = 100000;
+  const _u64     TRAINING_SET_SIZE = 100000;
   const double   SPACE_FOR_CACHED_NODES_IN_GB = 0.25;
   const double   THRESHOLD_FOR_CACHING_IN_GB = 1.0;
   const uint32_t NUM_NODES_TO_CACHE = 250000;
@@ -218,13 +218,12 @@ namespace grann {
     }
   }
 
-   double calculate_recall(unsigned  num_queries,
-                                          unsigned* gold_std, float* gs_dist,
-                                          unsigned  dim_gs,
-                                          unsigned* our_results,
-                                          unsigned dim_or, unsigned recall_at);
+  double calculate_recall(unsigned num_queries, unsigned* gold_std,
+                          float* gs_dist, unsigned dim_gs,
+                          unsigned* our_results, unsigned dim_or,
+                          unsigned recall_at);
 
-   double calculate_range_search_recall(
+  double calculate_range_search_recall(
       unsigned num_queries, std::vector<std::vector<_u32>>& groundtruth,
       std::vector<std::vector<_u32>>& our_results);
 

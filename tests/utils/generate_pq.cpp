@@ -16,7 +16,7 @@ bool generate_pq(const std::string& data_path,
       vamana_prefix_path + "_compressed.bin";
 
   // generates random sample and sets it to train_data and updates train_size
-  _u64 train_size, train_dim;
+  _u64   train_size, train_dim;
   float* train_data;
   gen_random_slice<T>(data_path, sampling_rate, train_data, train_size,
                       train_dim);
@@ -44,8 +44,8 @@ int main(int argc, char** argv) {
   } else {
     const std::string data_path(argv[2]);
     const std::string vamana_prefix_path(argv[3]);
-    const _u64      num_pq_centers = 256;
-    const _u64      num_pq_chunks = (_u64) atoi(argv[4]);
+    const _u64        num_pq_centers = 256;
+    const _u64        num_pq_chunks = (_u64) atoi(argv[4]);
     const float       sampling_rate = atof(argv[5]);
 
     if (std::string(argv[1]) == std::string("float"))

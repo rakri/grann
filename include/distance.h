@@ -10,7 +10,6 @@
 #include <immintrin.h>
 #endif
 
-
 #include <iostream>
 
 namespace {
@@ -36,7 +35,6 @@ namespace grann {
     virtual ~Distance() {
     }
   };
-
 
   class DistanceL2Int8 : public Distance<int8_t> {
    public:

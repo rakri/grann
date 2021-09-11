@@ -24,7 +24,7 @@ namespace grann {
   template<typename T>
   void Vamana<T>::save(const char *filename) {
     long long     total_gr_edges = 0;
-    _u64        vamana_size = 0;
+    _u64          vamana_size = 0;
     std::ofstream out(std::string(filename), std::ios::binary | std::ios::out);
 
     out.write((char *) &vamana_size, sizeof(uint64_t));
@@ -47,13 +47,13 @@ namespace grann {
   template<typename T>
   void Vamana<T>::load(const char *filename) {
     std::ifstream in(filename, std::ios::binary);
-    _u64        expected_file_size;
+    _u64          expected_file_size;
     in.read((char *) &expected_file_size, sizeof(_u64));
     in.read((char *) &this->_max_degree, sizeof(unsigned));
     in.read((char *) &this->_start_node, sizeof(unsigned));
     grann::cout << "Loading vamana index " << filename << "..." << std::flush;
 
-    _u64   cc = 0;
+    _u64     cc = 0;
     unsigned nodes = 0;
     while (!in.eof()) {
       unsigned k;
@@ -286,11 +286,11 @@ namespace grann {
     unsigned num_threads = build_parameters.Get<unsigned>("num_threads");
     unsigned L = build_parameters.Get<unsigned>("L");
     unsigned degree_bound = build_parameters.Get<unsigned>("R");
-    float alpha = build_parameters.Get<float>("alpha");
+    float    alpha = build_parameters.Get<float>("alpha");
 
     grann::cout << "Starting vamana build with listSize L=" << L
-                << ", degree bound R=" << degree_bound << ", and alpha=" << alpha <<  std::endl;
-
+                << ", degree bound R=" << degree_bound
+                << ", and alpha=" << alpha << std::endl;
 
     this->_locks_enabled =
         true;  // we dont need locks for pure search on a pre-built index
@@ -303,7 +303,7 @@ namespace grann {
       omp_set_num_threads(num_threads);
 
     this->_start_node = calculate_entry_point();
-    grann::cout<<"Medoid identified as "<< this->_start_node<< std::endl;
+    grann::cout << "Medoid identified as " << this->_start_node << std::endl;
 
     _u32             progress_milestone = (_u32)(this->_num_points / 20);
     std::atomic<int> milestone_marker{0};
@@ -404,7 +404,7 @@ namespace grann {
   }
 
   // EXPORTS
-  template  class Vamana<float>;
-  template  class Vamana<int8_t>;
-  template  class Vamana<uint8_t>;
+  template class Vamana<float>;
+  template class Vamana<int8_t>;
+  template class Vamana<uint8_t>;
 }  // namespace grann

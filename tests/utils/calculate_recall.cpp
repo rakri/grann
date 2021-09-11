@@ -22,9 +22,9 @@ int main(int argc, char** argv) {
   float*    gs_dist = nullptr;
   unsigned* our_results = nullptr;
   float*    or_dist = nullptr;
-  _u64    points_num, points_num_gs, points_num_or;
-  _u64    dim_gs;
-  _u64    dim_or;
+  _u64      points_num, points_num_gs, points_num_or;
+  _u64      dim_gs;
+  _u64      dim_or;
   grann::load_truthset(argv[1], gold_std, gs_dist, points_num_gs, dim_gs);
   grann::load_truthset(argv[2], our_results, or_dist, points_num_or, dim_or);
 

@@ -14,8 +14,6 @@ typedef int FileHandle;
 #include "logger.h"
 #include "cached_io.h"
 
-
-
 namespace grann {
 
   inline void alloc_aligned(void** ptr, _u64 size, _u64 align) {
@@ -100,9 +98,7 @@ namespace grann {
 
     data = new T[npts * dim];
     reader.read((char*) data, npts * dim * sizeof(T));
-
   }
-
 
   template<typename T>
   inline void load_bin(const std::string& bin_file, T*& data, _u64& npts,
@@ -143,13 +139,12 @@ namespace grann {
     grann::cout << "Finished writing bin." << std::endl;
   }
 
-
   template<typename T>
-  inline void save_data_subset_as_bin(const std::string& filename, T* base_data, _u64 npts,
-                       _u64 ndims, std::vector<_u32> &list_of_ids) {
-
-    bool valid=true;
-    for (auto &x : list_of_ids) {
+  inline void save_data_subset_as_bin(const std::string& filename, T* base_data,
+                                      _u64 npts, _u64 ndims,
+                                      std::vector<_u32>& list_of_ids) {
+    bool valid = true;
+    for (auto& x : list_of_ids) {
       if (x >= npts) {
         valid = false;
         break;
@@ -157,39 +152,39 @@ namespace grann {
     }
 
     if (list_of_ids.size() == 0)
-    valid = false;
+      valid = false;
 
     if (!valid) {
-      grann::cout<<"Invalid list of ids to save. All entries must be between 0 and " << npts << std::endl;
+      grann::cout
+          << "Invalid list of ids to save. All entries must be between 0 and "
+          << npts << std::endl;
     }
 
     std::ofstream writer(filename, std::ios::binary | std::ios::out);
     grann::cout << "Writing bin: " << filename.c_str() << std::endl;
 
-
     int npts_i32 = (int) list_of_ids.size(), ndims_i32 = (int) ndims;
     writer.write((char*) &npts_i32, sizeof(int));
     writer.write((char*) &ndims_i32, sizeof(int));
     grann::cout << "bin: #pts = " << npts_i32 << ", #dims = " << ndims
-                << ", size = " << (list_of_ids.size()) * ndims * sizeof(T) + 2 * sizeof(int)
+                << ", size = "
+                << (list_of_ids.size()) * ndims * sizeof(T) + 2 * sizeof(int)
                 << "B" << std::endl;
 
     //    data = new T[npts_u64 * ndims_u64];
-    for (auto & id :list_of_ids) {
-    writer.write((char*) (base_data + (_u64)id* ndims), ndims * sizeof(T));
+    for (auto& id : list_of_ids) {
+      writer.write((char*) (base_data + (_u64) id * ndims), ndims * sizeof(T));
     }
     writer.close();
     grann::cout << "Finished writing bin." << std::endl;
   }
 
-
   // load_aligned_bin functions START
 
   template<typename T>
   inline void load_aligned_bin_impl(std::basic_istream<char>& reader,
-                                    _u64 actual_file_size, T*& data,
-                                    _u64& npts, _u64& dim,
-                                    _u64& rounded_dim) {
+                                    _u64 actual_file_size, T*& data, _u64& npts,
+                                    _u64& dim, _u64& rounded_dim) {
     int npts_i32, dim_i32;
     reader.read((char*) &npts_i32, sizeof(int));
     reader.read((char*) &dim_i32, sizeof(int));
@@ -274,8 +269,8 @@ namespace grann {
     out_writer.write((char*) &npts32, sizeof(uint32_t));
     out_writer.write((char*) &outdims32, sizeof(uint32_t));
 
-    _u64               BLOCK_SIZE = 100000;
-    _u64               block_size = npts <= BLOCK_SIZE ? npts : BLOCK_SIZE;
+    _u64                 BLOCK_SIZE = 100000;
+    _u64                 block_size = npts <= BLOCK_SIZE ? npts : BLOCK_SIZE;
     std::unique_ptr<T[]> in_block_data =
         std::make_unique<T[]>(block_size * in_dims);
     std::unique_ptr<float[]> out_block_data =
@@ -341,8 +336,6 @@ namespace grann {
       _mm_prefetch((const char*) vec + d, _MM_HINT_T1);
   }
 
-  
-
 };  // namespace grann
 
 inline bool file_exists(const std::string& name) {
@@ -367,10 +360,7 @@ inline _u64 get_file_size(const std::string& fname) {
 }
 
 inline void wait_for_keystroke() {
-    int a;
-    std::cout << "Press any number to continue.." << std::endl;
-    std::cin >> a;
-  }
-
-
-
+  int a;
+  std::cout << "Press any number to continue.." << std::endl;
+  std::cin >> a;
+}

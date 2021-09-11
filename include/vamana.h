@@ -12,16 +12,15 @@ namespace grann {
   template<typename T>
   class Vamana : public GraphIndex<T> {
    public:
-     Vamana(Metric m, const char *filename,
-                           std::vector<_u32> &list_of_ids);
+    Vamana(Metric m, const char *filename, std::vector<_u32> &list_of_ids);
     //    ~Vamana();
 
     // checks if data is consolidated, saves graph, metadata and associated
     // tags.
-     void save(const char *filename);
-     void load(const char *filename);
+    void save(const char *filename);
+    void load(const char *filename);
 
-     void build(Parameters &parameters);
+    void build(Parameters &parameters);
 
     // returns # results found (will be <= res_count)
     _u32 search(const T *query, _u32 res_count, Parameters &search_params,

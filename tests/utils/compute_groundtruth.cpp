@@ -79,7 +79,7 @@ void compute_l2sq(float *const points_l2sq, const float *const matrix,
 
 void distsq_to_points(
     const _u64 dim,
-    float *      dist_matrix,  // Col Major, cols are queries, rows are points
+    float *    dist_matrix,  // Col Major, cols are queries, rows are points
     _u64 npoints, const float *const points,
     const float *const points_l2sq,  // points in Col major
     _u64 nqueries, const float *const queries,
@@ -107,7 +107,7 @@ void distsq_to_points(
 
 void inner_prod_to_points(
     const _u64 dim,
-    float *      dist_matrix,  // Col Major, cols are queries, rows are points
+    float *    dist_matrix,  // Col Major, cols are queries, rows are points
     _u64 npoints, const float *const points, _u64 nqueries,
     const float *const queries,
     float *ones_vec = nullptr)  // Scratchspace of num_data size and init to 1.0
@@ -132,7 +132,7 @@ void exact_knn(const _u64 dim, const _u64 k,
                float *const dist_closest_points,  // k * num_queries
                                                   // preallocated, Dist to
                                                   // corresponding closes_points
-               _u64             npoints,
+               _u64               npoints,
                const float *const points,  // points in Col major
                _u64 nqueries, const float *const queries,
                bool use_mip = false)  // queries in Col major
@@ -151,7 +151,7 @@ void exact_knn(const _u64 dim, const _u64 k,
     std::cout << " L2 ";
   std::cout << "distance fn. " << std::endl;
 
-  _u64 q_batch_size = (1 << 9);
+  _u64   q_batch_size = (1 << 9);
   float *dist_matrix = new float[(_u64) q_batch_size * (_u64) npoints];
 
   for (_u64 b = 0; b < div_round_up(nqueries, q_batch_size); ++b) {
@@ -302,10 +302,10 @@ inline void save_groundtruth_as_one_file(const std::string filename,
 
 template<typename T>
 int aux_main(char **argc) {
-  _u64      npoints, nqueries, dim;
+  _u64        npoints, nqueries, dim;
   std::string base_file(argc[2]);
   std::string query_file(argc[3]);
-  _u64      k = atoi(argc[4]);
+  _u64        k = atoi(argc[4]);
   bool        use_mip = false;
   std::string gt_file(argc[5]);
   if (std::string(argc[6]) == std::string("mips"))

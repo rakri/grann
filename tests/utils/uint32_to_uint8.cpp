@@ -11,7 +11,7 @@ int main(int argc, char** argv) {
   }
 
   uint32_t* input;
-  _u64    npts, nd;
+  _u64      npts, nd;
   grann::load_bin<uint32_t>(argv[1], input, npts, nd);
   uint8_t* output = new uint8_t[npts * nd];
   grann::convert_types<uint32_t, uint8_t>(input, output, npts, nd);

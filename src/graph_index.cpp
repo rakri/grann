@@ -85,11 +85,11 @@ namespace grann {
     inserted_into_pool.reserve(Lsize * 20);
 
     for (auto id : init_ids) {
-      nn = Neighbor(id,
-                    this->_distance->compare(
-                        this->_data + this->_aligned_dim * (_u64) id,
-                        node_coords, (unsigned) this->_aligned_dim),
-                    true);
+      nn = Neighbor(
+          id,
+          this->_distance->compare(this->_data + this->_aligned_dim * (_u64) id,
+                                   node_coords, (unsigned) this->_aligned_dim),
+          true);
       if (inserted_into_pool.find(id) == inserted_into_pool.end()) {
         inserted_into_pool.insert(id);
         best_L_nodes[l++] = nn;
@@ -180,30 +180,30 @@ namespace grann {
       unreachable_count++;
     }
 
-    grann::cout << std::setw(16) << "Percentile" << std::setw(16) << "Out Degree"
-              << std::setw(16) << "In Degree" << std::endl;
+    grann::cout << std::setw(16) << "Percentile" << std::setw(16)
+                << "Out Degree" << std::setw(16) << "In Degree" << std::endl;
     grann::cout << "======================================================="
-              << std::endl;
+                << std::endl;
     for (_u32 p = 0; p < 100; p += 10) {
       grann::cout << std::setw(16) << p << std::setw(16)
-                << out_degrees[(_u64)((p / 100.0) * this->_num_points)]
-                << std::setw(16)
-                << in_degrees[(_u64)((p / 100.0) * this->_num_points)].second
-                << std::endl;
+                  << out_degrees[(_u64)((p / 100.0) * this->_num_points)]
+                  << std::setw(16)
+                  << in_degrees[(_u64)((p / 100.0) * this->_num_points)].second
+                  << std::endl;
     }
     grann::cout << std::setw(16) << "100" << std::setw(16)
-              << out_degrees[this->_num_points - 1] << std::setw(16)
-              << in_degrees[this->_num_points - 1].second << std::endl;
+                << out_degrees[this->_num_points - 1] << std::setw(16)
+                << in_degrees[this->_num_points - 1].second << std::endl;
 
     grann::cout << std::setprecision(3)
-              << (100.0 * unreachable_count) / this->_num_points
-              << "\% points are unreachable and " << std::flush;
+                << (100.0 * unreachable_count) / this->_num_points
+                << "\% points are unreachable and " << std::flush;
     grann::cout << in_degrees[this->_num_points - 1].first
-              << " is the most popular in-degree node." << std::endl;
+                << " is the most popular in-degree node." << std::endl;
   }
 
   // EXPORTS
-  template  class GraphIndex<float>;
-  template  class GraphIndex<int8_t>;
-  template  class GraphIndex<uint8_t>;
+  template class GraphIndex<float>;
+  template class GraphIndex<int8_t>;
+  template class GraphIndex<uint8_t>;
 }  // namespace grann

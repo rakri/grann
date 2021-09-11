@@ -1,18 +1,16 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-
 #include "essentials.h"
 #include "logger_impl.h"
 
-
 namespace grann {
 
-   ANNStreamBuf coutBuff(stdout);
-   ANNStreamBuf cerrBuff(stderr);
+  ANNStreamBuf coutBuff(stdout);
+  ANNStreamBuf cerrBuff(stderr);
 
-   std::basic_ostream<char> cout(&coutBuff);
-   std::basic_ostream<char> cerr(&cerrBuff);
+  std::basic_ostream<char> cout(&coutBuff);
+  std::basic_ostream<char> cerr(&cerrBuff);
 
   ANNStreamBuf::ANNStreamBuf(FILE* fp) {
     if (fp == nullptr) {

@@ -3,14 +3,13 @@
 
 #include <iostream>
 
-
 namespace grann {
 #if defined(GRANN_DLL)
   extern std::basic_ostream<char> cout;
   extern std::basic_ostream<char> cerr;
 #else
-   extern std::basic_ostream<char> cout;
-   extern std::basic_ostream<char> cerr;
+  extern std::basic_ostream<char> cout;
+  extern std::basic_ostream<char> cerr;
 #endif
 
 }  // namespace grann

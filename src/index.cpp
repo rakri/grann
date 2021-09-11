@@ -105,7 +105,7 @@ namespace grann {
   }
 
   // EXPORTS
-  template  class ANNIndex<float>;
-  template  class ANNIndex<int8_t>;
-  template  class ANNIndex<uint8_t>;
+  template class ANNIndex<float>;
+  template class ANNIndex<int8_t>;
+  template class ANNIndex<uint8_t>;
 }  // namespace grann

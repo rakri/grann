@@ -33,7 +33,7 @@ namespace grann {
       res.clear();
       unsigned *gt_vec = gold_std + dim_gs * i;
       unsigned *res_vec = our_results + dim_or * i;
-      _u64    tie_breaker = recall_at;
+      _u64      tie_breaker = recall_at;
       if (gs_dist != nullptr) {
         tie_breaker = recall_at - 1;
         float *gt_dist_vec = gs_dist + dim_gs * i;
