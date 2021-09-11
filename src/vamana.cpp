@@ -147,72 +147,6 @@ namespace grann {
                                        best_L_nodes);
   }
 
-  template<typename T>
-  void Vamana<T>::occlude_list(std::vector<Neighbor> &pool, const float alpha,
-                               const unsigned degree, const unsigned maxc,
-                               std::vector<Neighbor> &result) {
-    if (pool.empty())
-      return;
-    assert(std::is_sorted(pool.begin(), pool.end()));
-    assert(!pool.empty());
-
-    auto               pool_size = (_u32) pool.size();
-    std::vector<float> occlude_factor(pool_size, 0);
-
-    unsigned start = 0;
-    while (result.size() < degree && (start) < pool.size() && start < maxc) {
-      auto &p = pool[start];
-      if (occlude_factor[start] > alpha) {
-        start++;
-        continue;
-      }
-      occlude_factor[start] = std::numeric_limits<float>::max();
-      result.push_back(p);
-      for (unsigned t = start + 1; t < pool.size() && t < maxc; t++) {
-        if (occlude_factor[t] > alpha)
-          continue;
-        float djk = this->_distance->compare(
-            this->_data + this->_aligned_dim * (_u64) pool[t].id,
-            this->_data + this->_aligned_dim * (_u64) p.id,
-            (unsigned) this->_aligned_dim);
-        occlude_factor[t] =
-            (std::max)(occlude_factor[t], pool[t].distance / djk);
-      }
-      start++;
-    }
-  }
-
-  template<typename T>
-  void Vamana<T>::prune_neighbors(const unsigned         location,
-                                  std::vector<Neighbor> &pool,
-                                  const Parameters &     parameter,
-                                  std::vector<unsigned> &pruned_list) {
-    unsigned degree_bound = parameter.Get<unsigned>("R");
-    unsigned maxc = parameter.Get<unsigned>("C");
-    float    alpha = parameter.Get<float>("alpha");
-
-    if (pool.size() == 0)
-      return;
-
-    // sort the pool based on distance to query
-    std::sort(pool.begin(), pool.end());
-
-    std::vector<Neighbor> result;
-    result.reserve(degree_bound);
-
-    occlude_list(pool, alpha, degree_bound, maxc, result);
-
-    /* Add all the nodes in result into a variable called pruned_list
-     * So this contains all the neighbors of id location
-     */
-    pruned_list.clear();
-    assert(result.size() <= degree_bound);
-    for (auto iter : result) {
-      if (iter.id != location)
-        pruned_list.emplace_back(iter.id);
-    }
-  }
-
   /* inter_insert():
    * This function tries to add reverse links from all the visited nodes to
    * the current node n.
@@ -267,7 +201,7 @@ namespace grann {
           }
         }
         std::vector<unsigned> new_out_neighbors;
-        prune_neighbors(des, dummy_pool, parameters, new_out_neighbors);
+        this->prune_neighbors(des, dummy_pool, parameters, new_out_neighbors);
         {
           LockGuard guard(this->_locks[des]);
           this->_out_nbrs[des].clear();
@@ -305,7 +239,7 @@ namespace grann {
     this->_start_node = calculate_entry_point();
     grann::cout << "Medoid identified as " << this->_start_node << std::endl;
 
-    _u32             progress_milestone = (_u32)(this->_num_points / 20);
+    _u32             progress_milestone = (_u32)(this->_num_points / 10);
     std::atomic<int> milestone_marker{0};
 
 #pragma omp parallel for schedule(static, 64)
@@ -314,7 +248,7 @@ namespace grann {
         ++milestone_marker;
 
         std::stringstream msg;
-        msg << (milestone_marker * 5) << "\% of build completed" << std::endl;
+        msg << (milestone_marker * 10) << "\% of build completed" << std::endl;
         grann::cout << msg.str();
       }
 
@@ -329,7 +263,7 @@ namespace grann {
       std::vector<_u32> init_ids;
       get_expanded_nodes(location, L, init_ids, pool, visited);
 
-      prune_neighbors(location, pool, build_parameters, pruned_list);
+      this->prune_neighbors(location, pool, build_parameters, pruned_list);
 
       this->_out_nbrs[location].reserve(
           (_u64)(VAMANA_SLACK_FACTOR * degree_bound));
@@ -360,7 +294,8 @@ namespace grann {
             dummy_visited.insert(cur_nbr);
           }
         }
-        prune_neighbors(node, dummy_pool, build_parameters, new_out_neighbors);
+        this->prune_neighbors(node, dummy_pool, build_parameters,
+                              new_out_neighbors);
 
         this->_out_nbrs[node].clear();
         for (auto id : new_out_neighbors)

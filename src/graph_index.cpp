@@ -144,6 +144,63 @@ namespace grann {
   }
 
   template<typename T>
+  void GraphIndex<T>::prune_neighbors(const unsigned         location,
+                                      std::vector<Neighbor> &pool,
+                                      const Parameters &     parameter,
+                                      std::vector<unsigned> &pruned_list) {
+    unsigned degree_bound = parameter.Get<unsigned>("R");
+    unsigned maxc = parameter.Get<unsigned>("C");
+    float    alpha = parameter.Get<float>("alpha");
+
+    if (pool.size() == 0)
+      return;
+
+    // sort the pool based on distance to query
+    std::sort(pool.begin(), pool.end());
+
+    std::vector<Neighbor> result;
+    result.reserve(degree_bound);
+
+    // occlude_list(pool, alpha, degree_bound, maxc, result);
+
+    auto               pool_size = (_u32) pool.size();
+    std::vector<float> occlude_factor(pool_size, 0);
+
+    unsigned start = 0;
+    while (result.size() < degree_bound && (start) < pool.size() &&
+           start < maxc) {
+      auto &p = pool[start];
+      if (occlude_factor[start] > alpha) {
+        start++;
+        continue;
+      }
+      occlude_factor[start] = std::numeric_limits<float>::max();
+      result.push_back(p);
+      for (unsigned t = start + 1; t < pool.size() && t < maxc; t++) {
+        if (occlude_factor[t] > alpha)
+          continue;
+        float djk = this->_distance->compare(
+            this->_data + this->_aligned_dim * (_u64) pool[t].id,
+            this->_data + this->_aligned_dim * (_u64) p.id,
+            (unsigned) this->_aligned_dim);
+        occlude_factor[t] =
+            (std::max)(occlude_factor[t], pool[t].distance / djk);
+      }
+      start++;
+    }
+
+    /* Add all the nodes in result into a variable called pruned_list
+     * So this contains all the neighbors of id location
+     */
+    pruned_list.clear();
+    assert(result.size() <= degree_bound);
+    for (auto iter : result) {
+      if (iter.id != location)
+        pruned_list.emplace_back(iter.id);
+    }
+  }
+
+  template<typename T>
   void GraphIndex<T>::update_degree_stats() {
     if (!this->_has_built)
       return;

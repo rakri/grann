@@ -37,14 +37,6 @@ namespace grann {
                                 std::vector<Neighbor> &   expanded_nodes_info,
                                 tsl::robin_set<unsigned> &expanded_nodes_ids);
 
-    void occlude_list(std::vector<Neighbor> &pool, const float alpha,
-                      const unsigned degree, const unsigned maxc,
-                      std::vector<Neighbor> &result);
-
-    void prune_neighbors(const unsigned location, std::vector<Neighbor> &pool,
-                         const Parameters &     parameter,
-                         std::vector<unsigned> &pruned_list);
-
     void inter_insert(unsigned n, std::vector<unsigned> &pruned_list,
                       const Parameters &parameters);
   };
