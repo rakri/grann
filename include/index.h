@@ -124,13 +124,13 @@ namespace grann {
     Distance<T> *_distance;
     _u32 *       idmap = nullptr;
 
-    T *  _data;
-    _u64 _num_points = 0;
-    _u64 _dim;
+    T *  _data; // will be a num_points * aligned_dim array stored in row-major form
+    _u64 _num_points = 0; // number of points hosted by index
+    _u64 _dim; // original dimension of data vectors
     _u64 _aligned_dim;  // data dimension is rounded to multiple of 8 for more
                         // efficient alignment and faster floating distance
                         // comparisons. Hence _data is matrix of _num_points *
-                        // _aligned_dim size
+                        // _aligned_dim size. Remaining ailgned_dim - dim entries of each vector are padded with zeros.
     bool _has_built = false;
   };
 }  // namespace grann
