@@ -30,7 +30,7 @@ namespace grann {
     inline ParamType Get(const std::string &name) const {
       auto item = params.find(name);
       if (item == params.end()) {
-        throw std::invalid_argument("Invalid parameter name.");
+        throw std::invalid_argument(std::string("Parameter ") + name);
       } else {
         // return ConvertStrToValue<ParamType>(item->second);
         if (item->second == nullptr) {

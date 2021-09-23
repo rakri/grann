@@ -19,7 +19,7 @@
 #include "utils.h"
 
 template<typename T>
-int search_memory_vamana(int argc, char** argv) {
+int search_vamana_index(int argc, char** argv) {
   T*                query = nullptr;
   unsigned*         gt_ids = nullptr;
   float*            gt_dists = nullptr;
@@ -33,20 +33,18 @@ int search_memory_vamana(int argc, char** argv) {
     metric = grann::Metric::INNER_PRODUCT;
   else if (std::string(argv[ctr]) == std::string("l2"))
     metric = grann::Metric::L2;
-  else if (std::string(argv[ctr]) == std::string("fast_l2"))
-    metric = grann::Metric::FAST_L2;
   else {
     std::cout << "Unsupported distance function. Currently only L2/ Inner "
-                 "Product/FAST_L2 support."
+                 "Product."
               << std::endl;
     return -1;
   }
   ctr++;
 
   if ((std::string(argv[1]) != std::string("float")) &&
-      ((metric == grann::Metric::INNER_PRODUCT) ||
-       (metric == grann::Metric::FAST_L2))) {
-    std::cout << "Error. Inner product and Fast_L2 search currently only "
+      ((metric == grann::Metric::INNER_PRODUCT) 
+       )) {
+    std::cout << "Error. Inner product currently only "
                  "supported for "
                  "floating point datatypes."
               << std::endl;
@@ -95,12 +93,7 @@ int search_memory_vamana(int argc, char** argv) {
   vamana.load(memory_vamana_file.c_str());  // to load Vamana Index
   std::cout << "Vamana loaded" << std::endl;
   grann::Parameters search_params;
-  // search_params.Set<_u32>("L",)
 
-  //  if (metric == grann::FAST_L2)
-  //    vamana.optimize_graph();
-
-  grann::Parameters paras;
   std::string       recall_string = "Recall@" + std::to_string(recall_at);
   std::cout << std::setw(4) << "Ls" << std::setw(12) << "QPS " << std::setw(22)
             << "Mean Latency (mus)" << std::setw(15) << "99.9\% Latency"
@@ -206,11 +199,11 @@ int main(int argc, char** argv) {
     exit(-1);
   }
   if (std::string(argv[1]) == std::string("int8"))
-    search_memory_vamana<int8_t>(argc, argv);
+    search_vamana_index<int8_t>(argc, argv);
   else if (std::string(argv[1]) == std::string("uint8"))
-    search_memory_vamana<uint8_t>(argc, argv);
+    search_vamana_index<uint8_t>(argc, argv);
   else if (std::string(argv[1]) == std::string("float"))
-    search_memory_vamana<float>(argc, argv);
+    search_vamana_index<float>(argc, argv);
   else
     std::cout << "Unsupported type. Use float/int8/uint8" << std::endl;
 }
