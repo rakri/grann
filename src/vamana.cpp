@@ -8,7 +8,7 @@
 
 namespace grann {
 
-  // Initialize an vamana with metric m, load the data of type T with filename
+  // Initialize Vamana with metric m, load the data of type T with filename
   // (bin), and initialize num_points
   template<typename T>
   Vamana<T>::Vamana(Metric m, const char *filename,
@@ -18,9 +18,8 @@ namespace grann {
                 << " points, dim=" << this->_dim << "." << std::endl;
   }
 
-  // save the graph vamana on a file as an adjacency list. For each point,
-  // first store the number of neighbors, and then the neighbor list (each as
-  // 4 byte unsigned)
+  // Stores the following metadata: size, max_degree, start_node
+  // For each node: [out_degree, <list of neighbours>]
   template<typename T>
   void Vamana<T>::save(const char *filename) {
     long long     total_gr_edges = 0;
@@ -30,19 +29,22 @@ namespace grann {
     out.write((char *) &vamana_size, sizeof(uint64_t));
     out.write((char *) &this->_max_degree, sizeof(unsigned));
     out.write((char *) &this->_start_node, sizeof(unsigned));
+    
     for (unsigned i = 0; i < this->_num_points; i++) {
       unsigned GK = (unsigned) this->_out_nbrs[i].size();
       out.write((char *) &GK, sizeof(unsigned));
       out.write((char *) this->_out_nbrs[i].data(), GK * sizeof(unsigned));
       total_gr_edges += GK;
     }
+
+    // the size is finally updated after the graph is entirely processed
     vamana_size = out.tellp();
     out.seekp(0, std::ios::beg);
     out.write((char *) &vamana_size, sizeof(uint64_t));
     out.close();
   }
 
-  // load the vamana from file and update the width (max_degree), ep
+  // Load the Vamana from file and update the width (max_degree), ep
   // (navigating node id), and _out_nbrs (adjacency list)
   template<typename T>
   void Vamana<T>::load(const char *filename) {
@@ -53,7 +55,7 @@ namespace grann {
     in.read((char *) &this->_start_node, sizeof(unsigned));
     grann::cout << "Loading vamana index " << filename << "..." << std::flush;
 
-    _u64     cc = 0;
+    _u64     cc = 0; // total number of out edges
     unsigned nodes = 0;
     while (!in.eof()) {
       unsigned k;
@@ -84,26 +86,29 @@ namespace grann {
    *      Support for Static Vamana Building and Searching
    **************************************************************/
 
-  /* This function finds out the navigating node, which is the medoid node
-   * in the graph.
-   */
+  // Finds the navigating node, which is the medoid node of the graph.
   template<typename T>
   unsigned Vamana<T>::calculate_entry_point() {
-    // allocate and init centroid
+    
+    // aligned_dim is the dimension of nodes to the nearest upper factor of 8
+    // allocate and initialise the centroid / medoid
     float *center = new float[this->_aligned_dim]();
-    for (_u64 j = 0; j < this->_aligned_dim; j++)
-      center[j] = 0;
 
-    for (_u64 i = 0; i < this->_num_points; i++)
-      for (_u64 j = 0; j < this->_aligned_dim; j++)
+    for (_u64 i = 0; i < this->_num_points; i++) {
+      for (_u64 j = 0; j < this->_aligned_dim; j++) {
+        // _data stores the points in row_major order
         center[j] += this->_data[i * this->_aligned_dim + j];
+      }
+    }
 
+    // set the medoid as average of all nodes
     for (_u64 j = 0; j < this->_aligned_dim; j++)
       center[j] /= this->_num_points;
 
-    // compute all to one distance
+    // parallely compute distance from the average point to all nodes
     float *distances = new float[this->_num_points]();
-#pragma omp parallel for schedule(static, 65536)
+    
+    #pragma omp parallel for schedule(static, 65536)
     for (_s64 i = 0; i < (_s64) this->_num_points; i++) {
       // extract point and distance reference
       float &  dist = distances[i];
@@ -115,7 +120,10 @@ namespace grann {
         dist += diff;
       }
     }
-    // find imin
+
+    // min_dist is the minimum distance to a node from the average point.
+    // the index of this node is min_idx.
+    // min_idx is returned as the medoid of the graph
     unsigned min_idx = 0;
     float    min_dist = distances[0];
     for (unsigned i = 1; i < this->_num_points; i++) {
@@ -147,10 +155,7 @@ namespace grann {
                                        best_L_nodes);
   }
 
-  /* inter_insert():
-   * This function tries to add reverse links from all the visited nodes to
-   * the current node n.
-   */
+  // Adds reverse links from all the visited nodes to the current node n.
   template<typename T>
   void Vamana<T>::inter_insert(unsigned n, std::vector<unsigned> &pruned_list,
                                const Parameters &parameters) {
@@ -161,8 +166,8 @@ namespace grann {
     assert(!src_pool.empty());
 
     for (auto des : src_pool) {
-      /* des.id is the id of the neighbors of n */
-      /* des_pool contains the neighbors of the neighbors of n */
+      // des.id is the id of the neighbors of n
+      // des_pool contains the neighbors of the neighbors of n
       auto &                des_pool = this->_out_nbrs[des];
       std::vector<unsigned> copy_of_neighbors;
       bool                  prune_needed = false;
@@ -226,12 +231,17 @@ namespace grann {
                 << ", degree bound R=" << degree_bound
                 << ", and alpha=" << alpha << std::endl;
 
-    this->_locks_enabled =
-        true;  // we dont need locks for pure search on a pre-built index
+    // don't need locks for pure search on a pre-built index
+    this->_locks_enabled = true;  
+    
+    // use mutexes to prevent data race conditions
     this->_locks = std::vector<std::mutex>(this->_num_points);
     this->_out_nbrs.resize(this->_num_points);
-    for (auto &x : this->_out_nbrs)
+    for (auto &x : this->_out_nbrs) {
+      // the VAMANA_SLACK_FACTOR is a way of preventing constant
+      // re-pruning of edges because of slightly overshooting out_degree
       x.reserve(1.05 * VAMANA_SLACK_FACTOR * degree_bound);
+    }
 
     if (num_threads != 0)
       omp_set_num_threads(num_threads);
@@ -242,7 +252,7 @@ namespace grann {
     _u32             progress_milestone = (_u32)(this->_num_points / 10);
     std::atomic<int> milestone_marker{0};
 
-#pragma omp parallel for schedule(static, 64)
+    #pragma omp parallel for schedule(static, 64)
     for (_u32 location = 0; location < this->_num_points; location++) {
       if (location % progress_milestone == 0) {
         ++milestone_marker;
@@ -261,22 +271,30 @@ namespace grann {
 
       std::vector<_u32> pruned_list;
       std::vector<_u32> init_ids;
+
+      // populates pool and visited sets
       get_expanded_nodes(location, L, init_ids, pool, visited);
 
       this->prune_neighbors(location, pool, build_parameters, pruned_list);
 
       this->_out_nbrs[location].reserve(
           (_u64)(VAMANA_SLACK_FACTOR * degree_bound));
+
+      // For each point add links to the pruned neighbours and 
+      // also add reverse edges using inter_insert().
       {
         LockGuard guard(this->_locks[location]);
         for (auto link : pruned_list)
           this->_out_nbrs[location].emplace_back(link);
       }
-      inter_insert(location, pruned_list,
-                   build_parameters);  // add reverse edges
+
+      inter_insert(location, pruned_list, build_parameters);
     }
+
     grann::cout << "Starting final cleanup.." << std::flush;
-#pragma omp parallel for schedule(dynamic, 65536)
+    
+    // Clean up in case the out_degree bound is violated.    
+    #pragma omp parallel for schedule(dynamic, 65536)
     for (_u64 node = 0; node < this->_num_points; node++) {
       if (this->_out_nbrs[node].size() > degree_bound) {
         tsl::robin_set<unsigned> dummy_visited(0);
@@ -305,7 +323,7 @@ namespace grann {
 
     grann::cout << "done." << std::endl;
     this->_has_built = true;
-    this->update_degree_stats();
+    this->update_degree_stats(); // updates the metadata of the graph
 
     grann::cout << "Total build time: "
                 << ((double) build_timer.elapsed() / (double) 1000000) << "s"
@@ -316,6 +334,7 @@ namespace grann {
   _u32 Vamana<T>::search(const T *query, _u32 res_count,
                          Parameters &search_params, _u32 *indices,
                          float *distances, QueryStats *stats) {
+    // more about robin_set in "../notes/" directory
     _u32                     search_list_size = search_params.Get<_u32>("L");
     std::vector<unsigned>    init_ids;
     tsl::robin_set<unsigned> visited(10 * search_list_size);
@@ -328,7 +347,7 @@ namespace grann {
         query, search_list_size, init_ids, expanded_nodes_info,
         expanded_nodes_ids, top_candidate_list, stats);
 
-    //     _u64 pos = 0;
+    // _u64 pos = 0;
     for (_u32 i = 0; i < res_count; i++) {
       if (i >= res_count)
         break;
