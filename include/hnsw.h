@@ -4,8 +4,8 @@
 #include "utils.h"
 #include "distance.h"
 
-namespace grann {
-  typedef layer void;
+namespace hnsw {
+  // typedef layer void;
 
   template<typename T>
   class Hnsw : public GraphIndex<T> {
@@ -26,12 +26,13 @@ namespace grann {
 
    protected:
     // vector of layers
-    vector<layer> hnsw_graph;
+    std::vector<layer> hnsw_graph;
 
-    long long num_points;
+    _u32 num_points;
 
-    void build_graph();
-    void search_layer();  // can make it iterative too
-    void sample_points();
-  }
+    _u32 select_neighbors_simple(_u32 query, const std::vector<_u32>& candidates, int max_return, std::vector<_u32>& nearest_neighbors);
+    _u32 get_random_layer(double normalising_factor);
+    bool build_graph();
+    bool insert(std::vector<layer>& hnsw_graph, int query, int num_connections, int max_connections, int ef_value, float normalising_factor);
+  };
 }  // namespace grann
