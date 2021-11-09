@@ -71,7 +71,7 @@ namespace grann {
   // (bin), and initialize max_points
   template<typename T>
   ANNIndex<T>::ANNIndex(Metric m, const char *filename,
-                        std::vector<_u32> &list_of_ids)
+                        const std::vector<_u32> &list_of_ids)
       : _metric(m), _has_built(false) {
     // data is stored to _num_points * aligned_dim matrix with necessary
     // zero-padding
@@ -84,7 +84,7 @@ namespace grann {
       std::stringstream stream;
       stream << "Mismatch in number of points in data and id_map." << std::endl;
       std::cerr << stream.str() << std::endl;
-      throw grann::ANNException(stream.str(), -1, __FUNCSIG__, __FILE__,
+      throw grann::ANNException(stream.str(), -1, __PRETTY_FUNCTION__, __FILE__,
                                 __LINE__);
     }
     idmap = new _u32[_num_points];

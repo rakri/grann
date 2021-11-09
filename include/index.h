@@ -9,92 +9,98 @@
 
 namespace grann {
 
-  typedef std::lock_guard<std::mutex>
-      LockGuard;  // Use this data structure to create per vertex locks if we
-                  // want to update the graph during index build
+  // Used to create per vertex locks while updating the graph during index build
+  typedef std::lock_guard<std::mutex> LockGuard;
 
-  // Neighbor contains information of the name of the neighbor and associated
-  // distance
-  class SimpleNeighbor {
-    protected:
-      _u32  id;
-      float distance;
+  // Contains information of the name of the neighbor and associated distance
+  // class SimpleNeighbor {
+  //   protected:
+  //     _u32  id;
+  //     float distance;
 
-    public:
-      SimpleNeighbor() = default;
+  //   public:
+  //     SimpleNeighbor() = default;
 
-      SimpleNeighbor(_u32 id, float distance) : id(id), distance(distance) {
-      }
+  //     SimpleNeighbor(_u32 id, float distance) : id(id), distance(distance) {
+  //     }
 
-      inline bool operator<(const SimpleNeighbor &other) const {
-        return this.distance < other.distance;
-      }
+  //     inline bool operator<(const SimpleNeighbor &other) const {
+  //       return this->distance <= other.distance;
+  //     }
 
-      inline bool operator>(const SimpleNeighbor &other) const {
-        return this.distance > other.distance;
-      }
+  //     inline bool operator>(const SimpleNeighbor &other) const {
+  //       return this->distance > other.distance;
+  //     }
 
-      inline bool operator==(const SimpleNeighbor &other) const {
-        return this.id == other.id;
-      }
-  };
-
-  typedef std::vector<SimpleNeighbor> vecNgh;
+  //     inline bool operator==(const SimpleNeighbor &other) const {
+  //       return this->id == other.id;
+  //     }
+  // };
 
   // Simple Neighbor with a flag, for remembering whether we have already
   // explored out of a vertex or not.
-  class Neighbor : public SimpleNeighbor {
+  class Neighbor {
     private:
+      _u32 id;
+      float distance;
       bool  flag = true;
 
     public:
       // default constructor
-      Neighbour() 
-          : id(0), distance(std::numeric_limits<float>::max()), flag(true) {
+      Neighbor() : id(0), distance(std::numeric_limits<float>::max()), flag(true) {
       }
 
       Neighbor(_u32 id, float distance, bool flag = true)
-          : id{id}, distance{distance}, flag(flag) {
+          : id(id), distance(distance), flag(flag) {
+      }
+
+      float get_distance() const {
+        return this->distance;
+      }
+
+      _u32 get_id() const {
+        return this->id;
       }
   };
 
   // Given an array of neighbours of size K sorted by distance (ascending), and
   // a new neighbor nn, insert it in the correct place if it can fit. 
-  // Else do not do anything. 
+  // Else do not do anything.
   // If element is already in the Pool, return K+1.
   static inline _u32 InsertIntoPool(Neighbor *addr, unsigned K, Neighbor nn) {
     // find the location to insert
     _u32 left = 0, right = K - 1;
     
-    if (addr[left].distance > nn.distance) {
+    if (addr[left].get_distance() > nn.get_distance()) {
       memmove((char *) &addr[left + 1], &addr[left], K * sizeof(Neighbor));
       addr[left] = nn;
       return left;
     }
-    else if (addr[right].distance < nn.distance) {
+    else if (addr[right].get_distance() < nn.get_distance()) {
       addr[K] = nn;
       return K;
     }
 
+    // binary search
     while (right > 1 && left < right - 1) {
       _u32 mid = left + (right - left) / 2;
-      if (addr[mid].distance > nn.distance)
+      if (addr[mid].get_distance() > nn.get_distance())
         right = mid;
       else
         left = mid;
     }
 
     while (left > 0) {
-      if (addr[left].distance < nn.distance)
+      if (addr[left].get_distance() < nn.get_distance())
         break;
-      if (addr[left].id == nn.id) {
+      if (addr[left].get_id() == nn.get_id()) {
         // already exists in the Pool
         return K + 1;
       }
       left--;
     }
 
-    if (addr[left].id == nn.id || addr[right].id == nn.id) return K + 1;
+    if (addr[left].get_id() == nn.get_id() || addr[right].get_id() == nn.get_id()) return K + 1;
     memmove((char *) &addr[right + 1], &addr[right],
             (K - right) * sizeof(Neighbor));
     addr[right] = nn;
@@ -112,7 +118,7 @@ namespace grann {
       ~ANNIndex();
 
       // function_name() = 0 creates a pure virtual function.
-      // Hence, this class is an abstract class and cannot be instantiated.
+      // Hence, this class is an interface class and cannot be instantiated.
       virtual void save(const char *filename) = 0;
       virtual void load(const char *filename) = 0;
       virtual void build(Parameters &build_params) = 0;

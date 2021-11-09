@@ -10,7 +10,7 @@
 
 namespace grann {
 
-  typedef std::vector<std::vector<_u32>> NeighborList;
+  typedef std::vector<std::vector<_u32> > NeighborList;
 
   template<typename T>
   class GraphIndex : public ANNIndex<T> {

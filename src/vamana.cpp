@@ -140,7 +140,7 @@ namespace grann {
 
   template<typename T>
   void Vamana<T>::get_expanded_nodes(
-      const _u64 node_id, const unsigned l_build,
+      const _u32 node_id, const unsigned l_build,
       std::vector<unsigned>     init_ids,
       std::vector<Neighbor> &   expanded_nodes_info,
       tsl::robin_set<unsigned> &expanded_nodes_ids) {
