@@ -161,8 +161,6 @@ namespace grann {
     std::vector<Neighbor> result;
     result.reserve(degree_bound);
 
-    // occlude_list(pool, alpha, degree_bound, maxc, result);
-
     auto               pool_size = (_u32) pool.size();
     std::vector<float> occlude_factor(pool_size, 0);
 
