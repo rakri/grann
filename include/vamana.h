@@ -12,7 +12,8 @@ namespace grann {
   template<typename T>
   class Vamana : public GraphIndex<T> {
    public:
-    Vamana(Metric m, const char *filename, std::vector<_u32> &list_of_ids);
+    Vamana(Metric m, const char *filename, std::vector<_u32> &list_of_tags);
+    Vamana(Metric m);
     //    ~Vamana();
 
     // checks if data is consolidated, saves graph, metadata and associated

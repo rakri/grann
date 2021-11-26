@@ -12,7 +12,7 @@ namespace grann {
   template<typename T>
   class RelativeNG : public GraphIndex<T> {
    public:
-    RelativeNG(Metric m, const char *filename, std::vector<_u32> &list_of_ids);
+    RelativeNG(Metric m, const char *filename, std::vector<_u32> &list_of_tags);
     //    ~RelativeNG();
 
     // checks if data is consolidated, saves graph, metadata and associated

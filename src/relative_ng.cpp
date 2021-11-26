@@ -12,8 +12,8 @@ namespace grann {
   // (bin), and initialize num_points
   template<typename T>
   RelativeNG<T>::RelativeNG(Metric m, const char *filename,
-                    std::vector<_u32> &list_of_ids)
-      : GraphIndex<T>(m, filename, list_of_ids) {
+                    std::vector<_u32> &list_of_tags)
+      : GraphIndex<T>(m, filename, list_of_tags) {
     grann::cout << "Initialized RelativeNG Object with " << this->_num_points
                 << " points, dim=" << this->_dim << "." << std::endl;
   }
@@ -23,6 +23,7 @@ namespace grann {
   // 4 byte unsigned)
   template<typename T>
   void RelativeNG<T>::save(const char *filename) {
+    ANNIndex<T>::save_data_and_tags(filename);
     long long     total_gr_edges = 0;
     _u64          rng_size = 0;
     std::ofstream out(std::string(filename), std::ios::binary | std::ios::out);
@@ -46,6 +47,7 @@ namespace grann {
   // (navigating node id), and _out_nbrs (adjacency list)
   template<typename T>
   void RelativeNG<T>::load(const char *filename) {
+    ANNIndex<T>::load_data_and_tags(filename);
     std::ifstream in(filename, std::ios::binary);
     _u64          expected_file_size;
     in.read((char *) &expected_file_size, sizeof(_u64));
@@ -217,7 +219,7 @@ namespace grann {
     for (_u32 i = 0; i < res_count; i++) {
       if (i >= res_count)
         break;
-      indices[i] = this->idmap[top_candidate_list[i].id];
+      indices[i] = this->_tag_map[top_candidate_list[i].id];
       distances[i] = top_candidate_list[i].distance;
     }
     return std::min(res_count, algo_fetched_count);

@@ -15,7 +15,8 @@ namespace grann {
   template<typename T>
   class GraphIndex : public ANNIndex<T> {
    public:
-    GraphIndex(Metric m, const char *filename, std::vector<_u32> &list_of_ids);
+    GraphIndex(Metric m, const char *filename, std::vector<_u32> &list_of_tags);
+    GraphIndex(Metric m);
 
     /*  Internals of the library */
    protected:

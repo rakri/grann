@@ -50,12 +50,20 @@ namespace grann {
   // T with filename (bin)
   template<typename T>
   GraphIndex<T>::GraphIndex(Metric m, const char *filename,
-                            std::vector<_u32> &list_of_ids)
+                            std::vector<_u32> &list_of_tags)
       : ANNIndex<T>(m, filename,
-                    list_of_ids) {  // Graph Index class constructor loads the
+                    list_of_tags) {  // Graph Index class constructor loads the
                                     // data and sets num_points, dim, etc.
     _max_degree = 0;
   }
+
+  template<typename T>
+  GraphIndex<T>::GraphIndex(Metric m)
+      : ANNIndex<T>(m) {  // Graph Index class constructor empty for load.
+    _max_degree = 0;
+  }
+
+
 
   /* greedy_search_to_fixed_point():
    * node_coords : point whose neighbors to be found.

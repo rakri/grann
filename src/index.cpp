@@ -71,7 +71,7 @@ namespace grann {
   // (bin), and initialize max_points
   template<typename T>
   ANNIndex<T>::ANNIndex(Metric m, const char *filename,
-                        std::vector<_u32> &list_of_ids)
+                        std::vector<_u32> &list_of_tags)
       : _metric(m), _has_built(false) {
     // data is stored to _num_points * aligned_dim matrix with necessary
     // zero-padding
@@ -80,29 +80,59 @@ namespace grann {
 
     this->_distance = ::get_distance_function<T>(m);
 
-    if (list_of_ids.size() != _num_points && list_of_ids.size() != 0) {
+    if (list_of_tags.size() != _num_points && list_of_tags.size() != 0) {
       std::stringstream stream;
       stream << "Mismatch in number of points in data and id_map." << std::endl;
       std::cerr << stream.str() << std::endl;
       throw grann::ANNException(stream.str(), -1, __FUNCSIG__, __FILE__,
                                 __LINE__);
     }
-    idmap = new _u32[_num_points];
-    if (list_of_ids.size() != 0)
-      std::memcpy(idmap, list_of_ids.data(), _num_points * sizeof(_u32));
+    _tag_map = new _u32[_num_points];
+    if (list_of_tags.size() != 0)
+      std::memcpy(_tag_map, list_of_tags.data(), _num_points * sizeof(_u32));
     else {
       for (_u32 i = 0; i < _num_points; i++) {
-        idmap[i] = i;
+        _tag_map[i] = i;
       }
     }
   }
+
+
+    template<typename T>
+  ANNIndex<T>::ANNIndex(Metric m): _metric(m), _has_built(false) {
+    this->_distance = ::get_distance_function<T>(m);
+    _num_points = 0;
+                        }
+
 
   template<typename T>
   ANNIndex<T>::~ANNIndex() {
     delete this->_distance;
     aligned_free(_data);
-    delete[] idmap;
+    delete[] _tag_map;
   }
+
+  template<typename T>
+  void ANNIndex<T>::save_data_and_tags(const std::string index_file) {
+    std::string data_file = index_file + "_data.bin";
+    std::string tag_file = index_file + "_tags.bin";
+     grann::save_data_in_original_dimensions<T>(data_file, _data, _num_points, _aligned_dim, _dim);
+     grann::save_bin<_u32>(tag_file, _tag_map, _num_points, 1);
+  }
+
+  template<typename T>
+  void ANNIndex<T>::load_data_and_tags(const std::string index_file) {
+    std::string data_file = index_file + "_data.bin";
+    std::string tag_file = index_file + "_tags.bin";
+    _u64 num_tags, tmp_dim;
+     grann::load_aligned_bin<T>(data_file, _data, _num_points, _dim, _aligned_dim);
+     grann::load_bin<_u32>(tag_file, _tag_map, num_tags, tmp_dim);
+     if (num_tags != _num_points) {
+       grann::cout<<"Error! Mismatch between number of tags and number of data points. Exitting." << std::endl;
+       exit(-1);
+     }
+  }
+
 
   // EXPORTS
   template class ANNIndex<float>;

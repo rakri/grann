@@ -104,11 +104,16 @@ namespace grann {
     // make a base object, initialize distance function and load the data from
     // filename bin file. The list of ids corresponds to the id/tag associated
     // with each vector.
-    ANNIndex(Metric m, const char *filename, std::vector<_u32> &list_of_ids);
+    ANNIndex(Metric m, const char *filename, std::vector<_u32> &list_of_tags);
+
+//  for loading an index from a file, we dont need data file, and list of tags
+    ANNIndex(Metric m);
+
 
     ~ANNIndex();
 
     virtual void save(const char *filename) = 0;
+
     virtual void load(const char *filename) = 0;
 
     virtual void build(Parameters &build_params) = 0;
@@ -120,9 +125,13 @@ namespace grann {
 
     /*  Internals of the library */
    protected:
+
+   void save_data_and_tags(const std::string index_file);
+   void load_data_and_tags(const std::string index_file);
+
     Metric       _metric = grann::L2;
     Distance<T> *_distance;
-    _u32 *       idmap = nullptr;
+    _u32*       _tag_map = nullptr;
 
     T *  _data; // will be a num_points * aligned_dim array stored in row-major form
     _u64 _num_points = 0; // number of points hosted by index

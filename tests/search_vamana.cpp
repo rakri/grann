@@ -50,8 +50,7 @@ int search_vamana_index(int argc, char** argv) {
               << std::endl;
   }
 
-  std::string data_file(argv[ctr++]);
-  std::string memory_vamana_file(argv[ctr++]);
+  std::string vamana_file(argv[ctr++]);
   _u64        num_threads = std::atoi(argv[ctr++]);
   std::string query_bin(argv[ctr++]);
   std::string truthset_bin(argv[ctr++]);
@@ -88,9 +87,9 @@ int search_vamana_index(int argc, char** argv) {
   std::cout.setf(std::ios_base::fixed, std::ios_base::floatfield);
   std::cout.precision(2);
 
-  std::vector<_u32> idmap;
-  grann::Vamana<T>  vamana(metric, data_file.c_str(), idmap);
-  vamana.load(memory_vamana_file.c_str());  // to load Vamana Index
+
+  grann::Vamana<T> vamana(metric);
+  vamana.load(vamana_file.c_str());  // to load Vamana Index
   std::cout << "Vamana loaded" << std::endl;
   grann::Parameters search_params;
 
@@ -186,12 +185,11 @@ int search_vamana_index(int argc, char** argv) {
 }
 
 int main(int argc, char** argv) {
-  if (argc < 11) {
+  if (argc < 10) {
     std::cout
         << "Usage: " << argv[0]
-        << "  [vamana_type<float/int8/uint8>]  [dist_fn (l2/mips/fast_l2)] "
-           "[data_file.bin]  "
-           "[memory_vamana_path]  [num_threads] "
+        << "  [data_type<float/int8/uint8>]  [dist_fn (l2/mips/fast_l2)] "
+           "[vamana_path]  [num_threads] "
            "[query_file.bin]  [truthset.bin (use \"null\" for none)] "
            " [K] [result_output_prefix]"
            " [L1]  [L2] etc. See README for more information on parameters. "
