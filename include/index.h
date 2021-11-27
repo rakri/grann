@@ -110,7 +110,7 @@ namespace grann {
     ANNIndex(Metric m);
 
 
-    ~ANNIndex();
+    virtual ~ANNIndex();
 
     virtual void save(const char *filename) = 0;
 
@@ -128,7 +128,8 @@ namespace grann {
 
    void save_data_and_tags(const std::string index_file);
    void load_data_and_tags(const std::string index_file);
-
+   
+    unsigned calculate_entry_point(); 
     Metric       _metric = grann::L2;
     Distance<T> *_distance;
     _u32*       _tag_map = nullptr;

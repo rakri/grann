@@ -8,7 +8,7 @@
 namespace grann {
 
   template<typename T>
-  _u32 GraphIndex<T>::process_neighbors_into_candidate_pool(
+  _u32 GraphIndex<T>::process_candidates_into_best_candidates_pool(
       const T *&node_coords, std::vector<_u32> &nbr_list,
       std::vector<Neighbor> &best_L_nodes, const _u32 maxListSize,
       _u32 &curListSize, tsl::robin_set<_u32> &inserted_into_pool,
@@ -129,11 +129,11 @@ namespace grann {
         }
         unsigned best_inserted_index;
         if (_locks_enabled)
-          best_inserted_index = process_neighbors_into_candidate_pool(
+          best_inserted_index = process_candidates_into_best_candidates_pool(
               node_coords, des, best_L_nodes, Lsize, l, inserted_into_pool,
               cmps);
         else
-          best_inserted_index = process_neighbors_into_candidate_pool(
+          best_inserted_index = process_candidates_into_best_candidates_pool(
               node_coords, _out_nbrs[n], best_L_nodes, Lsize, l,
               inserted_into_pool, cmps);
 

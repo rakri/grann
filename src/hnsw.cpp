@@ -4,39 +4,54 @@
 #include <atomic>
 
 #include "utils.h"
-#include "vamana.h"
+#include "hnsw.h"
 
 namespace grann {
 
-  // Initialize an vamana with metric m, load the data of type T with filename
+  // Initialize an hnsw with metric m, load the data of type T with filename
   // (bin), and initialize num_points
   template<typename T>
-  Vamana<T>::Vamana(Metric m, const char *filename,
+  HNSW<T>::HNSW(Metric m, _u32 level_number, const char *filename,
                     std::vector<_u32> &list_of_tags)
       : GraphIndex<T>(m, filename, list_of_tags) {
-    grann::cout << "Initialized Vamana Object with " << this->_num_points
+        _cur_level_number = level_number;
+    grann::cout << "Initialized HNSW Object with " << this->_num_points
                 << " points, dim=" << this->_dim << "." << std::endl;
   }
 
   template<typename T>
-  Vamana<T>::Vamana(Metric m)
+  HNSW<T>::HNSW(Metric m, _u32 level_number)
       : GraphIndex<T>(m) {
-    grann::cout << "Initialized Empty Vamana Object."<< std::endl;
+    _cur_level_number = level_number;
+    if (level_number > 0)
+    _inner_index = new HNSW<T>(m, level_number -1);
+    grann::cout << "Initialized Empty HNSW Object at level "<< _cur_level_number << std::endl;
+  }
+
+  template<typename T>
+  HNSW<T>::~HNSW() {
+    if (_cur_level_number > 0)
+    delete this->_inner_index;
+    GraphIndex<T>::~GraphIndex();
   }
 
 
-  // save the graph vamana on a file as an adjacency list. For each point,
+  // save the graph hnsw on a file as an adjacency list. For each point,
   // first store the number of neighbors, and then the neighbor list (each as
   // 4 byte unsigned)
   template<typename T>
-  void Vamana<T>::save(const char *filename) {
-
-    ANNIndex<T>::save_data_and_tags(filename);
+  void HNSW<T>::save(const char *filename) {
+    if (_cur_level_number > 0) {
+      _inner_index->save(filename);
+    }
+    std::string layer_filename(filename);
+    layer_filename += "_" + std::to_string(_cur_level_number);
+    ANNIndex<T>::save_data_and_tags(layer_filename);
     long long     total_gr_edges = 0;
-    _u64          vamana_size = 0;
-    std::ofstream out(std::string(filename), std::ios::binary | std::ios::out);
+    _u64          hnsw_size = 0;
+    std::ofstream out(layer_filename, std::ios::binary | std::ios::out);
 
-    out.write((char *) &vamana_size, sizeof(uint64_t));
+    out.write((char *) &hnsw_size, sizeof(uint64_t));
     out.write((char *) &this->_max_degree, sizeof(unsigned));
     out.write((char *) &this->_start_node, sizeof(unsigned));
     for (unsigned i = 0; i < this->_num_points; i++) {
@@ -45,23 +60,29 @@ namespace grann {
       out.write((char *) this->_out_nbrs[i].data(), GK * sizeof(unsigned));
       total_gr_edges += GK;
     }
-    vamana_size = out.tellp();
+    hnsw_size = out.tellp();
     out.seekp(0, std::ios::beg);
-    out.write((char *) &vamana_size, sizeof(uint64_t));
+    out.write((char *) &hnsw_size, sizeof(uint64_t));
     out.close();
   }
 
-  // load the vamana from file and update the width (max_degree), ep
+  // load the hnsw from file and update the width (max_degree), ep
   // (navigating node id), and _out_nbrs (adjacency list)
   template<typename T>
-  void Vamana<T>::load(const char *filename) {
-    ANNIndex<T>::load_data_and_tags(filename);
-    std::ifstream in(filename, std::ios::binary);
+  void HNSW<T>::load(const char *filename) {
+    if (_cur_level_number > 0) {
+      _inner_index->load(filename);
+    }
+    std::string layer_filename(filename);
+    layer_filename += "_" + std::to_string(_cur_level_number);
+    ANNIndex<T>::load_data_and_tags(layer_filename);
+
+    std::ifstream in(layer_filename, std::ios::binary);
     _u64          expected_file_size;
     in.read((char *) &expected_file_size, sizeof(_u64));
     in.read((char *) &this->_max_degree, sizeof(unsigned));
     in.read((char *) &this->_start_node, sizeof(unsigned));
-    grann::cout << "Loading vamana index " << filename << "..." << std::flush;
+    grann::cout << "Loading hnsw index " << filename << "..." << std::flush;
 
     _u64     cc = 0;
     unsigned nodes = 0;
@@ -86,17 +107,17 @@ namespace grann {
       return;
     }
 
-    grann::cout << "..done. Vamana has " << nodes << " nodes and " << cc
+    grann::cout << "..done. HNSW has " << nodes << " nodes and " << cc
                 << " out-edges" << std::endl;
   }
 
   /**************************************************************
-   *      Support for Static Vamana Building and Searching
+   *      Support for Static HNSW Building and Searching
    **************************************************************/
 
 
   template<typename T>
-  void Vamana<T>::get_expanded_nodes(
+  void HNSW<T>::get_expanded_nodes(
       const _u64 node_id, const unsigned l_build,
       std::vector<unsigned>     init_ids,
       std::vector<Neighbor> &   expanded_nodes_info,
@@ -117,7 +138,7 @@ namespace grann {
    * the current node n.
    */
   template<typename T>
-  void Vamana<T>::inter_insert(unsigned n, std::vector<unsigned> &pruned_list,
+  void HNSW<T>::inter_insert(unsigned n, std::vector<unsigned> &pruned_list,
                                const Parameters &parameters) {
     const auto degree_bound = parameters.Get<unsigned>("R");
 
@@ -179,15 +200,20 @@ namespace grann {
   }
 
   template<typename T>
-  void Vamana<T>::build(Parameters &build_parameters) {
+  void HNSW<T>::build(Parameters &build_parameters) {
     grann::Timer build_timer;
+
+    if (_cur_level_number > 0) {
+      // need to initialize inner index with a random sample of data
+      _inner_index->build(build_parameters);
+    }
 
     unsigned num_threads = build_parameters.Get<unsigned>("num_threads");
     unsigned L = build_parameters.Get<unsigned>("L");
     unsigned degree_bound = build_parameters.Get<unsigned>("R");
     float    alpha = build_parameters.Get<float>("alpha");
 
-    grann::cout << "Starting vamana build with listSize L=" << L
+    grann::cout << "Starting hnsw build with listSize L=" << L
                 << ", degree bound R=" << degree_bound
                 << ", and alpha=" << alpha << std::endl;
 
@@ -278,7 +304,7 @@ namespace grann {
   }
 
   template<typename T>
-  _u32 Vamana<T>::search(const T *query, _u32 res_count,
+  _u32 HNSW<T>::search(const T *query, _u32 res_count,
                          Parameters &search_params, _u32 *indices,
                          float *distances, QueryStats *stats) {
     _u32                     search_list_size = search_params.Get<_u32>("L");
@@ -304,7 +330,7 @@ namespace grann {
   }
 
   // EXPORTS
-  template class Vamana<float>;
-  template class Vamana<int8_t>;
-  template class Vamana<uint8_t>;
+  template class HNSW<float>;
+  template class HNSW<int8_t>;
+  template class HNSW<uint8_t>;
 }  // namespace grann

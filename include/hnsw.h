@@ -10,11 +10,11 @@
 namespace grann {
 
   template<typename T>
-  class Vamana : public GraphIndex<T> {
+  class HNSW : public GraphIndex<T> {
    public:
-    Vamana(Metric m, const char *filename, std::vector<_u32> &list_of_tags);
-    Vamana(Metric m);
-    //    ~Vamana();
+    HNSW(Metric m, _u32 level_number, const char *filename, std::vector<_u32> &list_of_tags);
+    HNSW(Metric m, _u32 level_number);
+    ~HNSW();
 
     // checks if data is consolidated, saves graph, metadata and associated
     // tags.
@@ -31,6 +31,9 @@ namespace grann {
    protected:
     //  _u64   _num_steiner_pts;
     unsigned _start_node;
+    unsigned _cur_level_number = 0;
+    HNSW<T>* _inner_index = nullptr;
+
 
     void     get_expanded_nodes(const _u64 node_id, const unsigned l_build,
                                 std::vector<unsigned>     init_ids,

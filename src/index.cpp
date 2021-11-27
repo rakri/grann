@@ -133,6 +133,52 @@ namespace grann {
      }
   }
 
+  /* This function finds out the navigating node, which is the medoid node
+   * in the graph.
+   */
+  template<typename T>
+  unsigned ANNIndex<T>::calculate_entry_point() {
+    // allocate and init centroid
+    float *center = new float[this->_aligned_dim]();
+    for (_u64 j = 0; j < this->_aligned_dim; j++)
+      center[j] = 0;
+
+    for (_u64 i = 0; i < this->_num_points; i++)
+      for (_u64 j = 0; j < this->_aligned_dim; j++)
+        center[j] += this->_data[i * this->_aligned_dim + j];
+
+    for (_u64 j = 0; j < this->_aligned_dim; j++)
+      center[j] /= this->_num_points;
+
+    // compute all to one distance
+    float *distances = new float[this->_num_points]();
+#pragma omp parallel for schedule(static, 65536)
+    for (_s64 i = 0; i < (_s64) this->_num_points; i++) {
+      // extract point and distance reference
+      float &  dist = distances[i];
+      const T *cur_vec = this->_data + (i * (_u64) this->_aligned_dim);
+      dist = 0;
+      float diff = 0;
+      for (_u64 j = 0; j < this->_aligned_dim; j++) {
+        diff = (center[j] - cur_vec[j]) * (center[j] - cur_vec[j]);
+        dist += diff;
+      }
+    }
+    // find imin
+    unsigned min_idx = 0;
+    float    min_dist = distances[0];
+    for (unsigned i = 1; i < this->_num_points; i++) {
+      if (distances[i] < min_dist) {
+        min_idx = i;
+        min_dist = distances[i];
+      }
+    }
+
+    delete[] distances;
+    delete[] center;
+    return min_idx;
+  }
+
 
   // EXPORTS
   template class ANNIndex<float>;

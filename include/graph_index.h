@@ -26,7 +26,7 @@ namespace grann {
     bool         _locks_enabled =
         false;  // will be used at build time, pure search dont need locks
 
-    _u32 process_neighbors_into_candidate_pool(
+    _u32 process_candidates_into_best_candidates_pool(
         const T *&node_coords, std::vector<_u32> &nbr_list,
         std::vector<Neighbor> &best_L_nodes, const _u32 maxListSize,
         _u32 &curListSize, tsl::robin_set<_u32> &inserted_into_pool,
