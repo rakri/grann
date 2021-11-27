@@ -25,15 +25,11 @@ namespace grann {
     _u32 search(const T *query, _u32 res_count, Parameters &search_params,
                 _u32 *indices, float *distances, QueryStats *stats = nullptr);
 
-
     /*  Internals of the library */
    protected:
-    _u64         _num_clusters = 0;
-    float* _cluster_centers;
-    std::string _base_file;
+    _u64                           _num_clusters = 0;
+    float *                        _cluster_centers;
+    std::string                    _base_file;
     std::vector<std::vector<_u32>> _inverted_index;
-
-
-
   };
 }  // namespace grann

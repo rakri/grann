@@ -26,7 +26,6 @@ namespace grann {
     bool         _locks_enabled =
         false;  // will be used at build time, pure search dont need locks
 
-
     void prune_candidates_alpha_rng(const unsigned         location,
                                     std::vector<Neighbor> &pool,
                                     const Parameters &     parameter,

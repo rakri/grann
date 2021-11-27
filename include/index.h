@@ -7,8 +7,6 @@
 #include "distance.h"
 #include "percentile_stats.h"
 
-
-
 namespace grann {
 
   typedef std::lock_guard<std::mutex>
@@ -136,13 +134,12 @@ namespace grann {
         _u32 &curListSize, tsl::robin_set<_u32> &inserted_into_pool,
         _u32 &total_comparisons);
 
-
-    unsigned     calculate_entry_point();
-    Metric       _metric = grann::L2;
-    Distance<T> *_distance;
+    unsigned         calculate_medoid_of_data();
+    Metric           _metric = grann::L2;
+    Distance<T> *    _distance;
     Distance<float> *_distance_float;
 
-    _u32 *       _tag_map = nullptr;
+    _u32 *_tag_map = nullptr;
 
     T *_data;  // will be a num_points * aligned_dim array stored in row-major
                // form

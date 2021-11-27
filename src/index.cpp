@@ -101,7 +101,7 @@ namespace grann {
   template<typename T>
   ANNIndex<T>::ANNIndex(Metric m) : _metric(m), _has_built(false) {
     this->_distance = ::get_distance_function<T>(m);
-    this->_distance_float = ::get_distance_function<float>(m);    
+    this->_distance_float = ::get_distance_function<float>(m);
     _num_points = 0;
   }
 
@@ -176,12 +176,11 @@ namespace grann {
     return best_inserted_position;
   }
 
-
   /* This function finds out the navigating node, which is the medoid node
    * in the graph.
    */
   template<typename T>
-  unsigned ANNIndex<T>::calculate_entry_point() {
+  unsigned ANNIndex<T>::calculate_medoid_of_data() {
     // allocate and init centroid
     float *center = new float[this->_aligned_dim]();
     for (_u64 j = 0; j < this->_aligned_dim; j++)

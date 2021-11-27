@@ -7,7 +7,6 @@
 
 namespace grann {
 
-
   // Initialize a generic graph-based index with metric m, load the data of type
   // T with filename (bin)
   template<typename T>
@@ -89,13 +88,15 @@ namespace grann {
         }
         unsigned best_inserted_index;
         if (_locks_enabled)
-          best_inserted_index = ANNIndex<T>::process_candidates_into_best_candidates_pool(
-              node_coords, des, best_L_nodes, Lsize, l, inserted_into_pool,
-              cmps);
+          best_inserted_index =
+              ANNIndex<T>::process_candidates_into_best_candidates_pool(
+                  node_coords, des, best_L_nodes, Lsize, l, inserted_into_pool,
+                  cmps);
         else
-          best_inserted_index = ANNIndex<T>::process_candidates_into_best_candidates_pool(
-              node_coords, _out_nbrs[n], best_L_nodes, Lsize, l,
-              inserted_into_pool, cmps);
+          best_inserted_index =
+              ANNIndex<T>::process_candidates_into_best_candidates_pool(
+                  node_coords, _out_nbrs[n], best_L_nodes, Lsize, l,
+                  inserted_into_pool, cmps);
 
         if (best_inserted_index <= k)
           k = best_inserted_index;

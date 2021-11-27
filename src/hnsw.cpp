@@ -163,7 +163,7 @@ namespace grann {
     if (num_threads != 0)
       omp_set_num_threads(num_threads);
 
-    this->_start_node = ANNIndex<T>::calculate_entry_point();
+    this->_start_node = ANNIndex<T>::calculate_medoid_of_data();
     grann::cout << "Medoid identified as " << this->_start_node << std::endl;
 
     _u32             progress_milestone = (_u32)(this->_num_points / 10);

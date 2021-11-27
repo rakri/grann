@@ -28,7 +28,7 @@ int search_index(int argc, char** argv) {
 
   grann::Metric metric = grann::Metric::L2;
 
-  _u32          ctr = 2;
+  _u32 ctr = 2;
 
   std::string index_file(argv[ctr++]);
   _u64        num_threads = std::atoi(argv[ctr++]);
@@ -36,7 +36,7 @@ int search_index(int argc, char** argv) {
   std::string truthset_bin(argv[ctr++]);
   _u64        recall_at = std::atoi(argv[ctr++]);
   std::string result_output_prefix(argv[ctr++]);
-  
+
   bool calc_recall_flag = false;
 
   for (; ctr < (_u32) argc; ctr++) {
@@ -46,8 +46,7 @@ int search_index(int argc, char** argv) {
   }
 
   if (Lvec.size() == 0) {
-    std::cout << "No valid probe width found -- must be at 1."
-              << std::endl;
+    std::cout << "No valid probe width found -- must be at 1." << std::endl;
     return -1;
   }
 
@@ -99,9 +98,9 @@ int search_index(int argc, char** argv) {
     for (int64_t i = 0; i < (int64_t) query_num; i++) {
       auto qs = std::chrono::high_resolution_clock::now();
       ivf_index.search(query + i * query_aligned_dim, recall_at, search_params,
-                    query_result_ids[test_id].data() + i * recall_at,
-                    query_result_dists[test_id].data() + i * recall_at,
-                    (stats.data() + i));
+                       query_result_ids[test_id].data() + i * recall_at,
+                       query_result_dists[test_id].data() + i * recall_at,
+                       (stats.data() + i));
       auto qe = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double> diff = qe - qs;
       latency_stats[i] = diff.count() * 1000000;
