@@ -47,7 +47,7 @@ namespace math_utils {
   void compute_closest_centers(float* data, _u64 num_points, _u64 dim,
                                float* centers, _u64 num_centers, _u64 k,
                                uint32_t*          closest_centers_ivf,
-                               std::vector<_u64>* inverted_index = nullptr,
+                               std::vector<_u32>* inverted_index = nullptr,
                                float*             pts_norms_squared = nullptr);
 
   // if to_subtract is 1, will subtract nearest center from each row. Else will
@@ -68,7 +68,7 @@ namespace math_utils {
 
   float lloyds_iter(float* data, _u64 num_points, _u64 dim, float* centers,
                     _u64 num_centers, float* docs_l2sq,
-                    std::vector<_u64>* closest_docs, uint32_t*& closest_center);
+                    std::vector<_u32>* closest_docs, uint32_t*& closest_center);
 
   // Run Lloyds until max_reps or stopping criterion
   // If you pass nullptr for closest_docs and closest_center, it will NOT return
@@ -78,7 +78,7 @@ namespace math_utils {
   //
   float run_lloyds(float* data, _u64 num_points, _u64 dim, float* centers,
                    const _u64 num_centers, const _u64 max_reps,
-                   std::vector<_u64>* closest_docs, uint32_t* closest_center);
+                   std::vector<_u32>* closest_docs, uint32_t* closest_center);
 
   // assumes already memory allocated for center_data as new
   // float[num_centers*dim] and select randomly num_centers points as centers

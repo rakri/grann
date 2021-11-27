@@ -33,6 +33,16 @@ else()
 endif()
 
 
+add_executable(build_ivf build_ivf.cpp )
+if(MSVC)
+	target_link_options(build_ivf PRIVATE /MACHINE:x64 /DEBUG:FULL "/INCLUDE:_tcmalloc")
+	target_link_libraries(build_ivf debug ${CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG}/grann_dll.lib ${PROJECT_SOURCE_DIR}/dependencies/windows/tcmalloc/libtcmalloc_minimal.lib)
+	target_link_libraries(build_ivf optimized ${CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE}/grann_dll.lib ${PROJECT_SOURCE_DIR}/dependencies/windows/tcmalloc/libtcmalloc_minimal.lib)
+else() 
+	target_link_libraries(build_ivf ${PROJECT_NAME} -ltcmalloc)
+endif()
+
+
 add_executable(search_vamana search_vamana.cpp )
 if(MSVC)
 	target_link_options(search_vamana PRIVATE /MACHINE:x64 /DEBUG:FULL)

@@ -79,6 +79,7 @@ namespace grann {
                         _aligned_dim);
 
     this->_distance = ::get_distance_function<T>(m);
+    this->_distance_float = ::get_distance_function<float>(m);
 
     if (list_of_tags.size() != _num_points && list_of_tags.size() != 0) {
       std::stringstream stream;
@@ -100,6 +101,7 @@ namespace grann {
   template<typename T>
   ANNIndex<T>::ANNIndex(Metric m) : _metric(m), _has_built(false) {
     this->_distance = ::get_distance_function<T>(m);
+    this->_distance_float = ::get_distance_function<float>(m);    
     _num_points = 0;
   }
 

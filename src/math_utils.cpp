@@ -138,7 +138,7 @@ namespace math_utils {
   void compute_closest_centers(float* data, _u64 num_points, _u64 dim,
                                float* centers, _u64 num_centers, _u64 k,
                                uint32_t*          closest_centers_ivf,
-                               std::vector<_u64>* inverted_index,
+                               std::vector<_u32>* inverted_index,
                                float*             pts_norms_squared) {
     if (k > num_centers) {
       grann::cout << "ERROR: k (" << k << ") > num_center(" << num_centers
@@ -230,7 +230,7 @@ namespace math_utils {
 
   float lloyds_iter(float* data, _u64 num_points, _u64 dim, float* centers,
                     _u64 num_centers, float* docs_l2sq,
-                    std::vector<_u64>* closest_docs,
+                    std::vector<_u32>* closest_docs,
                     uint32_t*&         closest_center) {
     bool compute_residual = true;
     // Timer timer;
@@ -238,7 +238,7 @@ namespace math_utils {
     if (closest_center == nullptr)
       closest_center = new uint32_t[num_points];
     if (closest_docs == nullptr)
-      closest_docs = new std::vector<_u64>[num_centers];
+      closest_docs = new std::vector<_u32>[num_centers];
     else
       for (_u64 c = 0; c < num_centers; ++c)
         closest_docs[c].clear();
@@ -258,7 +258,7 @@ namespace math_utils {
       for (_u64 i = 0; i < dim; i++)
         cluster_sum[i] = 0.0;
       for (_u64 i = 0; i < closest_docs[c].size(); i++) {
-        float* current = data + ((closest_docs[c][i]) * dim);
+        float* current = data + ((_u64)(closest_docs[c][i]) * dim);
         for (_u64 j = 0; j < dim; j++) {
           cluster_sum[j] += (double) current[j];
         }
@@ -303,12 +303,12 @@ namespace math_utils {
   //
   float run_lloyds(float* data, _u64 num_points, _u64 dim, float* centers,
                    const _u64 num_centers, const _u64 max_reps,
-                   std::vector<_u64>* closest_docs, uint32_t* closest_center) {
+                   std::vector<_u32>* closest_docs, uint32_t* closest_center) {
     float residual = std::numeric_limits<float>::max();
     bool  ret_closest_docs = true;
     bool  ret_closest_center = true;
     if (closest_docs == nullptr) {
-      closest_docs = new std::vector<_u64>[num_centers];
+      closest_docs = new std::vector<_u32>[num_centers];
       ret_closest_docs = false;
     }
     if (closest_center == nullptr) {
@@ -397,6 +397,7 @@ namespace math_utils {
     _u64                                num_picked = 1;
 
     picked.push_back(init_id);
+
     std::memcpy(centers, data + init_id * dim, dim * sizeof(float));
 
     float* dist = new float[num_points];
