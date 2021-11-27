@@ -14,16 +14,15 @@
 #endif
 
 template<typename T>
-int build_relng_index(const std::string&   data_path,
-                       const grann::Metric& metric,
-                       const std::string& save_path,
-                       const unsigned     num_threads) {
+int build_relng_index(const std::string& data_path, const grann::Metric& metric,
+                      const std::string& save_path,
+                      const unsigned     num_threads) {
   grann::Parameters paras;
   paras.Set<unsigned>("num_threads", num_threads);
   std::vector<_u32> idmap;
 
   grann::RelativeNG<T> relng(metric, data_path.c_str(), idmap);
-  auto             s = std::chrono::high_resolution_clock::now();
+  auto                 s = std::chrono::high_resolution_clock::now();
   relng.build(paras);
   std::chrono::duration<double> diff =
       std::chrono::high_resolution_clock::now() - s;
@@ -64,14 +63,11 @@ int main(int argc, char** argv) {
   const unsigned    num_threads = (unsigned) atoi(argv[ctr++]);
 
   if (std::string(argv[1]) == std::string("int8"))
-    build_relng_index<int8_t>(data_path, metric, save_path,
-                               num_threads);
+    build_relng_index<int8_t>(data_path, metric, save_path, num_threads);
   else if (std::string(argv[1]) == std::string("uint8"))
-    build_relng_index<uint8_t>(data_path, metric, save_path,
-                                num_threads);
+    build_relng_index<uint8_t>(data_path, metric, save_path, num_threads);
   else if (std::string(argv[1]) == std::string("float"))
-    build_relng_index<float>(data_path, metric, save_path,
-                              num_threads);
+    build_relng_index<float>(data_path, metric, save_path, num_threads);
   else
     std::cout << "Unsupported type. Use float/int8/uint8" << std::endl;
 }

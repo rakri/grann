@@ -42,8 +42,7 @@ int search_relng_index(int argc, char** argv) {
   ctr++;
 
   if ((std::string(argv[1]) != std::string("float")) &&
-      ((metric == grann::Metric::INNER_PRODUCT) 
-       )) {
+      ((metric == grann::Metric::INNER_PRODUCT))) {
     std::cout << "Error. Inner product currently only "
                  "supported for "
                  "floating point datatypes."
@@ -88,13 +87,13 @@ int search_relng_index(int argc, char** argv) {
   std::cout.setf(std::ios_base::fixed, std::ios_base::floatfield);
   std::cout.precision(2);
 
-  std::vector<_u32> idmap;
-  grann::RelativeNG<T>  relng(metric, data_file.c_str(), idmap);
+  std::vector<_u32>    idmap;
+  grann::RelativeNG<T> relng(metric, data_file.c_str(), idmap);
   relng.load(relng_file.c_str());  // to load Vamana Index
   std::cout << "Index loaded" << std::endl;
   grann::Parameters search_params;
 
-  std::string       recall_string = "Recall@" + std::to_string(recall_at);
+  std::string recall_string = "Recall@" + std::to_string(recall_at);
   std::cout << std::setw(4) << "Ls" << std::setw(12) << "QPS " << std::setw(22)
             << "Mean Latency (mus)" << std::setw(15) << "99.9\% Latency"
             << std::setw(12) << recall_string << std::setw(16) << "Mean Cmps."
@@ -122,9 +121,9 @@ int search_relng_index(int argc, char** argv) {
     for (int64_t i = 0; i < (int64_t) query_num; i++) {
       auto qs = std::chrono::high_resolution_clock::now();
       relng.search(query + i * query_aligned_dim, recall_at, search_params,
-                    query_result_ids[test_id].data() + i * recall_at,
-                    query_result_dists[test_id].data() + i * recall_at,
-                    (stats.data() + i));
+                   query_result_ids[test_id].data() + i * recall_at,
+                   query_result_dists[test_id].data() + i * recall_at,
+                   (stats.data() + i));
       auto qe = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double> diff = qe - qs;
       latency_stats[i] = diff.count() * 1000000;

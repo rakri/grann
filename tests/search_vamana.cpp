@@ -42,8 +42,7 @@ int search_hnsw_index(int argc, char** argv) {
   ctr++;
 
   if ((std::string(argv[1]) != std::string("float")) &&
-      ((metric == grann::Metric::INNER_PRODUCT) 
-       )) {
+      ((metric == grann::Metric::INNER_PRODUCT))) {
     std::cout << "Error. Inner product currently only "
                  "supported for "
                  "floating point datatypes."
@@ -87,13 +86,12 @@ int search_hnsw_index(int argc, char** argv) {
   std::cout.setf(std::ios_base::fixed, std::ios_base::floatfield);
   std::cout.precision(2);
 
-
   grann::Vamana<T> vamana(metric);
   vamana.load(vamana_file.c_str());  // to load Vamana Index
   std::cout << "Vamana loaded" << std::endl;
   grann::Parameters search_params;
 
-  std::string       recall_string = "Recall@" + std::to_string(recall_at);
+  std::string recall_string = "Recall@" + std::to_string(recall_at);
   std::cout << std::setw(4) << "Ls" << std::setw(12) << "QPS " << std::setw(22)
             << "Mean Latency (mus)" << std::setw(15) << "99.9\% Latency"
             << std::setw(12) << recall_string << std::setw(16) << "Mean Cmps."

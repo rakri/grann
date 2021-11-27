@@ -12,7 +12,8 @@ namespace grann {
   template<typename T>
   class HNSW : public GraphIndex<T> {
    public:
-    HNSW(Metric m, _u32 level_number, const char *filename, std::vector<_u32> &list_of_tags);
+    HNSW(Metric m, _u32 level_number, const char *filename,
+         std::vector<_u32> &list_of_tags);
     HNSW(Metric m, _u32 level_number);
     ~HNSW();
 
@@ -32,7 +33,6 @@ namespace grann {
     //  _u64   _num_steiner_pts;
     unsigned _start_node;
     unsigned _cur_level_number = 0;
-    HNSW<T>* _inner_index = nullptr;
-
+    HNSW<T> *_inner_index = nullptr;
   };
 }  // namespace grann

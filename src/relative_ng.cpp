@@ -12,7 +12,7 @@ namespace grann {
   // (bin), and initialize num_points
   template<typename T>
   RelativeNG<T>::RelativeNG(Metric m, const char *filename,
-                    std::vector<_u32> &list_of_tags)
+                            std::vector<_u32> &list_of_tags)
       : GraphIndex<T>(m, filename, list_of_tags) {
     grann::cout << "Initialized RelativeNG Object with " << this->_num_points
                 << " points, dim=" << this->_dim << "." << std::endl;
@@ -140,9 +140,9 @@ namespace grann {
 
     grann::cout << "Starting rng build." << std::endl;
 
-//    this->_locks_enabled =
-//        true;  // we dont need locks for pure search on a pre-built index
-//    this->_locks = std::vector<std::mutex>(this->_num_points);
+    //    this->_locks_enabled =
+    //        true;  // we dont need locks for pure search on a pre-built index
+    //    this->_locks = std::vector<std::mutex>(this->_num_points);
 
     this->_out_nbrs.resize(this->_num_points);
 
@@ -155,11 +155,10 @@ namespace grann {
     _u32             progress_milestone = (_u32)(this->_num_points / 10);
     std::atomic<int> milestone_marker{0};
 
-      build_parameters.Set<_u32>("C", this->_num_points);
-      build_parameters.Set<_u32>("R", this->_num_points);
-      build_parameters.Set<float>("alpha", 1);
-      build_parameters.Set<_u32>("L", this->_num_points);
-
+    build_parameters.Set<_u32>("C", this->_num_points);
+    build_parameters.Set<_u32>("R", this->_num_points);
+    build_parameters.Set<float>("alpha", 1);
+    build_parameters.Set<_u32>("L", this->_num_points);
 
 #pragma omp parallel for schedule(static, 64)
     for (_u32 location = 0; location < this->_num_points; location++) {
@@ -172,22 +171,24 @@ namespace grann {
       }
 
       std::vector<Neighbor> pool;
-      std::vector<_u32> pruned_list;
-
+      std::vector<_u32>     pruned_list;
 
       for (_u32 j = 0; j < this->_num_points; j++) {
         if (j == location)
-        continue;
-        float dist = this->_distance->compare(this->_data + this->_aligned_dim* (_u64) j, this->_data + this->_aligned_dim* (_u64) location, this->_aligned_dim);
+          continue;
+        float dist = this->_distance->compare(
+            this->_data + this->_aligned_dim * (_u64) j,
+            this->_data + this->_aligned_dim * (_u64) location,
+            this->_aligned_dim);
         pool.emplace_back(Neighbor(j, dist, true));
       }
 
-      this->prune_candidates_alpha_rng(location, pool, build_parameters, pruned_list);
+      this->prune_candidates_alpha_rng(location, pool, build_parameters,
+                                       pruned_list);
 
       this->_out_nbrs[location].reserve(pruned_list.size());
-        for (auto link : pruned_list)
-          this->_out_nbrs[location].emplace_back(link);
-
+      for (auto link : pruned_list)
+        this->_out_nbrs[location].emplace_back(link);
     }
 
     grann::cout << "done." << std::endl;
@@ -201,8 +202,8 @@ namespace grann {
 
   template<typename T>
   _u32 RelativeNG<T>::search(const T *query, _u32 res_count,
-                         Parameters &search_params, _u32 *indices,
-                         float *distances, QueryStats *stats) {
+                             Parameters &search_params, _u32 *indices,
+                             float *distances, QueryStats *stats) {
     _u32                     search_list_size = search_params.Get<_u32>("L");
     std::vector<unsigned>    init_ids;
     tsl::robin_set<unsigned> visited(10 * search_list_size);

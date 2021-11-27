@@ -32,10 +32,9 @@ namespace grann {
     //  _u64   _num_steiner_pts;
     unsigned _start_node;
 
-    void     get_expanded_nodes(const _u64 node_id, const unsigned l_build,
-                                std::vector<unsigned>     init_ids,
-                                std::vector<Neighbor> &   expanded_nodes_info,
-                                tsl::robin_set<unsigned> &expanded_nodes_ids);
-
+    void get_expanded_nodes(const _u64 node_id, const unsigned l_build,
+                            std::vector<unsigned>     init_ids,
+                            std::vector<Neighbor> &   expanded_nodes_info,
+                            tsl::robin_set<unsigned> &expanded_nodes_ids);
   };
 }  // namespace grann

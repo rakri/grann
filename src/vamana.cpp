@@ -19,18 +19,15 @@ namespace grann {
   }
 
   template<typename T>
-  Vamana<T>::Vamana(Metric m)
-      : GraphIndex<T>(m) {
-    grann::cout << "Initialized Empty Vamana Object."<< std::endl;
+  Vamana<T>::Vamana(Metric m) : GraphIndex<T>(m) {
+    grann::cout << "Initialized Empty Vamana Object." << std::endl;
   }
-
 
   // save the graph vamana on a file as an adjacency list. For each point,
   // first store the number of neighbors, and then the neighbor list (each as
   // 4 byte unsigned)
   template<typename T>
   void Vamana<T>::save(const char *filename) {
-
     ANNIndex<T>::save_data_and_tags(filename);
     long long     total_gr_edges = 0;
     _u64          vamana_size = 0;
@@ -94,7 +91,6 @@ namespace grann {
    *      Support for Static Vamana Building and Searching
    **************************************************************/
 
-
   template<typename T>
   void Vamana<T>::get_expanded_nodes(
       const _u64 node_id, const unsigned l_build,
@@ -111,7 +107,6 @@ namespace grann {
                                        expanded_nodes_info, expanded_nodes_ids,
                                        best_L_nodes);
   }
-
 
   template<typename T>
   void Vamana<T>::build(Parameters &build_parameters) {
@@ -163,7 +158,8 @@ namespace grann {
       std::vector<_u32> init_ids;
       get_expanded_nodes(location, L, init_ids, pool, visited);
 
-      this->prune_candidates_alpha_rng(location, pool, build_parameters, pruned_list);
+      this->prune_candidates_alpha_rng(location, pool, build_parameters,
+                                       pruned_list);
 
       this->_out_nbrs[location].reserve(
           (_u64)(VAMANA_SLACK_FACTOR * degree_bound));
@@ -172,8 +168,9 @@ namespace grann {
         for (auto link : pruned_list)
           this->_out_nbrs[location].emplace_back(link);
       }
-      GraphIndex<T>::add_reciprocal_edges(location, pruned_list,
-                   build_parameters);  // add reverse edges
+      GraphIndex<T>::add_reciprocal_edges(
+          location, pruned_list,
+          build_parameters);  // add reverse edges
     }
     grann::cout << "Starting final cleanup.." << std::flush;
 #pragma omp parallel for schedule(dynamic, 65536)
@@ -195,7 +192,7 @@ namespace grann {
           }
         }
         this->prune_candidates_alpha_rng(node, dummy_pool, build_parameters,
-                              new_out_neighbors);
+                                         new_out_neighbors);
 
         this->_out_nbrs[node].clear();
         for (auto id : new_out_neighbors)

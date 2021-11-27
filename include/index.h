@@ -106,9 +106,9 @@ namespace grann {
     // with each vector.
     ANNIndex(Metric m, const char *filename, std::vector<_u32> &list_of_tags);
 
-//  for loading an index from a file, we dont need data file, and list of tags
+    //  for loading an index from a file, we dont need data file, and list of
+    //  tags
     ANNIndex(Metric m);
-
 
     virtual ~ANNIndex();
 
@@ -125,22 +125,23 @@ namespace grann {
 
     /*  Internals of the library */
    protected:
+    void save_data_and_tags(const std::string index_file);
+    void load_data_and_tags(const std::string index_file);
 
-   void save_data_and_tags(const std::string index_file);
-   void load_data_and_tags(const std::string index_file);
-   
-    unsigned calculate_entry_point(); 
+    unsigned     calculate_entry_point();
     Metric       _metric = grann::L2;
     Distance<T> *_distance;
-    _u32*       _tag_map = nullptr;
+    _u32 *       _tag_map = nullptr;
 
-    T *  _data; // will be a num_points * aligned_dim array stored in row-major form
-    _u64 _num_points = 0; // number of points hosted by index
-    _u64 _dim; // original dimension of data vectors
+    T *_data;  // will be a num_points * aligned_dim array stored in row-major
+               // form
+    _u64 _num_points = 0;  // number of points hosted by index
+    _u64 _dim;             // original dimension of data vectors
     _u64 _aligned_dim;  // data dimension is rounded to multiple of 8 for more
                         // efficient alignment and faster floating distance
                         // comparisons. Hence _data is matrix of _num_points *
-                        // _aligned_dim size. Remaining ailgned_dim - dim entries of each vector are padded with zeros.
+                        // _aligned_dim size. Remaining ailgned_dim - dim
+                        // entries of each vector are padded with zeros.
     bool _has_built = false;
   };
 }  // namespace grann

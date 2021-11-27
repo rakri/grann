@@ -14,9 +14,12 @@ namespace grann {
       int *p = new int;
       *p = 0;
       params["num_threads"] = p;
-      float* alpha = new float;
+      float *alpha = new float;
       *alpha = 1;
       params["alpha"] = alpha;
+      int *p2 = new int;
+      *p2 = 0;
+      params["pruning_rule"] = p2;  // default is alpha-RNG (0), top-K is (1)
     }
 
     template<typename ParamType>

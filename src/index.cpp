@@ -97,13 +97,11 @@ namespace grann {
     }
   }
 
-
-    template<typename T>
-  ANNIndex<T>::ANNIndex(Metric m): _metric(m), _has_built(false) {
+  template<typename T>
+  ANNIndex<T>::ANNIndex(Metric m) : _metric(m), _has_built(false) {
     this->_distance = ::get_distance_function<T>(m);
     _num_points = 0;
-                        }
-
+  }
 
   template<typename T>
   ANNIndex<T>::~ANNIndex() {
@@ -116,21 +114,25 @@ namespace grann {
   void ANNIndex<T>::save_data_and_tags(const std::string index_file) {
     std::string data_file = index_file + "_data.bin";
     std::string tag_file = index_file + "_tags.bin";
-     grann::save_data_in_original_dimensions<T>(data_file, _data, _num_points, _aligned_dim, _dim);
-     grann::save_bin<_u32>(tag_file, _tag_map, _num_points, 1);
+    grann::save_data_in_original_dimensions<T>(data_file, _data, _num_points,
+                                               _aligned_dim, _dim);
+    grann::save_bin<_u32>(tag_file, _tag_map, _num_points, 1);
   }
 
   template<typename T>
   void ANNIndex<T>::load_data_and_tags(const std::string index_file) {
     std::string data_file = index_file + "_data.bin";
     std::string tag_file = index_file + "_tags.bin";
-    _u64 num_tags, tmp_dim;
-     grann::load_aligned_bin<T>(data_file, _data, _num_points, _dim, _aligned_dim);
-     grann::load_bin<_u32>(tag_file, _tag_map, num_tags, tmp_dim);
-     if (num_tags != _num_points) {
-       grann::cout<<"Error! Mismatch between number of tags and number of data points. Exitting." << std::endl;
-       exit(-1);
-     }
+    _u64        num_tags, tmp_dim;
+    grann::load_aligned_bin<T>(data_file, _data, _num_points, _dim,
+                               _aligned_dim);
+    grann::load_bin<_u32>(tag_file, _tag_map, num_tags, tmp_dim);
+    if (num_tags != _num_points) {
+      grann::cout << "Error! Mismatch between number of tags and number of "
+                     "data points. Exitting."
+                  << std::endl;
+      exit(-1);
+    }
   }
 
   /* This function finds out the navigating node, which is the medoid node
@@ -178,7 +180,6 @@ namespace grann {
     delete[] center;
     return min_idx;
   }
-
 
   // EXPORTS
   template class ANNIndex<float>;

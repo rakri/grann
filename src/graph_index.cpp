@@ -53,7 +53,7 @@ namespace grann {
                             std::vector<_u32> &list_of_tags)
       : ANNIndex<T>(m, filename,
                     list_of_tags) {  // Graph Index class constructor loads the
-                                    // data and sets num_points, dim, etc.
+                                     // data and sets num_points, dim, etc.
     _max_degree = 0;
   }
 
@@ -62,8 +62,6 @@ namespace grann {
       : ANNIndex<T>(m) {  // Graph Index class constructor empty for load.
     _max_degree = 0;
   }
-
-
 
   /* greedy_search_to_fixed_point():
    * node_coords : point whose neighbors to be found.
@@ -152,10 +150,9 @@ namespace grann {
   }
 
   template<typename T>
-  void GraphIndex<T>::prune_candidates_alpha_rng(const unsigned         point_id,
-                                      std::vector<Neighbor> &candidate_list,
-                                      const Parameters &     parameter,
-                                      std::vector<unsigned> &pruned_list) {
+  void GraphIndex<T>::prune_candidates_alpha_rng(
+      const unsigned point_id, std::vector<Neighbor> &candidate_list,
+      const Parameters &parameter, std::vector<unsigned> &pruned_list) {
     unsigned degree_bound = parameter.Get<unsigned>("R");
     unsigned maxc = parameter.Get<unsigned>("C");
     float    alpha = parameter.Get<float>("alpha");
@@ -178,7 +175,7 @@ namespace grann {
       auto &p = candidate_list[start];
       if (p.id == point_id) {
         start++;
-      continue;
+        continue;
       }
       if (occlude_factor[start] > alpha) {
         start++;
@@ -210,12 +207,40 @@ namespace grann {
     }
   }
 
+  template<typename T>
+  void GraphIndex<T>::prune_candidates_top_K(
+      const unsigned point_id, std::vector<Neighbor> &candidate_list,
+      const Parameters &parameter, std::vector<unsigned> &pruned_list) {
+    unsigned degree_bound = parameter.Get<unsigned>("R");
 
+    if (candidate_list.size() == 0)
+      return;
+
+    // sort the candidate_list based on distance to query
+    std::sort(candidate_list.begin(), candidate_list.end());
+
+    pruned_list.clear();
+
+    unsigned start = 0;
+    while (pruned_list.size() < degree_bound &&
+           (start) < candidate_list.size()) {
+      auto &p = candidate_list[start];
+      if (p.id == point_id) {
+        start++;
+        continue;
+      }
+      pruned_list.push_back(p.id);
+      start++;
+    }
+  }
 
   template<typename T>
-  void GraphIndex<T>::add_reciprocal_edges(unsigned n, std::vector<unsigned> &pruned_list,
-                               const Parameters &parameters) {
+  void GraphIndex<T>::add_reciprocal_edges(unsigned               n,
+                                           std::vector<unsigned> &pruned_list,
+                                           const Parameters &     parameters) {
     const auto degree_bound = parameters.Get<unsigned>("R");
+
+    const auto prune_rule = parameters.Get<unsigned>("pruning_rule");
 
     const auto &src_pool = pruned_list;
 
@@ -262,7 +287,12 @@ namespace grann {
           }
         }
         std::vector<unsigned> new_out_neighbors;
-        this->prune_candidates_alpha_rng(des, dummy_pool, parameters, new_out_neighbors);
+        if (prune_rule == 0)
+          this->prune_candidates_alpha_rng(des, dummy_pool, parameters,
+                                           new_out_neighbors);
+        else
+          this->prune_candidates_top_K(des, dummy_pool, parameters,
+                                       new_out_neighbors);
         {
           LockGuard guard(this->_locks[des]);
           this->_out_nbrs[des].clear();
@@ -273,7 +303,6 @@ namespace grann {
       }
     }
   }
-
 
   template<typename T>
   void GraphIndex<T>::update_degree_stats() {

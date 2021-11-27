@@ -12,28 +12,27 @@ namespace grann {
   // (bin), and initialize num_points
   template<typename T>
   HNSW<T>::HNSW(Metric m, _u32 level_number, const char *filename,
-                    std::vector<_u32> &list_of_tags)
+                std::vector<_u32> &list_of_tags)
       : GraphIndex<T>(m, filename, list_of_tags) {
-        _cur_level_number = level_number;
+    _cur_level_number = level_number;
     grann::cout << "Initialized HNSW Object with " << this->_num_points
                 << " points, dim=" << this->_dim << "." << std::endl;
   }
 
   template<typename T>
-  HNSW<T>::HNSW(Metric m, _u32 level_number)
-      : GraphIndex<T>(m) {
+  HNSW<T>::HNSW(Metric m, _u32 level_number) : GraphIndex<T>(m) {
     _cur_level_number = level_number;
     if (level_number > 0)
-    _inner_index = new HNSW<T>(m, level_number -1);
-    grann::cout << "Initialized Empty HNSW Object at level "<< _cur_level_number << std::endl;
+      _inner_index = new HNSW<T>(m, level_number - 1);
+    grann::cout << "Initialized Empty HNSW Object at level "
+                << _cur_level_number << std::endl;
   }
 
   template<typename T>
   HNSW<T>::~HNSW() {
     if (_cur_level_number > 0)
-    delete this->_inner_index;
+      delete this->_inner_index;
   }
-
 
   // save the graph hnsw on a file as an adjacency list. For each point,
   // first store the number of neighbors, and then the neighbor list (each as
@@ -114,8 +113,7 @@ namespace grann {
    *      Support for Static HNSW Building and Searching
    **************************************************************/
 
-
-   /* add_reciprocal_edges():
+  /* add_reciprocal_edges():
    * This function tries to add reverse links from all the visited nodes to
    * the current node n.
    */
@@ -125,18 +123,22 @@ namespace grann {
     grann::Timer build_timer;
 
     float sampling_prob = build_parameters.Get<float>("sampling_rate");
+    auto  prune_rule = build_parameters.Get<_u32>("pruning_rule");
     if (_cur_level_number > 0) {
       std::vector<_u32> inner_level_pts;
       for (_u32 i = 0; i < this->_num_points; i++) {
-          float randval = (float) (rand() % 1000000);
-          randval /= 1000000.0;
-          if (randval < sampling_prob) {
-            inner_level_pts.push_back(i);
-          }
+        float randval = (float) (rand() % 1000000);
+        randval /= 1000000.0;
+        if (randval < sampling_prob) {
+          inner_level_pts.push_back(i);
+        }
       }
       std::string tmp_file = "/tmp/temp_data";
-      grann::save_aligned_data_subset_in_orig_dimensions(tmp_file, this->_data, this->_num_points, this->_dim, this->_aligned_dim, inner_level_pts);
-      _inner_index = new HNSW<T>(this->_metric, _cur_level_number -1, tmp_file.c_str(), inner_level_pts);
+      grann::save_aligned_data_subset_in_orig_dimensions(
+          tmp_file, this->_data, this->_num_points, this->_dim,
+          this->_aligned_dim, inner_level_pts);
+      _inner_index = new HNSW<T>(this->_metric, _cur_level_number - 1,
+                                 tmp_file.c_str(), inner_level_pts);
       std::remove(tmp_file.c_str());
       _inner_index->build(build_parameters);
     }
@@ -148,7 +150,8 @@ namespace grann {
 
     grann::cout << "Starting hnsw build with listSize L=" << L
                 << ", degree bound R=" << degree_bound
-                << ", and alpha=" << alpha << " on HNSW level " << _cur_level_number << std::endl;
+                << ", and alpha=" << alpha << " on HNSW level "
+                << _cur_level_number << std::endl;
 
     this->_locks_enabled =
         true;  // we dont need locks for pure search on a pre-built index
@@ -185,25 +188,29 @@ namespace grann {
 
       std::vector<_u32> pruned_list;
       std::vector<_u32> init_ids;
-    const T *node_coords = this->_data + this->_aligned_dim * location;
-//      get_expanded_nodes(location, L, init_ids, pool, visited);
+      const T *node_coords = this->_data + this->_aligned_dim * location;
+      //      get_expanded_nodes(location, L, init_ids, pool, visited);
 
-   if (_cur_level_number == 0) {
-      init_ids.emplace_back(this->_start_node); 
+      if (_cur_level_number == 0) {
+        init_ids.emplace_back(this->_start_node);
       } else {
         init_ids.resize(L);
         std::vector<float> tmp_dists(L);
-_u32 res_cnt = _inner_index->search(node_coords, L, build_parameters, init_ids.data(), tmp_dists.data());
-init_ids.resize(res_cnt);
+        _u32 res_cnt = _inner_index->search(node_coords, L, build_parameters,
+                                            init_ids.data(), tmp_dists.data());
+        init_ids.resize(res_cnt);
       }
 
-    std::vector<Neighbor> best_L_nodes;
-    this->greedy_search_to_fixed_point(node_coords, L, init_ids,
-                                       pool, visited,
-                                       best_L_nodes);
+      std::vector<Neighbor> best_L_nodes;
+      this->greedy_search_to_fixed_point(node_coords, L, init_ids, pool,
+                                         visited, best_L_nodes);
 
-
-      this->prune_candidates_alpha_rng(location, best_L_nodes, build_parameters, pruned_list);
+      if (prune_rule == 0)
+        this->prune_candidates_alpha_rng(location, best_L_nodes,
+                                         build_parameters, pruned_list);
+      else
+        this->prune_candidates_top_K(location, best_L_nodes, build_parameters,
+                                     pruned_list);
 
       this->_out_nbrs[location].reserve(
           (_u64)(VAMANA_SLACK_FACTOR * degree_bound));
@@ -212,8 +219,9 @@ init_ids.resize(res_cnt);
         for (auto link : pruned_list)
           this->_out_nbrs[location].emplace_back(link);
       }
-      GraphIndex<T>::add_reciprocal_edges(location, pruned_list,
-                   build_parameters);  // add reverse edges
+      GraphIndex<T>::add_reciprocal_edges(
+          location, pruned_list,
+          build_parameters);  // add reverse edges
     }
     grann::cout << "Starting final cleanup.." << std::flush;
 #pragma omp parallel for schedule(dynamic, 65536)
@@ -234,8 +242,12 @@ init_ids.resize(res_cnt);
             dummy_visited.insert(cur_nbr);
           }
         }
-        this->prune_candidates_alpha_rng(node, dummy_pool, build_parameters,
-                              new_out_neighbors);
+        if (prune_rule == 0)
+          this->prune_candidates_alpha_rng(node, dummy_pool, build_parameters,
+                                           new_out_neighbors);
+        else
+          this->prune_candidates_top_K(node, dummy_pool, build_parameters,
+                                       new_out_neighbors);
 
         this->_out_nbrs[node].clear();
         for (auto id : new_out_neighbors)
@@ -245,7 +257,7 @@ init_ids.resize(res_cnt);
 
     grann::cout << "done." << std::endl;
     this->_has_built = true;
-//    this->update_degree_stats();
+    //    this->update_degree_stats();
 
     grann::cout << "Total build time: "
                 << ((double) build_timer.elapsed() / (double) 1000000) << "s"
@@ -254,8 +266,8 @@ init_ids.resize(res_cnt);
 
   template<typename T>
   _u32 HNSW<T>::search(const T *query, _u32 res_count,
-                         Parameters &search_params, _u32 *indices,
-                         float *distances, QueryStats *stats) {
+                       Parameters &search_params, _u32 *indices,
+                       float *distances, QueryStats *stats) {
     _u32                     search_list_size = search_params.Get<_u32>("L");
     std::vector<unsigned>    init_ids;
     tsl::robin_set<unsigned> visited(10 * search_list_size);
@@ -263,11 +275,13 @@ init_ids.resize(res_cnt);
     tsl::robin_set<unsigned> expanded_nodes_ids;
 
     if (_cur_level_number == 0)
-    init_ids.emplace_back(this->_start_node); 
+      init_ids.emplace_back(this->_start_node);
     else {
       init_ids.resize(search_list_size);
       std::vector<float> tmp_dists(search_list_size);
-      _u32 res_cnt = _inner_index->search(query, res_count, search_params, init_ids.data(), tmp_dists.data(), stats);
+      _u32               res_cnt =
+          _inner_index->search(query, res_count, search_params, init_ids.data(),
+                               tmp_dists.data(), stats);
       init_ids.resize(res_cnt);
     }
 
