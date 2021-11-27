@@ -15,7 +15,7 @@
 #endif
 
 #include "recall_utils.h"
-#include "vamana.h"
+#include "ivf.h"
 #include "utils.h"
 
 template<typename T>
@@ -26,47 +26,27 @@ int search_index(int argc, char** argv) {
   _u64              query_num, query_dim, query_aligned_dim, gt_num, gt_dim;
   std::vector<_u64> Lvec;
 
+  grann::Metric metric = grann::Metric::L2;
+
   _u32          ctr = 2;
-  grann::Metric metric;
 
-  if (std::string(argv[ctr]) == std::string("mips"))
-    metric = grann::Metric::INNER_PRODUCT;
-  else if (std::string(argv[ctr]) == std::string("l2"))
-    metric = grann::Metric::L2;
-  else {
-    std::cout << "Unsupported distance function. Currently only L2/ Inner "
-                 "Product."
-              << std::endl;
-    return -1;
-  }
-  ctr++;
-
-  if ((std::string(argv[1]) != std::string("float")) &&
-      ((metric == grann::Metric::INNER_PRODUCT))) {
-    std::cout << "Error. Inner product currently only "
-                 "supported for "
-                 "floating point datatypes."
-              << std::endl;
-  }
-
-  std::string vamana_file(argv[ctr++]);
+  std::string index_file(argv[ctr++]);
   _u64        num_threads = std::atoi(argv[ctr++]);
   std::string query_bin(argv[ctr++]);
   std::string truthset_bin(argv[ctr++]);
   _u64        recall_at = std::atoi(argv[ctr++]);
   std::string result_output_prefix(argv[ctr++]);
-  //  bool        use_optimized_search = std::atoi(argv[ctr++]);
-
+  
   bool calc_recall_flag = false;
 
   for (; ctr < (_u32) argc; ctr++) {
     _u64 curL = std::atoi(argv[ctr]);
-    if (curL >= recall_at)
+    if (curL >= 1)
       Lvec.push_back(curL);
   }
 
   if (Lvec.size() == 0) {
-    std::cout << "No valid Lsearch found. Lsearch must be at least recall_at."
+    std::cout << "No valid probe width found -- must be at 1."
               << std::endl;
     return -1;
   }
@@ -86,9 +66,9 @@ int search_index(int argc, char** argv) {
   std::cout.setf(std::ios_base::fixed, std::ios_base::floatfield);
   std::cout.precision(2);
 
-  grann::Vamana<T> vamana(metric);
-  vamana.load(vamana_file.c_str());  // to load Vamana Index
-  std::cout << "Vamana loaded" << std::endl;
+  grann::IVFIndex<T> ivf_index(metric);
+  ivf_index.load(index_file.c_str());  // to load Index
+  std::cout << "IVF Index loaded" << std::endl;
   grann::Parameters search_params;
 
   std::string recall_string = "Recall@" + std::to_string(recall_at);
@@ -108,7 +88,7 @@ int search_index(int argc, char** argv) {
 
   for (uint32_t test_id = 0; test_id < Lvec.size(); test_id++) {
     _u64 L = Lvec[test_id];
-    search_params.Set<_u32>("L", L);
+    search_params.Set<_u32>("probe_width", L);
     query_result_ids[test_id].resize(recall_at * query_num);
     query_result_dists[test_id].resize(recall_at * query_num);
 
@@ -118,7 +98,7 @@ int search_index(int argc, char** argv) {
 #pragma omp parallel for schedule(dynamic, 1)
     for (int64_t i = 0; i < (int64_t) query_num; i++) {
       auto qs = std::chrono::high_resolution_clock::now();
-      vamana.search(query + i * query_aligned_dim, recall_at, search_params,
+      ivf_index.search(query + i * query_aligned_dim, recall_at, search_params,
                     query_result_ids[test_id].data() + i * recall_at,
                     query_result_dists[test_id].data() + i * recall_at,
                     (stats.data() + i));
@@ -183,14 +163,14 @@ int search_index(int argc, char** argv) {
 }
 
 int main(int argc, char** argv) {
-  if (argc < 10) {
+  if (argc < 9) {
     std::cout
         << "Usage: " << argv[0]
-        << "  [data_type<float/int8/uint8>]  [dist_fn (l2/mips/fast_l2)] "
-           "[vamana_path]  [num_threads] "
+        << "  [data_type<float/int8/uint8>]  "
+           "[index_prefix]  [num_threads] "
            "[query_file.bin]  [truthset.bin (use \"null\" for none)] "
            " [K] [result_output_prefix]"
-           " [L1]  [L2] etc. See README for more information on parameters. "
+           " [P1]  [P2] etc. See README for more information on parameters. "
         << std::endl;
     exit(-1);
   }

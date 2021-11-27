@@ -71,3 +71,12 @@ else()
 		target_link_libraries(search_relng ${PROJECT_NAME} aio -ltcmalloc)
 endif()
 
+
+add_executable(search_ivf search_ivf.cpp )
+if(MSVC)
+	target_link_options(search_ivf PRIVATE /MACHINE:x64 /DEBUG:FULL)
+	target_link_libraries(search_ivf debug ${CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG}/grann_dll.lib)
+	target_link_libraries(search_ivf optimized ${CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE}/grann_dll.lib)
+else() 
+		target_link_libraries(search_ivf ${PROJECT_NAME} aio -ltcmalloc)
+endif()

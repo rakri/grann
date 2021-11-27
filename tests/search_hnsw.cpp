@@ -19,7 +19,7 @@
 #include "utils.h"
 
 template<typename T>
-int search_hnsw_index(int argc, char** argv) {
+int search_index(int argc, char** argv) {
   T*                query = nullptr;
   unsigned*         gt_ids = nullptr;
   float*            gt_dists = nullptr;
@@ -196,11 +196,11 @@ int main(int argc, char** argv) {
     exit(-1);
   }
   if (std::string(argv[1]) == std::string("int8"))
-    search_hnsw_index<int8_t>(argc, argv);
+    search_index<int8_t>(argc, argv);
   else if (std::string(argv[1]) == std::string("uint8"))
-    search_hnsw_index<uint8_t>(argc, argv);
+    search_index<uint8_t>(argc, argv);
   else if (std::string(argv[1]) == std::string("float"))
-    search_hnsw_index<float>(argc, argv);
+    search_index<float>(argc, argv);
   else
     std::cout << "Unsupported type. Use float/int8/uint8" << std::endl;
 }
