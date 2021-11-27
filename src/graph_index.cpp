@@ -176,8 +176,10 @@ namespace grann {
     while (result.size() < degree_bound && (start) < pool.size() &&
            start < maxc) {
       auto &p = pool[start];
-      if (p.id == location)
+      if (p.id == location) {
+        start++;
       continue;
+      }
       if (occlude_factor[start] > alpha) {
         start++;
         continue;
