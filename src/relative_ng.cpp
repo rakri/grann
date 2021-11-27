@@ -182,7 +182,7 @@ namespace grann {
         pool.emplace_back(Neighbor(j, dist, true));
       }
 
-      this->prune_neighbors(location, pool, build_parameters, pruned_list);
+      this->prune_candidates_alpha_rng(location, pool, build_parameters, pruned_list);
 
       this->_out_nbrs[location].reserve(pruned_list.size());
         for (auto link : pruned_list)

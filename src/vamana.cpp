@@ -163,7 +163,7 @@ namespace grann {
       std::vector<_u32> init_ids;
       get_expanded_nodes(location, L, init_ids, pool, visited);
 
-      this->prune_neighbors(location, pool, build_parameters, pruned_list);
+      this->prune_candidates_alpha_rng(location, pool, build_parameters, pruned_list);
 
       this->_out_nbrs[location].reserve(
           (_u64)(VAMANA_SLACK_FACTOR * degree_bound));
@@ -172,7 +172,7 @@ namespace grann {
         for (auto link : pruned_list)
           this->_out_nbrs[location].emplace_back(link);
       }
-      GraphIndex<T>::inter_insert(location, pruned_list,
+      GraphIndex<T>::add_reciprocal_edges(location, pruned_list,
                    build_parameters);  // add reverse edges
     }
     grann::cout << "Starting final cleanup.." << std::flush;
@@ -194,7 +194,7 @@ namespace grann {
             dummy_visited.insert(cur_nbr);
           }
         }
-        this->prune_neighbors(node, dummy_pool, build_parameters,
+        this->prune_candidates_alpha_rng(node, dummy_pool, build_parameters,
                               new_out_neighbors);
 
         this->_out_nbrs[node].clear();

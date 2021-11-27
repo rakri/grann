@@ -38,7 +38,7 @@ namespace grann {
         Neighbor nn(id, dist, true);
         unsigned r = InsertIntoPool(best_L_nodes.data(), curListSize, nn);
         if (curListSize < maxListSize)
-          ++curListSize;  // pool has grown by +1
+          ++curListSize;  // candidate_list has grown by +1
         if (r < best_inserted_position)
           best_inserted_position = r;
       }
@@ -152,31 +152,31 @@ namespace grann {
   }
 
   template<typename T>
-  void GraphIndex<T>::prune_neighbors(const unsigned         location,
-                                      std::vector<Neighbor> &pool,
+  void GraphIndex<T>::prune_candidates_alpha_rng(const unsigned         point_id,
+                                      std::vector<Neighbor> &candidate_list,
                                       const Parameters &     parameter,
                                       std::vector<unsigned> &pruned_list) {
     unsigned degree_bound = parameter.Get<unsigned>("R");
     unsigned maxc = parameter.Get<unsigned>("C");
     float    alpha = parameter.Get<float>("alpha");
 
-    if (pool.size() == 0)
+    if (candidate_list.size() == 0)
       return;
 
-    // sort the pool based on distance to query
-    std::sort(pool.begin(), pool.end());
+    // sort the candidate_list based on distance to query
+    std::sort(candidate_list.begin(), candidate_list.end());
 
     std::vector<Neighbor> result;
     result.reserve(degree_bound);
 
-    auto               pool_size = (_u32) pool.size();
+    auto               pool_size = (_u32) candidate_list.size();
     std::vector<float> occlude_factor(pool_size, 0);
 
     unsigned start = 0;
-    while (result.size() < degree_bound && (start) < pool.size() &&
+    while (result.size() < degree_bound && (start) < candidate_list.size() &&
            start < maxc) {
-      auto &p = pool[start];
-      if (p.id == location) {
+      auto &p = candidate_list[start];
+      if (p.id == point_id) {
         start++;
       continue;
       }
@@ -186,26 +186,26 @@ namespace grann {
       }
       occlude_factor[start] = std::numeric_limits<float>::max();
       result.push_back(p);
-      for (unsigned t = start + 1; t < pool.size() && t < maxc; t++) {
+      for (unsigned t = start + 1; t < candidate_list.size() && t < maxc; t++) {
         if (occlude_factor[t] > alpha)
           continue;
         float djk = this->_distance->compare(
-            this->_data + this->_aligned_dim * (_u64) pool[t].id,
+            this->_data + this->_aligned_dim * (_u64) candidate_list[t].id,
             this->_data + this->_aligned_dim * (_u64) p.id,
             (unsigned) this->_aligned_dim);
         occlude_factor[t] =
-            (std::max)(occlude_factor[t], pool[t].distance / djk);
+            (std::max)(occlude_factor[t], candidate_list[t].distance / djk);
       }
       start++;
     }
 
     /* Add all the nodes in result into a variable called pruned_list
-     * So this contains all the neighbors of id location
+     * So this contains all the neighbors of id point_id
      */
     pruned_list.clear();
     assert(result.size() <= degree_bound);
     for (auto iter : result) {
-      if (iter.id != location)
+      if (iter.id != point_id)
         pruned_list.emplace_back(iter.id);
     }
   }
@@ -213,7 +213,7 @@ namespace grann {
 
 
   template<typename T>
-  void GraphIndex<T>::inter_insert(unsigned n, std::vector<unsigned> &pruned_list,
+  void GraphIndex<T>::add_reciprocal_edges(unsigned n, std::vector<unsigned> &pruned_list,
                                const Parameters &parameters) {
     const auto degree_bound = parameters.Get<unsigned>("R");
 
@@ -262,7 +262,7 @@ namespace grann {
           }
         }
         std::vector<unsigned> new_out_neighbors;
-        this->prune_neighbors(des, dummy_pool, parameters, new_out_neighbors);
+        this->prune_candidates_alpha_rng(des, dummy_pool, parameters, new_out_neighbors);
         {
           LockGuard guard(this->_locks[des]);
           this->_out_nbrs[des].clear();
