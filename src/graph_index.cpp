@@ -143,8 +143,8 @@ namespace grann {
         k++;
     }
     if (stats != nullptr) {
-      stats->n_hops = hops;
-      stats->n_cmps = cmps;
+      stats->n_hops += hops;
+      stats->n_cmps += cmps;
     }
     return l;
   }

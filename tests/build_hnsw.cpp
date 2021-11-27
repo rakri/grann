@@ -16,14 +16,16 @@
 template<typename T>
 int build_hnsw_index(const std::string& data_path, const grann::Metric& metric,
                      const unsigned R, const unsigned L,
-                     const float sampling_rate, const _u32 num_levels,
-                     const std::string& save_path, const unsigned num_threads) {
+                     const _u32 pruning_rule, const float sampling_rate,
+                     const _u32 num_levels, const std::string& save_path,
+                     const unsigned num_threads) {
   grann::Parameters paras;
   paras.Set<unsigned>("R", R);
   paras.Set<unsigned>("L", L);
   paras.Set<unsigned>(
       "C", 750);  // maximum candidate set size during pruning procedure
                   //  paras.Set<float>("alpha", alpha);
+  paras.Set<_u32>("pruning_rule", pruning_rule);
   paras.Set<float>("sampling_rate", sampling_rate);
   paras.Set<bool>("saturate_graph", 0);
   paras.Set<unsigned>("num_threads", num_threads);
@@ -41,11 +43,12 @@ int build_hnsw_index(const std::string& data_path, const grann::Metric& metric,
 }
 
 int main(int argc, char** argv) {
-  if (argc != 10) {
+  if (argc != 11) {
     std::cout << "Usage: " << argv[0]
               << "  [data_type<int8/uint8/float>] [l2/mips] [data_file.bin]  "
                  "[output_index_prefix]  "
-              << "[R]  [L]  [sampling_rate] [num_levels] "
+              << "[R]  [L]  [pruning_rule (0 for RNG, 1 for top-K)] "
+                 "[sampling_rate] [num_levels] "
               << "  [num_threads_to_use]. See README for more information on "
                  "parameters."
               << std::endl;
@@ -71,19 +74,21 @@ int main(int argc, char** argv) {
   const std::string save_path(argv[ctr++]);
   const unsigned    R = (unsigned) atoi(argv[ctr++]);
   const unsigned    L = (unsigned) atoi(argv[ctr++]);
+  const unsigned    pruning_rule = (unsigned) atoi(argv[ctr++]);
   const float       sampling_rate = (float) atof(argv[ctr++]);
   const _u32        num_levels = (_u32) atoi(argv[ctr++]);
   const unsigned    num_threads = (unsigned) atoi(argv[ctr++]);
 
   if (std::string(argv[1]) == std::string("int8"))
-    build_hnsw_index<int8_t>(data_path, metric, R, L, sampling_rate, num_levels,
-                             save_path, num_threads);
+    build_hnsw_index<int8_t>(data_path, metric, R, L, pruning_rule,
+                             sampling_rate, num_levels, save_path, num_threads);
   else if (std::string(argv[1]) == std::string("uint8"))
-    build_hnsw_index<uint8_t>(data_path, metric, R, L, sampling_rate,
-                              num_levels, save_path, num_threads);
+    build_hnsw_index<uint8_t>(data_path, metric, R, L, pruning_rule,
+                              sampling_rate, num_levels, save_path,
+                              num_threads);
   else if (std::string(argv[1]) == std::string("float"))
-    build_hnsw_index<float>(data_path, metric, R, L, sampling_rate, num_levels,
-                            save_path, num_threads);
+    build_hnsw_index<float>(data_path, metric, R, L, pruning_rule,
+                            sampling_rate, num_levels, save_path, num_threads);
   else
     std::cout << "Unsupported type. Use float/int8/uint8" << std::endl;
 }
