@@ -203,7 +203,7 @@ init_ids.resize(res_cnt);
                                        best_L_nodes);
 
 
-      this->prune_neighbors(location, pool, build_parameters, pruned_list);
+      this->prune_neighbors(location, best_L_nodes, build_parameters, pruned_list);
 
       this->_out_nbrs[location].reserve(
           (_u64)(VAMANA_SLACK_FACTOR * degree_bound));

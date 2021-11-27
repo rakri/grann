@@ -14,6 +14,9 @@ namespace grann {
       int *p = new int;
       *p = 0;
       params["num_threads"] = p;
+      float* alpha = new float;
+      *alpha = 1;
+      params["alpha"] = alpha;
     }
 
     template<typename ParamType>
