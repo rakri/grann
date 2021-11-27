@@ -139,10 +139,43 @@ namespace grann {
     grann::cout << "Finished writing bin." << std::endl;
   }
 
+
+
+    template<typename T>
+  inline void save_data_in_original_dimensions(const std::string& filename, T* base_data,
+                                      _u64 npts, _u64 aligned_dim, _u64 original_dim) {
+
+    if (original_dim > aligned_dim) {
+      grann::cout<<"Error, original_dim must be at most aligned_dimension; NOT SAVING FILE." << std::endl;
+      return;
+    }
+    std::ofstream writer(filename, std::ios::binary | std::ios::out);
+    grann::cout << "Writing bin: " << filename.c_str() << std::endl;
+
+    int npts_i32 = (int) npts, ndims_i32 = (int) original_dim;
+    writer.write((char*) &npts_i32, sizeof(int));
+    writer.write((char*) &ndims_i32, sizeof(int));
+    grann::cout << "bin: #pts = " << npts_i32 << ", #dims = " << original_dim
+                << ", size = "
+                << (npts) * original_dim * sizeof(T) + 2 * sizeof(int)
+                << "B" << std::endl;
+
+    for (_u64 i = 0; i < npts; i++) {
+      writer.write((char*) (base_data + (_u64) i * aligned_dim), original_dim * sizeof(T));
+    }
+    writer.close();
+    grann::cout << "Finished writing bin." << std::endl;
+  }
+
+
   template<typename T>
-  inline void save_data_subset_as_bin(const std::string& filename, T* base_data,
-                                      _u64 npts, _u64 ndims,
+  inline void save_aligned_data_subset_in_orig_dimensions(const std::string& filename, T* base_data,
+                                      _u64 npts, _u64 ndims, _u64 aligned_dim, 
                                       std::vector<_u32>& list_of_tags) {
+    if (ndims > aligned_dim) {
+      grann::cout<<"Error, dimension > aligned_dimension. Not saving" << std::endl;
+      return;
+    }
     bool valid = true;
     for (auto& x : list_of_tags) {
       if (x >= npts) {
@@ -171,40 +204,13 @@ namespace grann {
                 << (list_of_tags.size()) * ndims * sizeof(T) + 2 * sizeof(int)
                 << "B" << std::endl;
 
-    //    data = new T[npts_u64 * ndims_u64];
     for (auto& id : list_of_tags) {
-      writer.write((char*) (base_data + (_u64) id * ndims), ndims * sizeof(T));
+      writer.write((char*) (base_data + (_u64) id * aligned_dim), ndims * sizeof(T));
     }
     writer.close();
     grann::cout << "Finished writing bin." << std::endl;
   }
 
-
-    template<typename T>
-  inline void save_data_in_original_dimensions(const std::string& filename, T* base_data,
-                                      _u64 npts, _u64 aligned_dim, _u64 original_dim) {
-
-    if (original_dim > aligned_dim) {
-      grann::cout<<"Error, original_dim must be at most aligned_dimension; NOT SAVING FILE." << std::endl;
-      return;
-    }
-    std::ofstream writer(filename, std::ios::binary | std::ios::out);
-    grann::cout << "Writing bin: " << filename.c_str() << std::endl;
-
-    int npts_i32 = (int) npts, ndims_i32 = (int) original_dim;
-    writer.write((char*) &npts_i32, sizeof(int));
-    writer.write((char*) &ndims_i32, sizeof(int));
-    grann::cout << "bin: #pts = " << npts_i32 << ", #dims = " << original_dim
-                << ", size = "
-                << (npts) * original_dim * sizeof(T) + 2 * sizeof(int)
-                << "B" << std::endl;
-
-    for (_u64 i = 0; i < npts; i++) {
-      writer.write((char*) (base_data + (_u64) i * aligned_dim), original_dim * sizeof(T));
-    }
-    writer.close();
-    grann::cout << "Finished writing bin." << std::endl;
-  }
 
 
   // load_aligned_bin functions START

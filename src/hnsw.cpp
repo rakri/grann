@@ -116,95 +116,29 @@ namespace grann {
    **************************************************************/
 
 
-  template<typename T>
-  void HNSW<T>::get_expanded_nodes(
-      const _u64 node_id, const unsigned l_build,
-      std::vector<unsigned>     init_ids,
-      std::vector<Neighbor> &   expanded_nodes_info,
-      tsl::robin_set<unsigned> &expanded_nodes_ids) {
-    const T *node_coords = this->_data + this->_aligned_dim * node_id;
-    std::vector<Neighbor> best_L_nodes;
-
-    if (init_ids.size() == 0)
-      init_ids.emplace_back(this->_start_node);
-
-    this->greedy_search_to_fixed_point(node_coords, l_build, init_ids,
-                                       expanded_nodes_info, expanded_nodes_ids,
-                                       best_L_nodes);
-  }
-
-  /* inter_insert():
+   /* inter_insert():
    * This function tries to add reverse links from all the visited nodes to
    * the current node n.
    */
-  template<typename T>
-  void HNSW<T>::inter_insert(unsigned n, std::vector<unsigned> &pruned_list,
-                               const Parameters &parameters) {
-    const auto degree_bound = parameters.Get<unsigned>("R");
-
-    const auto &src_pool = pruned_list;
-
-    assert(!src_pool.empty());
-
-    for (auto des : src_pool) {
-      /* des.id is the id of the neighbors of n */
-      /* des_pool contains the neighbors of the neighbors of n */
-      auto &                des_pool = this->_out_nbrs[des];
-      std::vector<unsigned> copy_of_neighbors;
-      bool                  prune_needed = false;
-      {
-        LockGuard guard(this->_locks[des]);
-        if (std::find(des_pool.begin(), des_pool.end(), n) == des_pool.end()) {
-          if (des_pool.size() < VAMANA_SLACK_FACTOR * degree_bound) {
-            des_pool.emplace_back(n);
-            prune_needed = false;
-          } else {
-            copy_of_neighbors = des_pool;
-            prune_needed = true;
-          }
-        }
-      }  // des lock is released by this point
-
-      if (prune_needed) {
-        copy_of_neighbors.push_back(n);
-        tsl::robin_set<unsigned> dummy_visited(0);
-        std::vector<Neighbor>    dummy_pool(0);
-
-        _u64 reserveSize =
-            (_u64)(std::ceil(1.05 * VAMANA_SLACK_FACTOR * degree_bound));
-        dummy_visited.reserve(reserveSize);
-        dummy_pool.reserve(reserveSize);
-
-        for (auto cur_nbr : copy_of_neighbors) {
-          if (dummy_visited.find(cur_nbr) == dummy_visited.end() &&
-              cur_nbr != des) {
-            float dist = this->_distance->compare(
-                this->_data + this->_aligned_dim * (_u64) des,
-                this->_data + this->_aligned_dim * (_u64) cur_nbr,
-                (unsigned) this->_aligned_dim);
-            dummy_pool.emplace_back(Neighbor(cur_nbr, dist, true));
-            dummy_visited.insert(cur_nbr);
-          }
-        }
-        std::vector<unsigned> new_out_neighbors;
-        this->prune_neighbors(des, dummy_pool, parameters, new_out_neighbors);
-        {
-          LockGuard guard(this->_locks[des]);
-          this->_out_nbrs[des].clear();
-          for (auto new_nbr : new_out_neighbors) {
-            this->_out_nbrs[des].emplace_back(new_nbr);
-          }
-        }
-      }
-    }
-  }
 
   template<typename T>
   void HNSW<T>::build(Parameters &build_parameters) {
     grann::Timer build_timer;
 
+    float sampling_prob = build_parameters.Get<float>("sampling_rate");
     if (_cur_level_number > 0) {
-      // need to initialize inner index with a random sample of data
+      std::vector<_u32> inner_level_pts;
+      for (_u32 i = 0; i < this->_num_points; i++) {
+          float randval = (float) (rand() % 1000000);
+          randval /= 1000000.0;
+          if (randval < sampling_prob) {
+            inner_level_pts.push_back(i);
+          }
+      }
+      std::string tmp_file = "/tmp/temp_data";
+      grann::save_aligned_data_subset_in_orig_dimensions(tmp_file, this->_data, this->_num_points, this->_dim, this->_aligned_dim, inner_level_pts);
+      _inner_index = new HNSW<T>(this->_metric, _cur_level_number -1, tmp_file.c_str(), inner_level_pts);
+      std::remove(tmp_file.c_str());
       _inner_index->build(build_parameters);
     }
 
@@ -215,7 +149,7 @@ namespace grann {
 
     grann::cout << "Starting hnsw build with listSize L=" << L
                 << ", degree bound R=" << degree_bound
-                << ", and alpha=" << alpha << std::endl;
+                << ", and alpha=" << alpha << " on HNSW level " << _cur_level_number << std::endl;
 
     this->_locks_enabled =
         true;  // we dont need locks for pure search on a pre-built index
@@ -252,7 +186,19 @@ namespace grann {
 
       std::vector<_u32> pruned_list;
       std::vector<_u32> init_ids;
-      get_expanded_nodes(location, L, init_ids, pool, visited);
+//      get_expanded_nodes(location, L, init_ids, pool, visited);
+
+   if (_cur_level_number == 0) {
+      init_ids.emplace_back(this->_start_node); 
+      } else {
+
+      }
+    const T *node_coords = this->_data + this->_aligned_dim * location;
+    std::vector<Neighbor> best_L_nodes;
+    this->greedy_search_to_fixed_point(node_coords, L, init_ids,
+                                       pool, visited,
+                                       best_L_nodes);
+
 
       this->prune_neighbors(location, pool, build_parameters, pruned_list);
 
@@ -263,7 +209,7 @@ namespace grann {
         for (auto link : pruned_list)
           this->_out_nbrs[location].emplace_back(link);
       }
-      inter_insert(location, pruned_list,
+      GraphIndex<T>::inter_insert(location, pruned_list,
                    build_parameters);  // add reverse edges
     }
     grann::cout << "Starting final cleanup.." << std::flush;
@@ -313,7 +259,14 @@ namespace grann {
     std::vector<Neighbor>    top_candidate_list, expanded_nodes_info;
     tsl::robin_set<unsigned> expanded_nodes_ids;
 
-    init_ids.emplace_back(this->_start_node);
+    if (_cur_level_number == 0)
+    init_ids.emplace_back(this->_start_node); 
+    else {
+      init_ids.resize(search_list_size);
+      std::vector<float> tmp_dists(search_list_size);
+      _u32 res_cnt = _inner_index->search(query, res_count, search_params, init_ids.data(), tmp_dists.data(), stats);
+      init_ids.resize(res_cnt);
+    }
 
     auto algo_fetched_count = this->greedy_search_to_fixed_point(
         query, search_list_size, init_ids, expanded_nodes_info,

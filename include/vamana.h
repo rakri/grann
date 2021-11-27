@@ -37,7 +37,5 @@ namespace grann {
                                 std::vector<Neighbor> &   expanded_nodes_info,
                                 tsl::robin_set<unsigned> &expanded_nodes_ids);
 
-    void inter_insert(unsigned n, std::vector<unsigned> &pruned_list,
-                      const Parameters &parameters);
   };
 }  // namespace grann

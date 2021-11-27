@@ -36,6 +36,9 @@ namespace grann {
                          const Parameters &     parameter,
                          std::vector<unsigned> &pruned_list);
 
+    void inter_insert(unsigned n, std::vector<unsigned> &pruned_list,
+                      const Parameters &parameters);
+
     _u32 greedy_search_to_fixed_point(
         const T *node_coords, const _u32 list_size,
         const std::vector<_u32> &init_ids,

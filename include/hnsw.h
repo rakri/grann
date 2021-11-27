@@ -34,13 +34,5 @@ namespace grann {
     unsigned _cur_level_number = 0;
     HNSW<T>* _inner_index = nullptr;
 
-
-    void     get_expanded_nodes(const _u64 node_id, const unsigned l_build,
-                                std::vector<unsigned>     init_ids,
-                                std::vector<Neighbor> &   expanded_nodes_info,
-                                tsl::robin_set<unsigned> &expanded_nodes_ids);
-
-    void inter_insert(unsigned n, std::vector<unsigned> &pruned_list,
-                      const Parameters &parameters);
   };
 }  // namespace grann
