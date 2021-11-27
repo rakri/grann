@@ -7,44 +7,6 @@
 
 namespace grann {
 
-  template<typename T>
-  _u32 GraphIndex<T>::process_candidates_into_best_candidates_pool(
-      const T *&node_coords, std::vector<_u32> &nbr_list,
-      std::vector<Neighbor> &best_L_nodes, const _u32 maxListSize,
-      _u32 &curListSize, tsl::robin_set<_u32> &inserted_into_pool,
-      _u32 &total_comparisons) {
-    _u32 best_inserted_position = maxListSize;
-    for (unsigned m = 0; m < nbr_list.size(); ++m) {
-      unsigned id = nbr_list[m];
-      if (inserted_into_pool.find(id) == inserted_into_pool.end()) {
-        inserted_into_pool.insert(id);
-
-        if ((m + 1) < nbr_list.size()) {
-          auto nextn = nbr_list[m + 1];
-          grann::prefetch_vector(
-              (const char *) this->_data + this->_aligned_dim * (_u64) nextn,
-              sizeof(T) * this->_aligned_dim);
-        }
-
-        total_comparisons++;
-        float dist = this->_distance->compare(
-            node_coords, this->_data + this->_aligned_dim * (_u64) id,
-            (unsigned) this->_aligned_dim);
-
-        if (dist >= best_L_nodes[curListSize - 1].distance &&
-            (curListSize == maxListSize))
-          continue;
-
-        Neighbor nn(id, dist, true);
-        unsigned r = InsertIntoPool(best_L_nodes.data(), curListSize, nn);
-        if (curListSize < maxListSize)
-          ++curListSize;  // candidate_list has grown by +1
-        if (r < best_inserted_position)
-          best_inserted_position = r;
-      }
-    }
-    return best_inserted_position;
-  }
 
   // Initialize a generic graph-based index with metric m, load the data of type
   // T with filename (bin)
@@ -127,11 +89,11 @@ namespace grann {
         }
         unsigned best_inserted_index;
         if (_locks_enabled)
-          best_inserted_index = process_candidates_into_best_candidates_pool(
+          best_inserted_index = ANNIndex<T>::process_candidates_into_best_candidates_pool(
               node_coords, des, best_L_nodes, Lsize, l, inserted_into_pool,
               cmps);
         else
-          best_inserted_index = process_candidates_into_best_candidates_pool(
+          best_inserted_index = ANNIndex<T>::process_candidates_into_best_candidates_pool(
               node_coords, _out_nbrs[n], best_L_nodes, Lsize, l,
               inserted_into_pool, cmps);
 

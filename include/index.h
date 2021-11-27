@@ -130,11 +130,18 @@ namespace grann {
     void save_data_and_tags(const std::string index_file);
     void load_data_and_tags(const std::string index_file);
 
+    _u32 process_candidates_into_best_candidates_pool(
+        const T *&node_coords, std::vector<_u32> &nbr_list,
+        std::vector<Neighbor> &best_L_nodes, const _u32 maxListSize,
+        _u32 &curListSize, tsl::robin_set<_u32> &inserted_into_pool,
+        _u32 &total_comparisons);
+
+
     unsigned     calculate_entry_point();
     Metric       _metric = grann::L2;
     Distance<T> *_distance;
     Distance<float> *_distance_float;
-        
+
     _u32 *       _tag_map = nullptr;
 
     T *_data;  // will be a num_points * aligned_dim array stored in row-major
