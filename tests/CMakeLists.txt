@@ -13,6 +13,16 @@ else()
 endif()
 
 
+add_executable(build_hnsw build_hnsw.cpp )
+if(MSVC)
+	target_link_options(build_hnsw PRIVATE /MACHINE:x64 /DEBUG:FULL "/INCLUDE:_tcmalloc")
+	target_link_libraries(build_hnsw debug ${CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG}/grann_dll.lib ${PROJECT_SOURCE_DIR}/dependencies/windows/tcmalloc/libtcmalloc_minimal.lib)
+	target_link_libraries(build_hnsw optimized ${CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE}/grann_dll.lib ${PROJECT_SOURCE_DIR}/dependencies/windows/tcmalloc/libtcmalloc_minimal.lib)
+else() 
+	target_link_libraries(build_hnsw ${PROJECT_NAME} -ltcmalloc)
+endif()
+
+
 add_executable(build_relng build_relng.cpp )
 if(MSVC)
 	target_link_options(build_relng PRIVATE /MACHINE:x64 /DEBUG:FULL "/INCLUDE:_tcmalloc")
@@ -31,6 +41,16 @@ if(MSVC)
 else() 
 		target_link_libraries(search_vamana ${PROJECT_NAME} aio -ltcmalloc)
 endif()
+
+add_executable(search_hnsw search_hnsw.cpp )
+if(MSVC)
+	target_link_options(search_hnsw PRIVATE /MACHINE:x64 /DEBUG:FULL)
+	target_link_libraries(search_hnsw debug ${CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG}/grann_dll.lib)
+	target_link_libraries(search_hnsw optimized ${CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE}/grann_dll.lib)
+else() 
+		target_link_libraries(search_hnsw ${PROJECT_NAME} aio -ltcmalloc)
+endif()
+
 
 add_executable(search_relng search_relng.cpp )
 if(MSVC)

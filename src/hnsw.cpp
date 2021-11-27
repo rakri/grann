@@ -32,7 +32,6 @@ namespace grann {
   HNSW<T>::~HNSW() {
     if (_cur_level_number > 0)
     delete this->_inner_index;
-    GraphIndex<T>::~GraphIndex();
   }
 
 
@@ -186,14 +185,18 @@ namespace grann {
 
       std::vector<_u32> pruned_list;
       std::vector<_u32> init_ids;
+    const T *node_coords = this->_data + this->_aligned_dim * location;
 //      get_expanded_nodes(location, L, init_ids, pool, visited);
 
    if (_cur_level_number == 0) {
       init_ids.emplace_back(this->_start_node); 
       } else {
-
+        init_ids.resize(L);
+        std::vector<float> tmp_dists(L);
+_u32 res_cnt = _inner_index->search(node_coords, L, build_parameters, init_ids.data(), tmp_dists.data());
+init_ids.resize(res_cnt);
       }
-    const T *node_coords = this->_data + this->_aligned_dim * location;
+
     std::vector<Neighbor> best_L_nodes;
     this->greedy_search_to_fixed_point(node_coords, L, init_ids,
                                        pool, visited,
@@ -242,7 +245,7 @@ namespace grann {
 
     grann::cout << "done." << std::endl;
     this->_has_built = true;
-    this->update_degree_stats();
+//    this->update_degree_stats();
 
     grann::cout << "Total build time: "
                 << ((double) build_timer.elapsed() / (double) 1000000) << "s"
