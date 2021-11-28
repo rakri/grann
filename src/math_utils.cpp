@@ -111,7 +111,7 @@ namespace math_utils {
         std::priority_queue<grann::SimpleNeighbor> top_k_queue;
         float* current = dist_matrix + (i * num_centers);
         for (_u64 j = 0; j < num_centers; j++) {
-          grann::SimpleNeighbor this_center(j, current[j]);
+          grann::SimpleNeighbor this_center(j, -current[j]);
           top_k_queue.push(this_center);
         }
         for (_u64 j = 0; j < k; j++) {

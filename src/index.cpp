@@ -108,6 +108,7 @@ namespace grann {
   template<typename T>
   ANNIndex<T>::~ANNIndex() {
     delete this->_distance;
+    delete this->_distance_float;
     aligned_free(_data);
     delete[] _tag_map;
   }
@@ -139,18 +140,18 @@ namespace grann {
 
   template<typename T>
   _u32 ANNIndex<T>::process_candidates_into_best_candidates_pool(
-      const T *&node_coords, std::vector<_u32> &nbr_list,
-      std::vector<Neighbor> &best_L_nodes, const _u32 maxListSize,
-      _u32 &curListSize, tsl::robin_set<_u32> &inserted_into_pool,
+      const T *&node_coords, std::vector<_u32> &cand_list,
+      std::vector<Neighbor> &top_L_candidates, const _u32 maxListSize,
+      _u32 &curListSize, tsl::robin_set<_u32> &already_inserted,
       _u32 &total_comparisons) {
     _u32 best_inserted_position = maxListSize;
-    for (unsigned m = 0; m < nbr_list.size(); ++m) {
-      unsigned id = nbr_list[m];
-      if (inserted_into_pool.find(id) == inserted_into_pool.end()) {
-        inserted_into_pool.insert(id);
+    for (unsigned m = 0; m < cand_list.size(); ++m) {
+      unsigned id = cand_list[m];
+      if (already_inserted.find(id) == already_inserted.end()) {
+        already_inserted.insert(id);
 
-        if ((m + 1) < nbr_list.size()) {
-          auto nextn = nbr_list[m + 1];
+        if ((m + 1) < cand_list.size()) {
+          auto nextn = cand_list[m + 1];
           grann::prefetch_vector(
               (const char *) this->_data + this->_aligned_dim * (_u64) nextn,
               sizeof(T) * this->_aligned_dim);
@@ -161,12 +162,13 @@ namespace grann {
             node_coords, this->_data + this->_aligned_dim * (_u64) id,
             (unsigned) this->_aligned_dim);
 
-        if (dist >= best_L_nodes[curListSize - 1].distance &&
+        if (curListSize > 0 &&
+            dist >= top_L_candidates[curListSize - 1].distance &&
             (curListSize == maxListSize))
           continue;
 
         Neighbor nn(id, dist, true);
-        unsigned r = InsertIntoPool(best_L_nodes.data(), curListSize, nn);
+        unsigned r = InsertIntoPool(top_L_candidates.data(), curListSize, nn);
         if (curListSize < maxListSize)
           ++curListSize;  // candidate_list has grown by +1
         if (r < best_inserted_position)

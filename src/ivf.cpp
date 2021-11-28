@@ -27,6 +27,12 @@ namespace grann {
   }
 
   template<typename T>
+  IVFIndex<T>::~IVFIndex() {
+    if (_cluster_centers != nullptr)
+      delete[] _cluster_centers;
+  }
+
+  template<typename T>
   void IVFIndex<T>::save(const char *filename) {
     ANNIndex<T>::save_data_and_tags(filename);
     std::string centers_file(filename);
@@ -40,7 +46,7 @@ namespace grann {
 
     for (unsigned i = 0; i < this->_num_clusters; i++) {
       unsigned GK = (unsigned) _inverted_index[i].size();
-      grann::cout << GK << std::endl;
+
       out.write((char *) &GK, sizeof(unsigned));
       out.write((char *) _inverted_index[i].data(), GK * sizeof(unsigned));
       total_count += GK;
@@ -68,7 +74,6 @@ namespace grann {
     for (unsigned i = 0; i < this->_num_clusters; i++) {
       unsigned GK;
       in.read((char *) &GK, sizeof(unsigned));
-      grann::cout << GK << std::endl;
       _inverted_index[i].resize(GK);
       in.read((char *) _inverted_index[i].data(), GK * sizeof(unsigned));
       total_count += GK;
@@ -122,6 +127,50 @@ namespace grann {
   _u32 IVFIndex<T>::search(const T *query, _u32 res_count,
                            Parameters &search_params, _u32 *indices,
                            float *distances, QueryStats *stats) {
+    _u32 res_cnt = 0;
+    _u32 probe_width = search_params.Get<_u32>("probe_width");
+
+    float *query_float = new float[this->_aligned_dim];
+    grann::convert_types(query, query_float, 1, this->_aligned_dim);
+
+    std::vector<_u32> closest_centers(probe_width, 0);
+    math_utils::compute_closest_centers(
+        query_float, 1, this->_aligned_dim, _cluster_centers, _num_clusters,
+        probe_width, closest_centers.data(), nullptr, nullptr);
+
+    std::vector<_u32> candidates;
+    for (auto &x : closest_centers) {
+      candidates.insert(candidates.end(), _inverted_index[x].begin(),
+                        _inverted_index[x].end());
+    }
+    std::vector<Neighbor> best_candidates(res_count + 1);
+    _u32                  cur_size = 0;
+    _u32                  max_size = res_count;
+    _u32                  cmps = 0;
+    tsl::robin_set<_u32>  inserted;
+    //  grann::cout<<"Going to process " << candidates.size() << " points to
+    //  pick the best." << std::endl;
+    ANNIndex<T>::process_candidates_into_best_candidates_pool(
+        query, candidates, best_candidates, max_size, cur_size, inserted, cmps);
+
+    //  grann::cout<<"Best candidates are " << cur_size << " in number" <<
+    //  std::endl;
+    res_cnt = cur_size < res_count ? cur_size : res_count;
+
+    for (_u32 i = 0; i < res_cnt; i++) {
+      indices[i] = best_candidates[i].id;
+      //    grann::cout<< indices[i] << "\t";
+      if (distances != nullptr) {
+        distances[i] = best_candidates[i].distance;
+        //        grann::cout<< distances[i] << std::endl;
+      }
+    }
+    if (stats != nullptr) {
+      stats->n_cmps += cmps;
+    }
+
+    delete[] query_float;
+    return res_cnt;
   }
 
   // EXPORTS
