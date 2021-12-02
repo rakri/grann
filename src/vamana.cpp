@@ -2,8 +2,6 @@
 // Licensed under the MIT license.
 
 #include <atomic>
-
-#include "utils.h"
 #include "vamana.h"
 
 namespace grann {
@@ -22,25 +20,23 @@ namespace grann {
   // For each node: [out_degree, <list of neighbours>]
   template<typename T>
   void Vamana<T>::save(const char *filename) {
-    long long     total_gr_edges = 0;
-    _u64          vamana_size = 0;
+    _u64          vamana_size = 0; // size of the data stored
     std::ofstream out(std::string(filename), std::ios::binary | std::ios::out);
 
-    out.write((char *) &vamana_size, sizeof(uint64_t));
-    out.write((char *) &this->_max_degree, sizeof(unsigned));
-    out.write((char *) &this->_start_node, sizeof(unsigned));
+    out.write((char *) &vamana_size, sizeof(_u64));
+    out.write((char *) &this->_max_degree, sizeof(_u32));
+    out.write((char *) &this->_start_node, sizeof(_u32));
     
-    for (unsigned i = 0; i < this->_num_points; i++) {
-      unsigned GK = (unsigned) this->_out_nbrs[i].size();
-      out.write((char *) &GK, sizeof(unsigned));
-      out.write((char *) this->_out_nbrs[i].data(), GK * sizeof(unsigned));
-      total_gr_edges += GK;
+    for (_u32 i = 0; i < this->_num_points; i++) {
+      _u32 GK = (_u32) this->_out_nbrs[i].size();
+      out.write((char *) &GK, sizeof(_u32));
+      out.write((char *) this->_out_nbrs[i].data(), GK * sizeof(_u32));
     }
 
     // the size is finally updated after the graph is entirely processed
     vamana_size = out.tellp();
     out.seekp(0, std::ios::beg);
-    out.write((char *) &vamana_size, sizeof(uint64_t));
+    out.write((char *) &vamana_size, sizeof(_u64));
     out.close();
   }
 
@@ -48,15 +44,15 @@ namespace grann {
   // (navigating node id), and _out_nbrs (adjacency list)
   template<typename T>
   void Vamana<T>::load(const char *filename) {
-    std::ifstream in(filename, std::ios::binary);
+    std::ifstream in(filename, std::ios::binary | std::ios::in);
     _u64          expected_file_size;
     in.read((char *) &expected_file_size, sizeof(_u64));
-    in.read((char *) &this->_max_degree, sizeof(unsigned));
-    in.read((char *) &this->_start_node, sizeof(unsigned));
+    in.read((char *) &this->_max_degree, sizeof(_u32));
+    in.read((char *) &this->_start_node, sizeof(_u32));
     grann::cout << "Loading vamana index " << filename << "..." << std::flush;
 
-    _u64     cc = 0; // total number of out edges
-    unsigned nodes = 0;
+    _u64  cc = 0; // total number of out edges
+    _u32  nodes = 0;
     while (!in.eof()) {
       unsigned k;
       in.read((char *) &k, sizeof(unsigned));

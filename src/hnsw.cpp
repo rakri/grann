@@ -15,7 +15,7 @@ namespace grann {
 
     template<typename T>
     void HNSW<T>::save(const char *filename) {
-
+        
     }
 
     template<typename T>
