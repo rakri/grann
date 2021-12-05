@@ -1,7 +1,7 @@
 #include <chrono>
 #include <random>
 #include "utils.h"
-#include <omp.h> // TODO: parallelise the code
+#include <omp.h>
 
 namespace grann {
     void random_gaussian(const char* filename, _u32 num_vectors, _u32 dim) {
