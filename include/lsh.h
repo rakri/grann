@@ -15,7 +15,7 @@ namespace grann {
 			HashTable(_u32 table_size, _u32 vector_dim);
 			~HashTable();
 
-			void generate_hps(_u32 vector_dim);
+			void generate_hps();
 
 			std::vector<_u32> get_bucket(bitstring bucket_id);
 
@@ -33,7 +33,7 @@ namespace grann {
 			_u32 table_size;
 			//float **random_hps;
 			std::vector<std::vector<float>> random_hps;
-			std::map<bitstring, std::vector<_u32>> hashed_vectors;
+			std::map<size_t, std::vector<_u32>> hashed_vectors;
 	};
 
 	template<typename T>
