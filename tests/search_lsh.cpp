@@ -87,7 +87,7 @@ int search_index(int argc, char** argv) {
     auto s = std::chrono::high_resolution_clock::now();
     omp_set_num_threads(num_threads);
 //    query_num = 1;
-#pragma omp parallel for schedule(dynamic, 1)
+//#pragma omp parallel for schedule(dynamic, 1)
     for (int64_t i = 0; i < (int64_t) query_num; i++) {
       auto qs = std::chrono::high_resolution_clock::now();
       lsh_index.search(query + i * query_aligned_dim, recall_at, search_params,

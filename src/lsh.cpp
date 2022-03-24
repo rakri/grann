@@ -26,16 +26,22 @@ namespace grann {
 	HashTable::~HashTable() {}
 
 	void HashTable::generate_hps() {
-		std::mt19937 rng(unsigned(std::time(0)));
+		std::random_device r;
+  	std::default_random_engine rng{r()};
 		std::normal_distribution<float> gaussian_dist;
-
 		for (size_t i = 0; i < table_size; i++) {
 			std::vector<float> random_hp;
-			std::mt19937 rng(unsigned(std::time(0)));
 			random_hp.reserve(vector_dim);
 			for (size_t j = 0; j < vector_dim; j++) {
-				random_hp.push_back(gaussian_dist(rng));
+				float add = gaussian_dist(rng);
+				//std::cout << add << std::endl;
+				random_hp.push_back(add);
 			}
+/*
+			for (float i: random_hp)
+    		std::cout << i << ' ';
+			std::cout << std::endl;
+			std::cout << std::endl;*/
 			add_hp(random_hp);
 		}
 	}
@@ -46,15 +52,21 @@ namespace grann {
 
 	template<typename T>
 	bitstring HashTable::get_hash(const T *input_vector) {
-		float dot_p = 0.0;
 		bitstring input_bits;
 		for (size_t i = 0; i < table_size; i++) {
-			dot_p += std::inner_product(random_hps[i].begin(), random_hps[i].end(), input_vector, 0.0);
+			//float dot_p = std::inner_product(random_hps[i].begin(), random_hps[i].end(), input_vector, 0.0);
+			float dot_p = 0.0;
+			for (size_t j = 0; j < vector_dim; j++) {
+				float x = random_hps[i][j] * input_vector[j];
+				dot_p += x;
+			}
+			//std::cout << dot_p << std::endl;
 			if (dot_p > 0)
 				input_bits[i] = 1;
 			else
 				input_bits[i] = 0;
 		}
+		//std::cout << input_bits << std::endl;
 		return input_bits;
 	}
 
@@ -71,9 +83,12 @@ namespace grann {
 		out.put('@');
 		
 		// 1. write hyperplane vectors
+		int i = 0;
 		for (const auto &hp : random_hps) {
 			for (const auto &e : hp) {
+				if (i == 0) std::cout << e << std::endl;
 				out.write(reinterpret_cast<const char *>(&e), sizeof(float));
+				i++;
 			}
 		}
 
@@ -122,6 +137,8 @@ namespace grann {
 		num_tables = params.Get<_u32>("num_tables");
 		table_size = params.Get<_u32>("table_size");
 		tables.reserve(num_tables);
+
+		// 1. generate hyperplanes for the table
 		for (size_t i = 0; i < num_tables; i++) {
 			HashTable table = HashTable(table_size, this->_aligned_dim);
 			table.generate_hps();
@@ -132,6 +149,7 @@ namespace grann {
 			for (_s64 i = 0; i < (_s64) this->_num_points; i++) {
 				const T *cur_vec = this->_data + (i * (_u64) this->_aligned_dim);
 				bitstring cur_vec_hash = table.get_hash(cur_vec);
+				//std::cout << cur_vec_hash << std::endl;
 				table.add_vector(cur_vec_hash, this->_tag_map[i]);
 			}
 		}
@@ -146,9 +164,12 @@ namespace grann {
 		std::vector<_u32> candidates;
 		for (auto &table : tables) {
 			bitstring query_hash = table.get_hash(query);
+			//std::cout << query_hash << std::endl;
 			std::vector<_u32> curr_bucket = table.get_bucket(query_hash);
 			candidates.insert(candidates.end(), curr_bucket.begin(), curr_bucket.end());	
 		}
+
+		//std::cout << candidates.size() << std::endl;
 
 		std::vector<Neighbor> best_candidates(res_count + 1);
 		_u32									curr_size = 0;
@@ -243,6 +264,7 @@ namespace grann {
 				for (size_t k = 0; k < this->_aligned_dim; k++) {
 					float next_hp_element;
 					in.read(reinterpret_cast<char *>(&next_hp_element), sizeof(float));
+					random_hp.push_back(next_hp_element);
 				}
 				curr_table.add_hp(random_hp);
 			}

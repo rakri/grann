@@ -29,8 +29,8 @@ namespace grann {
 			void read_from_file(std::ifstream &in);
 		
 		protected:
-			_u32 vector_dim;
-			_u32 table_size;
+			_u32 vector_dim; // dimension of points stored/each hp vector
+			_u32 table_size; // number of hyperplanes
 			//float **random_hps;
 			std::vector<std::vector<float>> random_hps;
 			std::map<size_t, std::vector<_u32>> hashed_vectors;
