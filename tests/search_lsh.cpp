@@ -54,6 +54,15 @@ int search_index(int argc, char** argv) {
 	grann::load_aligned_bin<T>(query_bin, query, query_num, query_dim,
                              query_aligned_dim);
 
+	if (file_exists(truthset_bin)) {
+    grann::load_truthset(truthset_bin, gt_ids, gt_dists, gt_num, gt_dim);
+    if (gt_num != query_num) {
+      std::cout << "Error. Mismatch in number of queries and ground truth data"
+                << std::endl;
+    }
+    calc_recall_flag = true;
+  }
+
 	std::cout.setf(std::ios_base::fixed, std::ios_base::floatfield);
   std::cout.precision(2);
 

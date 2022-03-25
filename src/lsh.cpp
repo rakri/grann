@@ -34,14 +34,8 @@ namespace grann {
 			random_hp.reserve(vector_dim);
 			for (size_t j = 0; j < vector_dim; j++) {
 				float add = gaussian_dist(rng);
-				//std::cout << add << std::endl;
 				random_hp.push_back(add);
 			}
-/*
-			for (float i: random_hp)
-    		std::cout << i << ' ';
-			std::cout << std::endl;
-			std::cout << std::endl;*/
 			add_hp(random_hp);
 		}
 	}
@@ -60,13 +54,12 @@ namespace grann {
 				float x = random_hps[i][j] * input_vector[j];
 				dot_p += x;
 			}
-			//std::cout << dot_p << std::endl;
+			
 			if (dot_p > 0)
 				input_bits[i] = 1;
 			else
 				input_bits[i] = 0;
 		}
-		//std::cout << input_bits << std::endl;
 		return input_bits;
 	}
 
@@ -86,7 +79,6 @@ namespace grann {
 		int i = 0;
 		for (const auto &hp : random_hps) {
 			for (const auto &e : hp) {
-				if (i == 0) std::cout << e << std::endl;
 				out.write(reinterpret_cast<const char *>(&e), sizeof(float));
 				i++;
 			}
@@ -149,7 +141,6 @@ namespace grann {
 			for (_s64 i = 0; i < (_s64) this->_num_points; i++) {
 				const T *cur_vec = this->_data + (i * (_u64) this->_aligned_dim);
 				bitstring cur_vec_hash = table.get_hash(cur_vec);
-				//std::cout << cur_vec_hash << std::endl;
 				table.add_vector(cur_vec_hash, this->_tag_map[i]);
 			}
 		}
@@ -164,12 +155,10 @@ namespace grann {
 		std::vector<_u32> candidates;
 		for (auto &table : tables) {
 			bitstring query_hash = table.get_hash(query);
-			//std::cout << query_hash << std::endl;
 			std::vector<_u32> curr_bucket = table.get_bucket(query_hash);
 			candidates.insert(candidates.end(), curr_bucket.begin(), curr_bucket.end());	
 		}
 
-		//std::cout << candidates.size() << std::endl;
 
 		std::vector<Neighbor> best_candidates(res_count + 1);
 		_u32									curr_size = 0;
@@ -183,10 +172,10 @@ namespace grann {
 		res_count = curr_size < res_count ? curr_size : res_count;
 		for (_u32 i = 0; i < res_count; i++) {
       indices[i] = best_candidates[i].id;
-      //    grann::cout<< indices[i] << "\t";
+      //grann::cout<< indices[i] << "\t";
       if (distances != nullptr) {
         distances[i] = best_candidates[i].distance;
-        //        grann::cout<< distances[i] << std::endl;
+        //grann::cout<< distances[i] << std::endl;
       }
     }
     if (stats != nullptr) {
@@ -220,7 +209,7 @@ namespace grann {
 		}
 		out.close();
 
-		std::cout << "wrote " << total_count << "tables to disk" << std::endl;
+		std::cout << "wrote " << total_count << " tables to disk" << std::endl;
 	}
 
 	template<typename T>
