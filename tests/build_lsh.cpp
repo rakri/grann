@@ -4,22 +4,22 @@
 
 template<typename T>
 int build_lsh_index(const std::string &data_path, const _u32 num_tables,
-										const _u32 table_size, const std::string &save_path) {
-	grann::Parameters params;
-	params.Set<_u32>("num_tables", num_tables);
-	params.Set<_u32>("table_size", table_size);
-		
-	grann::Metric m = grann::Metric::L2;
-	std::vector<_u32> idmap;
+                    const _u32 table_size, const std::string &save_path) {
+  grann::Parameters params;
+  params.Set<_u32>("num_tables", num_tables);
+  params.Set<_u32>("table_size", table_size);
 
-	grann::LSHIndex<T> lsh(m, data_path.c_str(), idmap);
-	lsh.build(params);
-	lsh.save(save_path.c_str());
+  grann::Metric     m = grann::Metric::L2;
+  std::vector<_u32> idmap;
 
-	return 0;
+  grann::LSHIndex<T> lsh(m, data_path.c_str(), idmap);
+  lsh.build(params);
+  lsh.save(save_path.c_str());
+
+  return 0;
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   if (argc != 6) {
     std::cout << "Usage: " << argv[0]
               << "  [data_type<int8/uint8/float>] [data_file.bin]  "
@@ -32,8 +32,8 @@ int main(int argc, char** argv) {
 
   const std::string data_path(argv[ctr++]);
   const std::string save_path(argv[ctr++]);
-  const _u32    num_tables = (_u32) atoi(argv[ctr++]);
-  const _u32    table_size = (_u32) atoi(argv[ctr++]);
+  const _u32        num_tables = (_u32) atoi(argv[ctr++]);
+  const _u32        table_size = (_u32) atoi(argv[ctr++]);
 
   if (std::string(argv[1]) == std::string("int8"))
     build_lsh_index<int8_t>(data_path, num_tables, table_size, save_path);

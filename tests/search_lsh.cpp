@@ -15,10 +15,6 @@
 #include "lsh.h"
 #include "utils.h"
 
-
-
-
-
 template<typename T>
 int search_index(int argc, char** argv) {
   T*                query = nullptr;
@@ -29,7 +25,7 @@ int search_index(int argc, char** argv) {
 
   grann::Metric metric = grann::Metric::L2;
 
-	_u32 ctr = 2;
+  _u32 ctr = 2;
 
   std::string index_file(argv[ctr++]);
   _u64        num_threads = std::atoi(argv[ctr++]);
@@ -40,21 +36,21 @@ int search_index(int argc, char** argv) {
 
   bool calc_recall_flag = false;
 
-	for (; ctr < (_u32) argc; ctr++) {
+  for (; ctr < (_u32) argc; ctr++) {
     _u64 curL = std::atoi(argv[ctr]);
     if (curL >= 1)
       Lvec.push_back(curL);
   }
 
-	if (Lvec.size() == 0) {
+  if (Lvec.size() == 0) {
     std::cout << "Provide at least one L." << std::endl;
     return -1;
   }
 
-	grann::load_aligned_bin<T>(query_bin, query, query_num, query_dim,
+  grann::load_aligned_bin<T>(query_bin, query, query_num, query_dim,
                              query_aligned_dim);
 
-	if (file_exists(truthset_bin)) {
+  if (file_exists(truthset_bin)) {
     grann::load_truthset(truthset_bin, gt_ids, gt_dists, gt_num, gt_dim);
     if (gt_num != query_num) {
       std::cout << "Error. Mismatch in number of queries and ground truth data"
@@ -63,13 +59,13 @@ int search_index(int argc, char** argv) {
     calc_recall_flag = true;
   }
 
-	std::cout.setf(std::ios_base::fixed, std::ios_base::floatfield);
+  std::cout.setf(std::ios_base::fixed, std::ios_base::floatfield);
   std::cout.precision(2);
 
-	grann::LSHIndex<T> lsh_index(metric);
-	lsh_index.load(index_file.c_str());
+  grann::LSHIndex<T> lsh_index(metric);
+  lsh_index.load(index_file.c_str());
 
-	std::cout << "LSH Index loaded" << std::endl;
+  std::cout << "LSH Index loaded" << std::endl;
   grann::Parameters search_params;
 
   std::string recall_string = "Recall@" + std::to_string(recall_at);
@@ -82,11 +78,11 @@ int search_index(int argc, char** argv) {
                "=========================================================="
             << std::endl;
 
-	std::vector<std::vector<uint32_t>> query_result_ids(Lvec.size());
+  std::vector<std::vector<uint32_t>> query_result_ids(Lvec.size());
   std::vector<std::vector<float>>    query_result_dists(Lvec.size());
-	std::vector<double> latency_stats(query_num, 0);
+  std::vector<double>                latency_stats(query_num, 0);
 
-	for (uint32_t test_id = 0; test_id < Lvec.size(); test_id++) {
+  for (uint32_t test_id = 0; test_id < Lvec.size(); test_id++) {
     _u64 L = Lvec[test_id];
     search_params.Set<_u32>("probe_width", L);
     query_result_ids[test_id].resize(recall_at * query_num);
@@ -95,8 +91,8 @@ int search_index(int argc, char** argv) {
     std::vector<grann::QueryStats> stats(query_num);
     auto s = std::chrono::high_resolution_clock::now();
     omp_set_num_threads(num_threads);
-//    query_num = 1;
-//#pragma omp parallel for schedule(dynamic, 1)
+    //    query_num = 1;
+    //#pragma omp parallel for schedule(dynamic, 1)
     for (int64_t i = 0; i < (int64_t) query_num; i++) {
       auto qs = std::chrono::high_resolution_clock::now();
       lsh_index.search(query + i * query_aligned_dim, recall_at, search_params,
@@ -112,7 +108,7 @@ int search_index(int argc, char** argv) {
 
     float qps = (query_num / diff.count());
 
-		float recall = 0;
+    float recall = 0;
     if (calc_recall_flag)
       recall = grann::calculate_recall(query_num, gt_ids, gt_dists, gt_dim,
                                        query_result_ids[test_id].data(),
@@ -143,7 +139,7 @@ int search_index(int argc, char** argv) {
 
     std::cout << std::setw(4) << L << std::setw(12) << qps << std::setw(22)
               << (float) mean_latency << std::setw(15)
-              << (float) latency_stats[(_u64)(0.999 * query_num)]
+              << (float) latency_stats[(_u64) (0.999 * query_num)]
               << std::setw(12) << recall << std::setw(16) << mean_cmps
               << std::setw(12) << mean_hops << std::setw(16) << cmps_999
               << std::setw(12) << hops_999 << std::endl;
@@ -160,9 +156,8 @@ int search_index(int argc, char** argv) {
   }
 
   grann::aligned_free(query);
-	return 0;
+  return 0;
 }
-
 
 int main(int argc, char** argv) {
   if (argc < 9) {
