@@ -66,17 +66,19 @@ namespace {
 }  // namespace
 
 namespace grann {
-
   // Initialize an vamana with metric m, load the data of type T with filename
   // (bin), and initialize max_points
   template<typename T>
   ANNIndex<T>::ANNIndex(Metric m, const char *filename,
-                        std::vector<_u32> &list_of_tags)
+                        std::vector<_u32> &list_of_tags,
+                        std::string        labelfilename)
       : _metric(m), _has_built(false) {
     // data is stored to _num_points * aligned_dim matrix with necessary
     // zero-padding
     load_aligned_bin<T>(std::string(filename), _data, _num_points, _dim,
                         _aligned_dim);
+    if (labelfilename != "")
+      parse_label_file(labelfilename);
 
     this->_distance = ::get_distance_function<T>(m);
     this->_distance_float = ::get_distance_function<float>(m);
@@ -114,6 +116,43 @@ namespace grann {
   }
 
   template<typename T>
+  void ANNIndex<T>::parse_label_file(std::string map_file) {
+    //_filtered_ann = 1;
+    std::ifstream infile(map_file);
+    std::string   line, token;
+    unsigned      line_cnt = 0;
+
+    while (std::getline(infile, line)) {
+      std::istringstream       iss(line);
+      std::vector<std::string> lbls(0);
+      // long int              val;
+      while (getline(iss, token, ',')) {
+        token.erase(std::remove(token.begin(), token.end(), '\n'), token.end());
+        token.erase(std::remove(token.begin(), token.end(), '\r'), token.end());
+        lbls.push_back(token);
+        _labels.insert(token);
+        /*  if (_filter_to_medoid_id.find(token) == _filter_to_medoid_id.end())
+          { _filter_to_medoid_id[token] = line_cnt;
+          }*/
+      }
+      if (lbls.size() <= 0) {
+        std::cout << "No label found";
+        exit(-1);
+      }
+      std::sort(lbls.begin(), lbls.end());
+      _pts_to_labels.push_back(lbls);
+      line_cnt++;
+    }
+    std::cout << "Identified " << _labels.size() << " distinct label(s)"
+              << std::endl;
+    /*    _u32 ctr = 0;
+            for (const auto &x : _labels) {
+              std::cout << ctr << ": " << x << " " << x.size() << std::endl;
+              ctr++;
+            } */
+  }
+
+  template<typename T>
   void ANNIndex<T>::save_data_and_tags(const std::string index_file) {
     std::string data_file = index_file + "_data.bin";
     std::string tag_file = index_file + "_tags.bin";
@@ -143,10 +182,21 @@ namespace grann {
       const T *&node_coords, std::vector<_u32> &cand_list,
       std::vector<Neighbor> &top_L_candidates, const _u32 maxListSize,
       _u32 &curListSize, tsl::robin_set<_u32> &already_inserted,
-      _u32 &total_comparisons) {
+      _u32 &total_comparisons, std::string filter_label) {
     _u32 best_inserted_position = maxListSize;
     for (unsigned m = 0; m < cand_list.size(); ++m) {
       unsigned id = cand_list[m];
+      if (filter_label != "") {
+        bool cont = false;
+        for (auto z : _pts_to_labels[id]) {
+          if (z == filter_label) {
+            cont = true;
+            break;
+          }
+        }
+        if (cont)
+          continue;
+      }
       if (already_inserted.find(id) == already_inserted.end()) {
         already_inserted.insert(id);
 
@@ -200,7 +250,7 @@ namespace grann {
 #pragma omp parallel for schedule(static, 65536)
     for (_s64 i = 0; i < (_s64) this->_num_points; i++) {
       // extract point and distance reference
-      float &  dist = distances[i];
+      float   &dist = distances[i];
       const T *cur_vec = this->_data + (i * (_u64) this->_aligned_dim);
       dist = 0;
       float diff = 0;
