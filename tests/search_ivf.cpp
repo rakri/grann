@@ -34,6 +34,8 @@ int search_index(int argc, char** argv) {
   _u64        num_threads = std::atoi(argv[ctr++]);
   std::string query_bin(argv[ctr++]);
   std::string truthset_bin(argv[ctr++]);
+	std::string labels_fname(argv[ctr++]);
+	std::string search_filter(argv[ctr++]);
   _u64        recall_at = std::atoi(argv[ctr++]);
   std::string result_output_prefix(argv[ctr++]);
 
@@ -62,10 +64,15 @@ int search_index(int argc, char** argv) {
     calc_recall_flag = true;
   }
 
+	if (search_filter == "null" || labels_fname == "null") {
+		labels_fname = "";
+		search_filter = "";
+	}
+
   std::cout.setf(std::ios_base::fixed, std::ios_base::floatfield);
   std::cout.precision(2);
 
-  grann::IVFIndex<T> ivf_index(metric);
+  grann::IVFIndex<T> ivf_index(metric, search_filter, labels_fname);
   ivf_index.load(index_file.c_str());  // to load Index
   std::cout << "IVF Index loaded" << std::endl;
   grann::Parameters search_params;
@@ -169,6 +176,8 @@ int main(int argc, char** argv) {
         << "  [data_type<float/int8/uint8>]  "
            "[index_prefix]  [num_threads] "
            "[query_file.bin]  [truthset.bin (use \"null\" for none)] "
+					 "[labels_file.txt (use \"null\" for none)] "
+					 "[search label (use \"null\" for none)]"
            " [K] [result_output_prefix]"
            " [P1]  [P2] etc. See README for more information on parameters. "
         << std::endl;

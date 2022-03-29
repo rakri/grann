@@ -70,15 +70,12 @@ namespace grann {
   // (bin), and initialize max_points
   template<typename T>
   ANNIndex<T>::ANNIndex(Metric m, const char *filename,
-                        std::vector<_u32> &list_of_tags,
-                        std::string        labelfilename)
+                        std::vector<_u32> &list_of_tags)
       : _metric(m), _has_built(false) {
     // data is stored to _num_points * aligned_dim matrix with necessary
     // zero-padding
     load_aligned_bin<T>(std::string(filename), _data, _num_points, _dim,
                         _aligned_dim);
-    if (labelfilename != "")
-      parse_label_file(labelfilename);
 
     this->_distance = ::get_distance_function<T>(m);
     this->_distance_float = ::get_distance_function<float>(m);
@@ -118,6 +115,7 @@ namespace grann {
   template<typename T>
   void ANNIndex<T>::parse_label_file(std::string map_file) {
     //_filtered_ann = 1;
+		_filtered_index = true;
     std::ifstream infile(map_file);
     std::string   line, token;
     unsigned      line_cnt = 0;
@@ -131,9 +129,10 @@ namespace grann {
         token.erase(std::remove(token.begin(), token.end(), '\r'), token.end());
         lbls.push_back(token);
         _labels.insert(token);
-        /*  if (_filter_to_medoid_id.find(token) == _filter_to_medoid_id.end())
+				_labels_to_pts[token].push_back(line_cnt);
+        if (_filter_to_medoid_id.find(token) == _filter_to_medoid_id.end())
           { _filter_to_medoid_id[token] = line_cnt;
-          }*/
+        }
       }
       if (lbls.size() <= 0) {
         std::cout << "No label found";
@@ -145,11 +144,6 @@ namespace grann {
     }
     std::cout << "Identified " << _labels.size() << " distinct label(s)"
               << std::endl;
-    /*    _u32 ctr = 0;
-            for (const auto &x : _labels) {
-              std::cout << ctr << ": " << x << " " << x.size() << std::endl;
-              ctr++;
-            } */
   }
 
   template<typename T>
@@ -182,14 +176,14 @@ namespace grann {
       const T *&node_coords, std::vector<_u32> &cand_list,
       std::vector<Neighbor> &top_L_candidates, const _u32 maxListSize,
       _u32 &curListSize, tsl::robin_set<_u32> &already_inserted,
-      _u32 &total_comparisons, std::string filter_label) {
+      _u32 &total_comparisons) {
     _u32 best_inserted_position = maxListSize;
     for (unsigned m = 0; m < cand_list.size(); ++m) {
       unsigned id = cand_list[m];
-      if (filter_label != "") {
+      if (_search_filter != "") {
         bool cont = false;
         for (auto z : _pts_to_labels[id]) {
-          if (z == filter_label) {
+          if (z == _search_filter) {
             cont = true;
             break;
           }
