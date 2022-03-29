@@ -35,7 +35,7 @@ int search_index(int argc, char** argv) {
   std::string query_bin(argv[ctr++]);
   std::string truthset_bin(argv[ctr++]);
 	std::string labels_fname(argv[ctr++]);
-	std::string search_filter(argv[ctr++]);
+	std::vector<grann::label> search_filters = {argv[ctr++]};
   _u64        recall_at = std::atoi(argv[ctr++]);
   std::string result_output_prefix(argv[ctr++]);
 
@@ -64,9 +64,9 @@ int search_index(int argc, char** argv) {
     calc_recall_flag = true;
   }
 
-	if (search_filter == "null" || labels_fname == "null") {
+	if (search_filters[0] == "null" || labels_fname == "null") {
 		labels_fname = "";
-		search_filter = "";
+		search_filters[0] = "";
 	}
 
   std::cout.setf(std::ios_base::fixed, std::ios_base::floatfield);
@@ -108,7 +108,7 @@ int search_index(int argc, char** argv) {
       ivf_index.search(query + i * query_aligned_dim, recall_at, search_params,
                        query_result_ids[test_id].data() + i * recall_at,
                        query_result_dists[test_id].data() + i * recall_at,
-                       (stats.data() + i));
+                       (stats.data() + i), search_filters);
       auto qe = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double> diff = qe - qs;
       latency_stats[i] = diff.count() * 1000000;

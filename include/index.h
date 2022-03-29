@@ -12,6 +12,7 @@ namespace grann {
   typedef std::lock_guard<std::mutex>
       LockGuard;  // Use this datastructure to create per vertex locks if we
                   // want to update the graph during index build
+  typedef std::string label;
 
   // Neighbor contains infromation of the name of the neighbor and associated
   // distance
@@ -122,14 +123,14 @@ namespace grann {
     // returns # results found (will be <= res_count)
     virtual _u32 search(const T *query, _u32 res_count,
                         Parameters &search_params, _u32 *indices,
-                        float *distances, QueryStats *stats = nullptr) = 0;
+                        float *distances, QueryStats *stats = nullptr,
+												std::vector<label> search_filters = std::vector<label>()) = 0;
 
     /*  Internals of the library */
    protected:
     void save_data_and_tags(const std::string index_file);
     void load_data_and_tags(const std::string index_file);
 
-    typedef std::string label;
     void                parse_label_file(std::string map_file);
 
     _u32 process_candidates_into_best_candidates_pool(

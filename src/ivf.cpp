@@ -126,7 +126,8 @@ namespace grann {
   template<typename T>
   _u32 IVFIndex<T>::search(const T *query, _u32 res_count,
                            Parameters &search_params, _u32 *indices,
-                           float *distances, QueryStats *stats) {
+                           float *distances, QueryStats *stats,
+													 std::vector<label> search_filters) {
     _u32 res_cnt = 0;
     _u32 probe_width = search_params.Get<_u32>("probe_width");
 
@@ -152,7 +153,7 @@ namespace grann {
     //  pick the best." << std::endl;
     ANNIndex<T>::process_candidates_into_best_candidates_pool(
         query, candidates, best_candidates, max_size, 
-				cur_size, inserted, cmps);
+				cur_size, inserted, cmps, search_filters);
 
     //  grann::cout<<"Best candidates are " << cur_size << " in number" <<
     //  std::endl;
