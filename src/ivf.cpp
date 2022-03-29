@@ -20,13 +20,10 @@ namespace grann {
   }
 
   template<typename T>
-  IVFIndex<T>::IVFIndex(Metric m, std::string search_filter, std::string labels_fname)
-      : ANNIndex<T>(m) {  // Graph Index class constructor empty for load.
+  IVFIndex<T>::IVFIndex(Metric m, std::string labels_fname)
+      : ANNIndex<T>(m, labels_fname) {  // Graph Index class constructor empty for load.
     _num_clusters = 0;
-		if (labels_fname != "" && search_filter != "") {
-			ANNIndex<T>::parse_label_file(labels_fname);
-			this->_search_filter = search_filter;
-		}
+		ANNIndex<T>::parse_label_file(labels_fname);
   }
 
   template<typename T>

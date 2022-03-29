@@ -104,11 +104,12 @@ namespace grann {
     // make a base object, initialize distance function and load the data from
     // filename bin file. The list of ids corresponds to the id/tag associated
     // with each vector.
-    ANNIndex(Metric m, const char *filename, std::vector<_u32> &list_of_tags);
+    ANNIndex(Metric m, const char *filename, std::vector<_u32> &list_of_tags,
+             std::string labels_fname = "");
 
     //  for loading an index from a file, we dont need data file, and list of
     //  tags
-    ANNIndex(Metric m);
+    ANNIndex(Metric m, std::string labels_file = "");
 
     virtual ~ANNIndex();
 
@@ -128,17 +129,18 @@ namespace grann {
     void save_data_and_tags(const std::string index_file);
     void load_data_and_tags(const std::string index_file);
 
-		typedef std::string label;
-    void parse_label_file(std::string map_file);
+    typedef std::string label;
+    void                parse_label_file(std::string map_file);
 
     _u32 process_candidates_into_best_candidates_pool(
         const T *&node_coords, std::vector<_u32> &nbr_list,
         std::vector<Neighbor> &best_L_nodes, const _u32 maxListSize,
         _u32 &curListSize, tsl::robin_set<_u32> &inserted_into_pool,
-        _u32 &total_comparisons);
+        _u32 &             total_comparisons,
+        std::vector<label> search_filters = std::vector<label>());
 
     unsigned         calculate_medoid_of_data();
-		unsigned				 calculate_filtered_medoid();
+    unsigned         calculate_filtered_medoid();
     Metric           _metric = grann::L2;
     Distance<T> *    _distance;
     Distance<float> *_distance_float;
@@ -156,13 +158,13 @@ namespace grann {
                         // entries of each vector are padded with zeros.
     bool _has_built = false;
 
-    bool                                  _filtered_index = false;
-    std::string                           _search_filter = "";
-    std::vector<std::vector<label>> 			_pts_to_labels;
-		std::map<label, std::vector<_u32>>		_labels_to_pts;
-    tsl::robin_set<label>           			_labels;
-    std::string                           _labels_file;
-		std::unordered_map<label, _u32> 			_filter_to_medoid_id;
-    std::unordered_map<_u32, _u32>        _medoid_counts;
+    bool                               _filtered_index = false;
+    std::string                        _search_filter = "";
+    std::vector<std::vector<label>>    _pts_to_labels;
+    std::map<label, std::vector<_u32>> _labels_to_pts;
+    tsl::robin_set<label>              _labels;
+    std::string                        _labels_file;
+    std::unordered_map<label, _u32>    _filter_to_medoid_id;
+    std::unordered_map<_u32, _u32>     _medoid_counts;
   };
 }  // namespace grann

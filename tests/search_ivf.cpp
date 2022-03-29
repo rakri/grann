@@ -72,7 +72,7 @@ int search_index(int argc, char** argv) {
   std::cout.setf(std::ios_base::fixed, std::ios_base::floatfield);
   std::cout.precision(2);
 
-  grann::IVFIndex<T> ivf_index(metric, search_filter, labels_fname);
+  grann::IVFIndex<T> ivf_index(metric, labels_fname);
   ivf_index.load(index_file.c_str());  // to load Index
   std::cout << "IVF Index loaded" << std::endl;
   grann::Parameters search_params;
