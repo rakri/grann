@@ -54,6 +54,7 @@ int search_index(int argc, char** argv) {
     return -1;
   }
 */
+  Lvec.push_back(1);
 
   grann::load_aligned_bin<T>(query_bin, query, query_num, query_dim,
                              query_aligned_dim);
@@ -106,7 +107,7 @@ int search_index(int argc, char** argv) {
       lsh_index.search(query + i * query_aligned_dim, recall_at, search_params,
                        query_result_ids[test_id].data() + i * recall_at,
                        query_result_dists[test_id].data() + i * recall_at,
-                       (stats.data() + i));
+                       (stats.data() + i), search_filters);
       auto qe = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double> diff = qe - qs;
       latency_stats[i] = diff.count() * 1000000;
