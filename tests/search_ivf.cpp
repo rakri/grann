@@ -34,6 +34,8 @@ int search_index(int argc, char** argv) {
   _u64        num_threads = std::atoi(argv[ctr++]);
   std::string query_bin(argv[ctr++]);
   std::string truthset_bin(argv[ctr++]);
+	std::string labels_fname(argv[ctr++]);
+	std::vector<grann::label> search_filters = {argv[ctr++]};
   _u64        recall_at = std::atoi(argv[ctr++]);
   std::string result_output_prefix(argv[ctr++]);
 
@@ -62,10 +64,15 @@ int search_index(int argc, char** argv) {
     calc_recall_flag = true;
   }
 
+	if (search_filters[0] == "null" || labels_fname == "null") {
+		labels_fname = "";
+		search_filters[0] = "";
+	}
+
   std::cout.setf(std::ios_base::fixed, std::ios_base::floatfield);
   std::cout.precision(2);
 
-  grann::IVFIndex<T> ivf_index(metric);
+  grann::IVFIndex<T> ivf_index(metric, labels_fname);
   ivf_index.load(index_file.c_str());  // to load Index
   std::cout << "IVF Index loaded" << std::endl;
   grann::Parameters search_params;
@@ -101,7 +108,7 @@ int search_index(int argc, char** argv) {
       ivf_index.search(query + i * query_aligned_dim, recall_at, search_params,
                        query_result_ids[test_id].data() + i * recall_at,
                        query_result_dists[test_id].data() + i * recall_at,
-                       (stats.data() + i));
+                       (stats.data() + i), search_filters);
       auto qe = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double> diff = qe - qs;
       latency_stats[i] = diff.count() * 1000000;
@@ -169,6 +176,8 @@ int main(int argc, char** argv) {
         << "  [data_type<float/int8/uint8>]  "
            "[index_prefix]  [num_threads] "
            "[query_file.bin]  [truthset.bin (use \"null\" for none)] "
+					 "[labels_file.txt (use \"null\" for none)] "
+					 "[search label (use \"null\" for none)]"
            " [K] [result_output_prefix]"
            " [P1]  [P2] etc. See README for more information on parameters. "
         << std::endl;

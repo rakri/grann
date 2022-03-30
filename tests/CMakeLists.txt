@@ -3,6 +3,16 @@
 
 set(CMAKE_CXX_STANDARD 14)
 
+
+add_executable(compute_filtered_groundtruth compute_filtered_groundtruth.cpp)
+if(MSVC)
+	target_link_options(compute_filtered_groundtruth PRIVATE /MACHINE:x64 /DEBUG:FULL "/INCLUDE:_tcmalloc")
+	target_link_libraries(compute_filtered_groundtruth debug ${CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG}/nsg_dll.lib ${PROJECT_SOURCE_DIR}/dependencies/windows/tcmalloc/libtcmalloc_minimal.lib)
+	target_link_libraries(compute_filtered_groundtruth optimized ${CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE}/nsg_dll.lib ${PROJECT_SOURCE_DIR}/dependencies/windows/tcmalloc/libtcmalloc_minimal.lib)
+else() 
+	target_link_libraries(compute_filtered_groundtruth ${PROJECT_NAME} -ltcmalloc)
+endif()
+
 add_executable(build_vamana build_vamana.cpp )
 if(MSVC)
 	target_link_options(build_vamana PRIVATE /MACHINE:x64 /DEBUG:FULL "/INCLUDE:_tcmalloc")

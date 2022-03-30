@@ -66,12 +66,12 @@ namespace {
 }  // namespace
 
 namespace grann {
-
   // Initialize an vamana with metric m, load the data of type T with filename
   // (bin), and initialize max_points
   template<typename T>
   ANNIndex<T>::ANNIndex(Metric m, const char *filename,
-                        std::vector<_u32> &list_of_tags)
+                        std::vector<_u32> &list_of_tags,
+                        std::string        labels_fname)
       : _metric(m), _has_built(false) {
     // data is stored to _num_points * aligned_dim matrix with necessary
     // zero-padding
@@ -96,13 +96,17 @@ namespace grann {
         _tag_map[i] = i;
       }
     }
+
+    parse_label_file(labels_fname);
   }
 
   template<typename T>
-  ANNIndex<T>::ANNIndex(Metric m) : _metric(m), _has_built(false) {
+  ANNIndex<T>::ANNIndex(Metric m, std::string labels_fname)
+      : _metric(m), _has_built(false) {
     this->_distance = ::get_distance_function<T>(m);
     this->_distance_float = ::get_distance_function<float>(m);
     _num_points = 0;
+    parse_label_file(labels_fname);
   }
 
   template<typename T>
@@ -111,6 +115,44 @@ namespace grann {
     delete this->_distance_float;
     aligned_free(_data);
     delete[] _tag_map;
+  }
+
+  template<typename T>
+  void ANNIndex<T>::parse_label_file(std::string map_file) {
+    //_filtered_ann = 1;
+    // not doing a filtered search
+    if (map_file == "")
+      return;
+
+    _filtered_index = true;
+    std::ifstream infile(map_file);
+    std::string   line, token;
+    unsigned      line_cnt = 0;
+
+    while (std::getline(infile, line)) {
+      std::istringstream       iss(line);
+      std::vector<std::string> lbls(0);
+      // long int              val;
+      while (getline(iss, token, ',')) {
+        token.erase(std::remove(token.begin(), token.end(), '\n'), token.end());
+        token.erase(std::remove(token.begin(), token.end(), '\r'), token.end());
+        lbls.push_back(token);
+        _labels.insert(token);
+        _labels_to_pts[token].push_back(line_cnt);
+        if (_filter_to_medoid_id.find(token) == _filter_to_medoid_id.end()) {
+          _filter_to_medoid_id[token] = line_cnt;
+        }
+      }
+      if (lbls.size() <= 0) {
+        std::cout << "No label found";
+        exit(-1);
+      }
+      std::sort(lbls.begin(), lbls.end());
+      _pts_to_labels.push_back(lbls);
+      line_cnt++;
+    }
+    std::cout << "Identified " << _labels.size() << " distinct label(s)"
+              << std::endl;
   }
 
   template<typename T>
@@ -143,10 +185,19 @@ namespace grann {
       const T *&node_coords, std::vector<_u32> &cand_list,
       std::vector<Neighbor> &top_L_candidates, const _u32 maxListSize,
       _u32 &curListSize, tsl::robin_set<_u32> &already_inserted,
-      _u32 &total_comparisons) {
+      _u32 &total_comparisons, std::vector<label> search_filters) {
     _u32 best_inserted_position = maxListSize;
     for (unsigned m = 0; m < cand_list.size(); ++m) {
       unsigned id = cand_list[m];
+      if (!search_filters.empty()) {
+        std::vector<label> intersection_result;
+        std::vector<label> curr_labels = _pts_to_labels[id];
+        std::set_intersection(search_filters.begin(), search_filters.end(),
+                              curr_labels.begin(), curr_labels.begin(),
+                              std::back_inserter(intersection_result));
+        if (intersection_result.empty())
+          continue;
+      }
       if (already_inserted.find(id) == already_inserted.end()) {
         already_inserted.insert(id);
 

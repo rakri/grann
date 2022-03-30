@@ -25,7 +25,8 @@ namespace grann {
 
     // returns # results found (will be <= res_count)
     _u32 search(const T *query, _u32 res_count, Parameters &search_params,
-                _u32 *indices, float *distances, QueryStats *stats = nullptr);
+                _u32 *indices, float *distances, QueryStats *stats = nullptr,
+								std::vector<label> search_filters = std::vector<label>());
 
     /*  Internals of the library */
    protected:

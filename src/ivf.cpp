@@ -12,8 +12,7 @@ namespace grann {
   // Initialize a generic graph-based index with metric m, load the data of type
   // T with filename (bin)
   template<typename T>
-  IVFIndex<T>::IVFIndex(Metric m, const char *filename,
-                        std::vector<_u32> &list_of_tags)
+  IVFIndex<T>::IVFIndex(Metric m, const char *filename, std::vector<_u32> &list_of_tags)
       : ANNIndex<T>(m, filename,
                     list_of_tags) {  // Graph Index class constructor loads the
                                      // data and sets num_points, dim, etc.
@@ -21,9 +20,10 @@ namespace grann {
   }
 
   template<typename T>
-  IVFIndex<T>::IVFIndex(Metric m)
-      : ANNIndex<T>(m) {  // Graph Index class constructor empty for load.
+  IVFIndex<T>::IVFIndex(Metric m, std::string labels_fname)
+      : ANNIndex<T>(m, labels_fname) {  // Graph Index class constructor empty for load.
     _num_clusters = 0;
+		ANNIndex<T>::parse_label_file(labels_fname);
   }
 
   template<typename T>
@@ -126,7 +126,8 @@ namespace grann {
   template<typename T>
   _u32 IVFIndex<T>::search(const T *query, _u32 res_count,
                            Parameters &search_params, _u32 *indices,
-                           float *distances, QueryStats *stats) {
+                           float *distances, QueryStats *stats,
+													 std::vector<label> search_filters) {
     _u32 res_cnt = 0;
     _u32 probe_width = search_params.Get<_u32>("probe_width");
 
@@ -151,7 +152,8 @@ namespace grann {
     //  grann::cout<<"Going to process " << candidates.size() << " points to
     //  pick the best." << std::endl;
     ANNIndex<T>::process_candidates_into_best_candidates_pool(
-        query, candidates, best_candidates, max_size, cur_size, inserted, cmps);
+        query, candidates, best_candidates, max_size, 
+				cur_size, inserted, cmps, search_filters);
 
     //  grann::cout<<"Best candidates are " << cur_size << " in number" <<
     //  std::endl;
