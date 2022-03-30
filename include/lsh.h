@@ -1,5 +1,7 @@
 #pragma once
 
+#include <bitset>
+
 #include "utils.h"
 #include "distance.h"
 #include "percentile_stats.h"
@@ -39,7 +41,7 @@ namespace grann {
   template<typename T>
   class LSHIndex : public ANNIndex<T> {
    public:
-    LSHIndex(Metric m, const char *filename, std::vector<_u32> &list_of_tags);
+    LSHIndex(Metric m, const char *filename, std::vector<_u32> &list_of_tags, std::string labels_fname="");
     LSHIndex(Metric m);
     ~LSHIndex();
 
@@ -49,7 +51,8 @@ namespace grann {
     void build(Parameters &parameters);
 
     _u32 search(const T *query, _u32 res_count, Parameters &search_params,
-                _u32 *indices, float *distances, QueryStats *stats = nullptr);
+                _u32 *indices, float *distances, QueryStats *stats = nullptr,
+								std::vector<label> search_filters = std::vector<label>());
 
    protected:
     _u32                   num_tables;

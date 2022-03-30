@@ -12,18 +12,17 @@ namespace grann {
   // Initialize a generic graph-based index with metric m, load the data of type
   // T with filename (bin)
   template<typename T>
-  IVFIndex<T>::IVFIndex(Metric m, const char *filename, std::vector<_u32> &list_of_tags)
+  IVFIndex<T>::IVFIndex(Metric m, const char *filename, std::vector<_u32> &list_of_tags, std::string labels_fname)
       : ANNIndex<T>(m, filename,
-                    list_of_tags) {  // Graph Index class constructor loads the
+                    list_of_tags, labels_fname) {  // Graph Index class constructor loads the
                                      // data and sets num_points, dim, etc.
     _num_clusters = 0;
   }
 
   template<typename T>
-  IVFIndex<T>::IVFIndex(Metric m, std::string labels_fname)
-      : ANNIndex<T>(m, labels_fname) {  // Graph Index class constructor empty for load.
+  IVFIndex<T>::IVFIndex(Metric m)
+      : ANNIndex<T>(m) {  // Graph Index class constructor empty for load.
     _num_clusters = 0;
-		ANNIndex<T>::parse_label_file(labels_fname);
   }
 
   template<typename T>
@@ -34,7 +33,7 @@ namespace grann {
 
   template<typename T>
   void IVFIndex<T>::save(const char *filename) {
-    ANNIndex<T>::save_data_and_tags(filename);
+    ANNIndex<T>::save_data_and_tags_and_labels(filename);
     std::string centers_file(filename);
     std::string index_file(filename);
     centers_file += "_centers.bin";
@@ -59,7 +58,7 @@ namespace grann {
 
   template<typename T>
   void IVFIndex<T>::load(const char *filename) {
-    ANNIndex<T>::load_data_and_tags(filename);
+    ANNIndex<T>::load_data_and_tags_and_labels(filename);
     std::string centers_file(filename);
     std::string index_file(filename);
     centers_file += "_centers.bin";
@@ -149,22 +148,16 @@ namespace grann {
     _u32                  max_size = res_count;
     _u32                  cmps = 0;
     tsl::robin_set<_u32>  inserted;
-    //  grann::cout<<"Going to process " << candidates.size() << " points to
-    //  pick the best." << std::endl;
     ANNIndex<T>::process_candidates_into_best_candidates_pool(
         query, candidates, best_candidates, max_size, 
 				cur_size, inserted, cmps, search_filters);
 
-    //  grann::cout<<"Best candidates are " << cur_size << " in number" <<
-    //  std::endl;
     res_cnt = cur_size < res_count ? cur_size : res_count;
 
     for (_u32 i = 0; i < res_cnt; i++) {
       indices[i] = best_candidates[i].id;
-      //    grann::cout<< indices[i] << "\t";
       if (distances != nullptr) {
         distances[i] = best_candidates[i].distance;
-        //        grann::cout<< distances[i] << std::endl;
       }
     }
     if (stats != nullptr) {

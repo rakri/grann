@@ -12,8 +12,9 @@ namespace grann {
   // (bin), and initialize num_points
   template<typename T>
   Vamana<T>::Vamana(Metric m, const char *filename,
-                    std::vector<_u32> &list_of_tags)
-      : GraphIndex<T>(m, filename, list_of_tags) {
+                    std::vector<_u32> &list_of_tags,
+                        std::string        labels_fname)
+      : GraphIndex<T>(m, filename, list_of_tags, labels_fname) {
     grann::cout << "Initialized Vamana Object with " << this->_num_points
                 << " points, dim=" << this->_dim << "." << std::endl;
   }
@@ -28,7 +29,20 @@ namespace grann {
   // 4 byte unsigned)
   template<typename T>
   void Vamana<T>::save(const char *filename) {
-    ANNIndex<T>::save_data_and_tags(filename);
+    ANNIndex<T>::save_data_and_tags_and_labels(filename);
+
+    if (this->_filtered_index) {
+      if (this->_filter_to_medoid_id.size()) {
+        std::ofstream medoid_writer(std::string(filename) +
+                                    "_labels_to_medoids.txt");
+        for (auto iter : this->_filter_to_medoid_id) {
+          medoid_writer << iter.first << ", " << iter.second << std::endl;
+          std::cout << iter.first << ", " << iter.second << std::endl;
+        }
+        medoid_writer.close();  
+    }
+    }
+
     long long     total_gr_edges = 0;
     _u64          vamana_size = 0;
     std::ofstream out(std::string(filename), std::ios::binary | std::ios::out);
@@ -52,7 +66,39 @@ namespace grann {
   // (navigating node id), and _out_nbrs (adjacency list)
   template<typename T>
   void Vamana<T>::load(const char *filename) {
-    ANNIndex<T>::load_data_and_tags(filename);
+    ANNIndex<T>::load_data_and_tags_and_labels(filename);
+
+      std::string labels_to_medoids_file = std::string(filename) + "_labels_to_medoids.txt";
+      if (file_exists(labels_to_medoids_file)) {
+        std::ifstream medoid_stream(labels_to_medoids_file);
+
+        std::string line, token;
+        unsigned    line_cnt = 0;
+
+        _filter_to_medoid_id.clear();
+
+        while (std::getline(medoid_stream, line)) {
+          std::istringstream iss(line);
+          _u32               cnt = 0;
+          _u32               medoid = 0;
+          std::string        label;
+          while (std::getline(iss, token, ',')) {
+            token.erase(std::remove(token.begin(), token.end(), '\n'),
+                        token.end());
+            token.erase(std::remove(token.begin(), token.end(), '\r'),
+                        token.end());
+            if (cnt == 0)
+              label = token;
+            else
+              medoid = (_u32) stoul(token);
+            cnt++;
+          }
+          _filter_to_medoid_id[label] = medoid;
+          line_cnt++;
+        }
+      }
+
+
     std::ifstream in(filename, std::ios::binary);
     _u64          expected_file_size;
     in.read((char *) &expected_file_size, sizeof(_u64));
@@ -96,7 +142,7 @@ namespace grann {
       const _u64 node_id, const unsigned l_build,
       std::vector<unsigned>     init_ids,
       std::vector<Neighbor> &   expanded_nodes_info,
-      tsl::robin_set<unsigned> &expanded_nodes_ids) {
+      tsl::robin_set<unsigned> &expanded_nodes_ids, const std::vector<label> &labels_to_accept) {
     const T *node_coords = this->_data + this->_aligned_dim * node_id;
     std::vector<Neighbor> best_L_nodes;
 
@@ -105,12 +151,77 @@ namespace grann {
 
     this->greedy_search_to_fixed_point(node_coords, l_build, init_ids,
                                        expanded_nodes_info, expanded_nodes_ids,
-                                       best_L_nodes);
+                                       best_L_nodes, labels_to_accept);
+  }
+
+  template<typename T>
+  void Vamana<T>::calculate_label_specific_medoids() {
+    if (this->_filtered_index == false) {
+      return;
+    }
+    grann::cout<<"Processing label-specific medoids" << std::endl;
+   _u32 counter = 0;
+#pragma omp parallel for schedule(dynamic, 1)
+    for (uint32_t lbl = 0; lbl < this->_labels.size(); lbl++) {
+      auto itr = this->_labels.begin();
+      std::advance(itr, lbl);
+      auto &x = *itr;
+      //      if (x == _universal_label) {   // we are not storing medoid for
+      //      universal label
+      //        continue;
+      //      }
+      std::vector<_u32> filtered_points;
+      for (_u32 i = 0; i < this->_num_points; i++) {
+        if (std::find(this->_pts_to_labels[i].begin(), this->_pts_to_labels[i].end(), x) !=
+                this->_pts_to_labels[i].end() ||
+            (this->_use_universal_label &&
+             (std::find(this->_pts_to_labels[i].begin(), this->_pts_to_labels[i].end(),
+                        this->_universal_label) != this->_pts_to_labels[i].end())))
+          filtered_points.emplace_back(i);
+      }
+      if (filtered_points.size() != 0) {
+#pragma omp critical
+        {
+          _u32 num_cands = 25;
+          _u32 best_medoid = 0;
+          _u32 best_medoid_count = std::numeric_limits<_u32>::max();
+          for (_u32 cnd = 0; cnd < num_cands; cnd++) {
+            _u32 cur_cnd = filtered_points[rand() % filtered_points.size()];
+            _u32 cur_cnt = std::numeric_limits<_u32>::max();
+            if (this->_medoid_counts.find(cur_cnd) == this->_medoid_counts.end()) {
+              this->_medoid_counts[cur_cnd] = 0;
+              cur_cnt = 0;
+            } else {
+              cur_cnt = this->_medoid_counts[cur_cnd];
+            }
+            if (cur_cnt < best_medoid_count || cnd == 0) {
+              best_medoid_count = cur_cnt;
+              best_medoid = cur_cnd;
+            }
+          }
+
+          this->_filter_to_medoid_id[x] = best_medoid;
+          this->_medoid_counts[best_medoid]++;
+          std::stringstream a;
+          a << "Medoid of " << x << " is " << best_medoid << std::endl;
+          std::cout << a.str();
+        }
+      }
+#pragma omp critical
+      counter++;
+      std::stringstream a;
+      a << ((100.0 * counter) / this->_labels.size()) << "\% processed \r";
+      std::cout << a.str() << std::flush;
+    }
   }
 
   template<typename T>
   void Vamana<T>::build(Parameters &build_parameters) {
     grann::Timer build_timer;
+
+    if (this->_filtered_index) {
+      calculate_label_specific_medoids();
+    }
 
     unsigned num_threads = build_parameters.Get<unsigned>("num_threads");
     unsigned L = build_parameters.Get<unsigned>("L");
@@ -156,7 +267,22 @@ namespace grann {
 
       std::vector<_u32> pruned_list;
       std::vector<_u32> init_ids;
-      get_expanded_nodes(location, L, init_ids, pool, visited);
+      
+                if (!this->_filtered_index)
+            get_expanded_nodes(location, L, init_ids, pool, visited);
+          else {
+            std::vector<_u32> filter_specific_start_nodes;
+            for (auto &x : this->_pts_to_labels[location]) {
+              if (_filter_to_medoid_id.find(x) == _filter_to_medoid_id.end()) {
+                  continue;
+              }
+              filter_specific_start_nodes.emplace_back(_filter_to_medoid_id[x]);
+            }
+            get_expanded_nodes(location, L, filter_specific_start_nodes, pool,
+                               visited, this->_pts_to_labels[location]);
+          }
+
+//      get_expanded_nodes(location, L, init_ids, pool, visited);
 
       this->prune_candidates_alpha_rng(location, pool, build_parameters,
                                        pruned_list);
@@ -220,11 +346,16 @@ namespace grann {
     std::vector<Neighbor>    top_candidate_list, expanded_nodes_info;
     tsl::robin_set<unsigned> expanded_nodes_ids;
 
+    if (search_filters.size()!=0) {
+      for (auto &x : search_filters)
+    if (_filter_to_medoid_id.find(x) != _filter_to_medoid_id.end())
+      init_ids.emplace_back(_filter_to_medoid_id[x]);
+    } else
     init_ids.emplace_back(this->_start_node);
 
     auto algo_fetched_count = this->greedy_search_to_fixed_point(
         query, search_list_size, init_ids, expanded_nodes_info,
-        expanded_nodes_ids, top_candidate_list, stats);
+        expanded_nodes_ids, top_candidate_list, search_filters, stats);
 
     //     _u64 pos = 0;
     for (_u32 i = 0; i < res_count; i++) {

@@ -11,9 +11,10 @@ namespace grann {
   // T with filename (bin)
   template<typename T>
   GraphIndex<T>::GraphIndex(Metric m, const char *filename,
-                            std::vector<_u32> &list_of_tags)
+                            std::vector<_u32> &list_of_tags,
+                        std::string        labels_fname)
       : ANNIndex<T>(m, filename,
-                    list_of_tags) {  // Graph Index class constructor loads the
+                    list_of_tags, labels_fname) {  // Graph Index class constructor loads the
                                      // data and sets num_points, dim, etc.
     _max_degree = 0;
   }
@@ -41,10 +42,11 @@ namespace grann {
       const std::vector<unsigned> &init_ids,
       std::vector<Neighbor> &      expanded_nodes_info,
       tsl::robin_set<unsigned> &   expanded_nodes_ids,
-      std::vector<Neighbor> &best_L_nodes, QueryStats *stats) {
+      std::vector<Neighbor> &best_L_nodes, const std::vector<label> &labels_to_filter_by, QueryStats *stats) {
     best_L_nodes.resize(Lsize + 1);
     expanded_nodes_info.reserve(10 * Lsize);
     expanded_nodes_ids.reserve(10 * Lsize);
+
 
     unsigned                 l = 0;
     Neighbor                 nn;
@@ -91,12 +93,12 @@ namespace grann {
           best_inserted_index =
               ANNIndex<T>::process_candidates_into_best_candidates_pool(
                   node_coords, des, best_L_nodes, Lsize, l, inserted_into_pool,
-                  cmps);
+                  cmps, labels_to_filter_by);
         else
           best_inserted_index =
               ANNIndex<T>::process_candidates_into_best_candidates_pool(
                   node_coords, _out_nbrs[n], best_L_nodes, Lsize, l,
-                  inserted_into_pool, cmps);
+                  inserted_into_pool, cmps, labels_to_filter_by);
 
         if (best_inserted_index <= k)
           k = best_inserted_index;
@@ -111,6 +113,18 @@ namespace grann {
     }
     return l;
   }
+
+  template<typename T>
+  _u32 GraphIndex<T>::greedy_search_to_fixed_point(
+      const T *node_coords, const unsigned Lsize,
+      const std::vector<unsigned> &init_ids,
+      std::vector<Neighbor> &      expanded_nodes_info,
+      tsl::robin_set<unsigned> &   expanded_nodes_ids,
+      std::vector<Neighbor> &best_L_nodes, QueryStats *stats) {
+    std::vector<label> tmp_labels;
+    return greedy_search_to_fixed_point(node_coords, Lsize, init_ids, expanded_nodes_info, expanded_nodes_ids, best_L_nodes, tmp_labels, stats);
+      }
+
 
   template<typename T>
   void GraphIndex<T>::prune_candidates_alpha_rng(
@@ -149,6 +163,25 @@ namespace grann {
       for (unsigned t = start + 1; t < candidate_list.size() && t < maxc; t++) {
         if (occlude_factor[t] > alpha)
           continue;
+
+        bool prune_allowed = true;
+        if (this->_filtered_index) {
+            _u32 a = p.id;
+            _u32 b = candidate_list[t].id;
+            for (auto &x : this->_pts_to_labels[b]) {
+              if (std::find(this->_pts_to_labels[a].begin(), this->_pts_to_labels[a].end(),
+                            x) == this->_pts_to_labels[a].end()) {
+                prune_allowed = false;
+              }
+              if (!prune_allowed)
+                break;
+            }
+        }
+        if (!prune_allowed)
+          continue;
+
+
+
         float djk = this->_distance->compare(
             this->_data + this->_aligned_dim * (_u64) candidate_list[t].id,
             this->_data + this->_aligned_dim * (_u64) p.id,

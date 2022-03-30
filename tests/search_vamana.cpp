@@ -57,6 +57,13 @@ int search_index(int argc, char** argv) {
   std::string result_output_prefix(argv[ctr++]);
   //  bool        use_optimized_search = std::atoi(argv[ctr++]);
 
+  bool filtered_search = (bool) std::atoi(argv[ctr++]);
+  std::vector<grann::label> search_filters;
+  if (filtered_search) {
+	search_filters = {argv[ctr++]};
+  }
+
+
   bool calc_recall_flag = false;
 
   for (; ctr < (_u32) argc; ctr++) {
@@ -121,7 +128,7 @@ int search_index(int argc, char** argv) {
       vamana.search(query + i * query_aligned_dim, recall_at, search_params,
                     query_result_ids[test_id].data() + i * recall_at,
                     query_result_dists[test_id].data() + i * recall_at,
-                    (stats.data() + i));
+                    (stats.data() + i), search_filters);
       auto qe = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double> diff = qe - qs;
       latency_stats[i] = diff.count() * 1000000;
@@ -183,13 +190,13 @@ int search_index(int argc, char** argv) {
 }
 
 int main(int argc, char** argv) {
-  if (argc < 10) {
+  if (argc < 11) {
     std::cout
         << "Usage: " << argv[0]
         << "  [data_type<float/int8/uint8>]  [dist_fn (l2/mips/fast_l2)] "
            "[vamana_path]  [num_threads] "
            "[query_file.bin]  [truthset.bin (use \"null\" for none)] "
-           " [K] [result_output_prefix]"
+           " [K] [result_output_prefix] [filtered_search (0/1)] {filter_label (if filtered_search==1)} "
            " [L1]  [L2] etc. See README for more information on parameters. "
         << std::endl;
     exit(-1);

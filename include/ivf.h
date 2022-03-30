@@ -14,8 +14,8 @@ namespace grann {
   class IVFIndex : public ANNIndex<T> {
    public:
     IVFIndex(Metric m, const char *filename,
-						 std::vector<_u32> &list_of_tags);
-    IVFIndex(Metric m, std::string labels_fname="");
+						 std::vector<_u32> &list_of_tags, std::string labels_fname="");
+    IVFIndex(Metric m);
     ~IVFIndex();
 
     void save(const char *filename);

@@ -23,7 +23,7 @@ namespace grann {
   // 4 byte unsigned)
   template<typename T>
   void RelativeNG<T>::save(const char *filename) {
-    ANNIndex<T>::save_data_and_tags(filename);
+    ANNIndex<T>::save_data_and_tags_and_labels(filename);
     long long     total_gr_edges = 0;
     _u64          rng_size = 0;
     std::ofstream out(std::string(filename), std::ios::binary | std::ios::out);
@@ -47,7 +47,7 @@ namespace grann {
   // (navigating node id), and _out_nbrs (adjacency list)
   template<typename T>
   void RelativeNG<T>::load(const char *filename) {
-    ANNIndex<T>::load_data_and_tags(filename);
+    ANNIndex<T>::load_data_and_tags_and_labels(filename);
     std::ifstream in(filename, std::ios::binary);
     _u64          expected_file_size;
     in.read((char *) &expected_file_size, sizeof(_u64));

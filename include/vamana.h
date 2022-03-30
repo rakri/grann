@@ -12,7 +12,7 @@ namespace grann {
   template<typename T>
   class Vamana : public GraphIndex<T> {
    public:
-    Vamana(Metric m, const char *filename, std::vector<_u32> &list_of_tags);
+    Vamana(Metric m, const char *filename, std::vector<_u32> &list_of_tags, std::string labels_fname="");
     Vamana(Metric m);
     //    ~Vamana();
 
@@ -32,10 +32,17 @@ namespace grann {
    protected:
     //  _u64   _num_steiner_pts;
     unsigned _start_node;
+    // for filtered indices
+    std::unordered_map<label, _u32>    _filter_to_medoid_id;
+    std::unordered_map<_u32, _u32>     _medoid_counts;    
+
+    void calculate_label_specific_medoids();
 
     void get_expanded_nodes(const _u64 node_id, const unsigned l_build,
                             std::vector<unsigned>     init_ids,
                             std::vector<Neighbor> &   expanded_nodes_info,
-                            tsl::robin_set<unsigned> &expanded_nodes_ids);
+                            tsl::robin_set<unsigned> &expanded_nodes_ids, const std::vector<label> &labels_to_accept = std::vector<label>());
+
+
   };
 }  // namespace grann

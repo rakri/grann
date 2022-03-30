@@ -44,7 +44,7 @@ namespace grann {
     }
     std::string layer_filename(filename);
     layer_filename += "_" + std::to_string(_cur_level_number);
-    ANNIndex<T>::save_data_and_tags(layer_filename);
+    ANNIndex<T>::save_data_and_tags_and_labels(layer_filename);
     long long     total_gr_edges = 0;
     _u64          hnsw_size = 0;
     std::ofstream out(layer_filename, std::ios::binary | std::ios::out);
@@ -73,7 +73,7 @@ namespace grann {
     }
     std::string layer_filename(filename);
     layer_filename += "_" + std::to_string(_cur_level_number);
-    ANNIndex<T>::load_data_and_tags(layer_filename);
+    ANNIndex<T>::load_data_and_tags_and_labels(layer_filename);
 
     std::ifstream in(layer_filename, std::ios::binary);
     _u64          expected_file_size;

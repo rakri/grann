@@ -1,6 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <algorithm>
+#include <cstdio> 
+
 #include "utils.h"
 #include "vamana.h"
 
@@ -96,17 +99,18 @@ namespace grann {
         _tag_map[i] = i;
       }
     }
-
+    if (labels_fname != "") {
+    _filtered_index = true;
     parse_label_file(labels_fname);
+    }
   }
 
   template<typename T>
-  ANNIndex<T>::ANNIndex(Metric m, std::string labels_fname)
+  ANNIndex<T>::ANNIndex(Metric m)
       : _metric(m), _has_built(false) {
     this->_distance = ::get_distance_function<T>(m);
     this->_distance_float = ::get_distance_function<float>(m);
     _num_points = 0;
-    parse_label_file(labels_fname);
   }
 
   template<typename T>
@@ -119,8 +123,7 @@ namespace grann {
 
   template<typename T>
   void ANNIndex<T>::parse_label_file(std::string map_file) {
-    //_filtered_ann = 1;
-    // not doing a filtered search
+
     if (map_file == "")
       return;
 
@@ -132,42 +135,77 @@ namespace grann {
     while (std::getline(infile, line)) {
       std::istringstream       iss(line);
       std::vector<std::string> lbls(0);
-      // long int              val;
+
       while (getline(iss, token, ',')) {
         token.erase(std::remove(token.begin(), token.end(), '\n'), token.end());
         token.erase(std::remove(token.begin(), token.end(), '\r'), token.end());
         lbls.push_back(token);
         _labels.insert(token);
         _labels_to_pts[token].push_back(line_cnt);
-        if (_filter_to_medoid_id.find(token) == _filter_to_medoid_id.end()) {
-          _filter_to_medoid_id[token] = line_cnt;
-        }
       }
       if (lbls.size() <= 0) {
         std::cout << "No label found";
         exit(-1);
       }
-      std::sort(lbls.begin(), lbls.end());
-      _pts_to_labels.push_back(lbls);
+      std::sort(lbls.begin(), lbls.end()); // labels are sorted to do correct set_intersection (if needed)
+      _pts_to_labels.push_back(lbls); 
       line_cnt++;
     }
     std::cout << "Identified " << _labels.size() << " distinct label(s)"
               << std::endl;
+    if (this->_pts_to_labels.size() != this->_num_points)  {
+      grann::cout<<"Error. Mismatch in size of labels file and data file. Exitting." << std::endl;
+      exit(-1);
+    }
   }
 
   template<typename T>
-  void ANNIndex<T>::save_data_and_tags(const std::string index_file) {
+  void ANNIndex<T>::save_labels(const std::string labels_file) {
+      std::ofstream label_writer(labels_file);
+          for (_u32 i = 0; i < _pts_to_labels.size(); i++) {
+            for (_u32 j = 0; j < (_pts_to_labels[i].size() - 1); j++) {
+              label_writer << _pts_to_labels[i][j] << ",";
+            }
+            if (_pts_to_labels[i].size() != 0)
+              label_writer << _pts_to_labels[i][_pts_to_labels[i].size() - 1];
+            label_writer << std::endl;
+          }
+          label_writer.close();
+  }
+
+
+  template<typename T>
+  void ANNIndex<T>::save_data_and_tags_and_labels(const std::string index_file) {
     std::string data_file = index_file + "_data.bin";
     std::string tag_file = index_file + "_tags.bin";
+    std::string labels_file = index_file + "_labels.txt";
+    std::string universal_label_file = index_file + "_universal_label.txt";
+
     grann::save_data_in_original_dimensions<T>(data_file, _data, _num_points,
                                                _aligned_dim, _dim);
     grann::save_bin<_u32>(tag_file, _tag_map, _num_points, 1);
+    if (this->_filtered_index) {
+      save_labels(labels_file);
+        if (_use_universal_label) {
+        std::ofstream universal_label_writer(universal_label_file);
+        universal_label_writer << _universal_label << std::endl;
+        universal_label_writer.close();
+        } else {
+          std::remove(universal_label_file.c_str());
+        }
+    } else {
+      std::remove(labels_file.c_str()); 
+      std::remove(universal_label_file.c_str());
+    }
   }
 
+
   template<typename T>
-  void ANNIndex<T>::load_data_and_tags(const std::string index_file) {
+  void ANNIndex<T>::load_data_and_tags_and_labels(const std::string index_file) {
     std::string data_file = index_file + "_data.bin";
     std::string tag_file = index_file + "_tags.bin";
+    std::string labels_file = index_file + "_labels.txt";
+
     _u64        num_tags, tmp_dim;
     grann::load_aligned_bin<T>(data_file, _data, _num_points, _dim,
                                _aligned_dim);
@@ -178,6 +216,20 @@ namespace grann {
                   << std::endl;
       exit(-1);
     }
+    if (file_exists(labels_file)) {
+      parse_label_file(labels_file);
+      this->_filtered_index = true;
+    }
+
+      std::string universal_label_file = index_file + "_universal_label.txt";
+      if (file_exists(universal_label_file)) {
+        std::ifstream universal_label_reader(universal_label_file);
+        universal_label_reader >> _universal_label;
+        _use_universal_label = true;
+        universal_label_reader.close();
+      }
+
+
   }
 
   template<typename T>
@@ -185,16 +237,26 @@ namespace grann {
       const T *&node_coords, std::vector<_u32> &cand_list,
       std::vector<Neighbor> &top_L_candidates, const _u32 maxListSize,
       _u32 &curListSize, tsl::robin_set<_u32> &already_inserted,
-      _u32 &total_comparisons, std::vector<label> search_filters) {
+      _u32 &total_comparisons, const std::vector<label> &search_filters) {
     _u32 best_inserted_position = maxListSize;
+
     for (unsigned m = 0; m < cand_list.size(); ++m) {
       unsigned id = cand_list[m];
       if (!search_filters.empty()) {
         std::vector<label> intersection_result;
-        std::vector<label> curr_labels = _pts_to_labels[id];
+        std::vector<label> &curr_labels = _pts_to_labels[id];
+
         std::set_intersection(search_filters.begin(), search_filters.end(),
-                              curr_labels.begin(), curr_labels.begin(),
+                              curr_labels.begin(), curr_labels.end(),
                               std::back_inserter(intersection_result));
+
+        if (this->_use_universal_label) {
+          if (std::find(search_filters.begin(), search_filters.end(),
+                        _universal_label) != search_filters.end() ||
+              std::find(curr_labels.begin(), curr_labels.end(), _universal_label) != curr_labels.end())
+            intersection_result.emplace_back(_universal_label);
+        }
+
         if (intersection_result.empty())
           continue;
       }

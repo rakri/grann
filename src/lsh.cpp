@@ -106,8 +106,9 @@ namespace grann {
 
   template<typename T>
   LSHIndex<T>::LSHIndex(Metric m, const char *fname,
-                        std::vector<_u32> &list_of_tags)
-      : ANNIndex<T>(m, fname, list_of_tags) {
+                        std::vector<_u32> &list_of_tags, 
+                        std::string        labels_fname)
+      : ANNIndex<T>(m, fname, list_of_tags, labels_fname) {
     num_tables = 0;
     table_size = 0;
     vector_dim = 0;
@@ -149,7 +150,7 @@ namespace grann {
   template<typename T>
   _u32 LSHIndex<T>::search(const T *query, _u32 res_count,
                            Parameters &search_params, _u32 *indices,
-                           float *distances, QueryStats *stats) {
+                           float *distances, QueryStats *stats, std::vector<label> search_filters) {
     float *query_float = new float[this->_aligned_dim];
     grann::convert_types(query, query_float, 1, this->_aligned_dim);
 
@@ -169,15 +170,14 @@ namespace grann {
 
     ANNIndex<T>::process_candidates_into_best_candidates_pool(
         query, candidates, best_candidates, max_size, curr_size, inserted,
-        cmps);
+        cmps, search_filters);
 
     res_count = curr_size < res_count ? curr_size : res_count;
     for (_u32 i = 0; i < res_count; i++) {
       indices[i] = best_candidates[i].id;
-      // grann::cout<< indices[i] << "\t";
+
       if (distances != nullptr) {
         distances[i] = best_candidates[i].distance;
-        // grann::cout<< distances[i] << std::endl;
       }
     }
     if (stats != nullptr) {
@@ -190,7 +190,7 @@ namespace grann {
 
   template<typename T>
   void LSHIndex<T>::save(const char *fname) {
-    ANNIndex<T>::save_data_and_tags(fname);
+    ANNIndex<T>::save_data_and_tags_and_labels(fname);
     std::string index_file(fname);
     index_file += "_index.bin";
     std::cout << index_file << std::endl;
@@ -216,7 +216,7 @@ namespace grann {
 
   template<typename T>
   void LSHIndex<T>::load(const char *fname) {
-    ANNIndex<T>::load_data_and_tags(fname);
+    ANNIndex<T>::load_data_and_tags_and_labels(fname);
     std::string index_file(fname);
     index_file += "_index.bin";
     std::cout << index_file << std::endl;

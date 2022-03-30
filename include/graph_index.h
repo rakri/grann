@@ -15,7 +15,7 @@ namespace grann {
   template<typename T>
   class GraphIndex : public ANNIndex<T> {
    public:
-    GraphIndex(Metric m, const char *filename, std::vector<_u32> &list_of_tags);
+    GraphIndex(Metric m, const char *filename, std::vector<_u32> &list_of_tags, std::string labels_fname="");
     GraphIndex(Metric m);
 
     /*  Internals of the library */
@@ -45,6 +45,14 @@ namespace grann {
         std::vector<Neighbor> &  expanded_nodes_info,
         tsl::robin_set<_u32> &   expanded_nodes_ids,
         std::vector<Neighbor> &best_L_nodes, QueryStats *stats = nullptr);
+
+    _u32 greedy_search_to_fixed_point(
+        const T *node_coords, const _u32 list_size,
+        const std::vector<_u32> &init_ids,
+        std::vector<Neighbor> &  expanded_nodes_info,
+        tsl::robin_set<_u32> &   expanded_nodes_ids,
+        std::vector<Neighbor> &best_L_nodes, const std::vector<label> &labels_to_filter_by, QueryStats *stats = nullptr);
+
 
     void update_degree_stats();
 
