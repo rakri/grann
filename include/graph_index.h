@@ -8,6 +8,8 @@
 #include "percentile_stats.h"
 #include "index.h"
 
+#include <shared_mutex>
+
 namespace grann {
 
   typedef std::vector<std::vector<_u32>> NeighborList;
@@ -23,8 +25,14 @@ namespace grann {
     NeighborList _out_nbrs;
     NeighborList _in_nbrs;
     _u32         _max_degree = 0;
+
     bool         _locks_enabled =
         false;  // will be used at build time, pure search dont need locks
+
+    std::vector<std::shared_timed_mutex>
+        _locks;  // Per node lock to be initialized at build time, dont
+                 // initialize in constructor to save memory for pure search
+
 
     void prune_candidates_alpha_rng(const unsigned         location,
                                     std::vector<Neighbor> &pool,
@@ -56,8 +64,5 @@ namespace grann {
 
     void update_degree_stats();
 
-    std::vector<std::mutex>
-        _locks;  // Per node lock to be initialized at build time, dont
-                 // initialize in constructor to save memory for pure search
   };
 }  // namespace grann

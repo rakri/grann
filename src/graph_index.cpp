@@ -85,7 +85,7 @@ namespace grann {
 
         std::vector<unsigned> des;
         if (_locks_enabled) {
-          LockGuard guard(_locks[n]);
+          ReadLock guard(_locks[n]);
           des = _out_nbrs[n];
         }
         unsigned best_inserted_index;
@@ -249,7 +249,7 @@ namespace grann {
       std::vector<unsigned> copy_of_neighbors;
       bool                  prune_needed = false;
       {
-        LockGuard guard(this->_locks[des]);
+        WriteLock guard(this->_locks[des]);
         if (std::find(des_pool.begin(), des_pool.end(), n) == des_pool.end()) {
           if (des_pool.size() < VAMANA_SLACK_FACTOR * degree_bound) {
             des_pool.emplace_back(n);
@@ -290,7 +290,7 @@ namespace grann {
           this->prune_candidates_top_K(des, dummy_pool, parameters,
                                        new_out_neighbors);
         {
-          LockGuard guard(this->_locks[des]);
+          WriteLock guard(this->_locks[des]);
           this->_out_nbrs[des].clear();
           for (auto new_nbr : new_out_neighbors) {
             this->_out_nbrs[des].emplace_back(new_nbr);

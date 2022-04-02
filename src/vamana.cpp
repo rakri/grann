@@ -234,7 +234,7 @@ namespace grann {
 
     this->_locks_enabled =
         true;  // we dont need locks for pure search on a pre-built index
-    this->_locks = std::vector<std::mutex>(this->_num_points);
+    this->_locks = std::vector<std::shared_timed_mutex>(this->_num_points);
     this->_out_nbrs.resize(this->_num_points);
     for (auto &x : this->_out_nbrs)
       x.reserve(1.05 * VAMANA_SLACK_FACTOR * degree_bound);
@@ -290,7 +290,7 @@ namespace grann {
       this->_out_nbrs[location].reserve(
           (_u64)(VAMANA_SLACK_FACTOR * degree_bound));
       {
-        LockGuard guard(this->_locks[location]);
+        WriteLock guard(this->_locks[location]);
         for (auto link : pruned_list)
           this->_out_nbrs[location].emplace_back(link);
       }
