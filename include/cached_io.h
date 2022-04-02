@@ -8,7 +8,6 @@
 #include <sstream>
 
 #include "essentials.h"
-#include "logger.h"
 #include "ann_exception.h"
 
 // sequential cached reads
@@ -36,7 +35,7 @@ class cached_ifstream {
     this->cache_size = cacheSize;
     cache_buf = new char[cacheSize];
     reader.read(cache_buf, cacheSize);
-    grann::cout << "Opened: " << filename.c_str() << ", size: " << fsize
+    std::cout << "Opened: " << filename.c_str() << ", size: " << fsize
                 << ", cache_size: " << cacheSize << std::endl;
   }
 
@@ -59,7 +58,7 @@ class cached_ifstream {
         stream << "n_bytes: " << n_bytes << " cached_bytes: " << cached_bytes
                << " fsize: " << fsize << " current pos:" << reader.tellg()
                << std::endl;
-        grann::cout << stream.str() << std::endl;
+        std::cout << stream.str() << std::endl;
         throw grann::ANNException(stream.str(), -1, __FUNCSIG__, __FILE__,
                                   __LINE__);
       }
@@ -104,7 +103,7 @@ class cached_ofstream {
     assert(writer.is_open());
     assert(cache_size > 0);
     cache_buf = new char[cache_size];
-    grann::cout << "Opened: " << filename.c_str()
+    std::cout << "Opened: " << filename.c_str()
                 << ", cache_size: " << cache_size << std::endl;
   }
 
@@ -116,7 +115,7 @@ class cached_ofstream {
 
     delete[] cache_buf;
     writer.close();
-    grann::cout << "Finished writing " << fsize << "B" << std::endl;
+    std::cout << "Finished writing " << fsize << "B" << std::endl;
   }
 
   _u64 get_file_size() {

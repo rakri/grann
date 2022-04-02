@@ -14,7 +14,7 @@ namespace grann {
   RelativeNG<T>::RelativeNG(Metric m, const char *filename,
                             std::vector<_u32> &list_of_tags)
       : GraphIndex<T>(m, filename, list_of_tags) {
-    grann::cout << "Initialized RelativeNG Object with " << this->_num_points
+    std::cout << "Initialized RelativeNG Object with " << this->_num_points
                 << " points, dim=" << this->_dim << "." << std::endl;
   }
 
@@ -53,7 +53,7 @@ namespace grann {
     in.read((char *) &expected_file_size, sizeof(_u64));
     in.read((char *) &this->_max_degree, sizeof(unsigned));
     in.read((char *) &this->_start_node, sizeof(unsigned));
-    grann::cout << "Loading rng index " << filename << "..." << std::flush;
+    std::cout << "Loading rng index " << filename << "..." << std::flush;
 
     _u64     cc = 0;
     unsigned nodes = 0;
@@ -69,16 +69,16 @@ namespace grann {
 
       this->_out_nbrs.emplace_back(tmp);
       if (nodes % 10000000 == 0)
-        grann::cout << "." << std::flush;
+        std::cout << "." << std::flush;
     }
     if (this->_out_nbrs.size() != this->_num_points) {
-      grann::cout << "ERROR. mismatch in number of points. Graph has "
+      std::cout << "ERROR. mismatch in number of points. Graph has "
                   << this->_out_nbrs.size() << " points and loaded dataset has "
                   << this->_num_points << " points. " << std::endl;
       return;
     }
 
-    grann::cout << "..done. RelativeNG has " << nodes << " nodes and " << cc
+    std::cout << "..done. RelativeNG has " << nodes << " nodes and " << cc
                 << " out-edges" << std::endl;
   }
 
@@ -133,12 +133,12 @@ namespace grann {
   }
 
   template<typename T>
-  void RelativeNG<T>::build(Parameters &build_parameters) {
+  void RelativeNG<T>::build(const Parameters &build_params) {
     grann::Timer build_timer;
 
-    unsigned num_threads = build_parameters.Get<unsigned>("num_threads");
+    unsigned num_threads = build_params.Get<unsigned>("num_threads");
 
-    grann::cout << "Starting rng build." << std::endl;
+    std::cout << "Starting rng build." << std::endl;
 
     //    this->_locks_enabled =
     //        true;  // we dont need locks for pure search on a pre-built index
@@ -150,15 +150,18 @@ namespace grann {
       omp_set_num_threads(num_threads);
 
     this->_start_node = calculate_entry_point();
-    grann::cout << "Medoid identified as " << this->_start_node << std::endl;
+    std::cout << "Medoid identified as " << this->_start_node << std::endl;
 
     _u32             progress_milestone = (_u32)(this->_num_points / 10);
     std::atomic<int> milestone_marker{0};
 
-    build_parameters.Set<_u32>("C", this->_num_points);
-    build_parameters.Set<_u32>("R", this->_num_points);
-    build_parameters.Set<float>("alpha", 1);
-    build_parameters.Set<_u32>("L", this->_num_points);
+    grann::Parameters aux_params;
+
+    aux_params.Set<_u32>("C", this->_num_points);
+    aux_params.Set<_u32>("R", this->_num_points);
+    aux_params.Set<float>("alpha", 1);
+    aux_params.Set<_u32>("L", this->_num_points);
+    aux_params.Set<_u32>("num_threads", num_threads);
 
 #pragma omp parallel for schedule(static, 64)
     for (_u32 location = 0; location < this->_num_points; location++) {
@@ -167,7 +170,7 @@ namespace grann {
 
         std::stringstream msg;
         msg << (milestone_marker * 10) << "\% of build completed" << std::endl;
-        grann::cout << msg.str();
+        std::cout << msg.str();
       }
 
       std::vector<Neighbor> pool;
@@ -183,7 +186,7 @@ namespace grann {
         pool.emplace_back(Neighbor(j, dist, true));
       }
 
-      this->prune_candidates_alpha_rng(location, pool, build_parameters,
+      this->prune_candidates_alpha_rng(location, pool, aux_params,
                                        pruned_list);
 
       this->_out_nbrs[location].reserve(pruned_list.size());
@@ -191,18 +194,18 @@ namespace grann {
         this->_out_nbrs[location].emplace_back(link);
     }
 
-    grann::cout << "done." << std::endl;
+    std::cout << "done." << std::endl;
     this->_has_built = true;
     this->update_degree_stats();
 
-    grann::cout << "Total build time: "
+    std::cout << "Total build time: "
                 << ((double) build_timer.elapsed() / (double) 1000000) << "s"
                 << std::endl;
   }
 
   template<typename T>
   _u32 RelativeNG<T>::search(const T *query, _u32 res_count,
-                             Parameters &search_params, _u32 *indices,
+                             const Parameters &search_params, _u32 *indices,
                              float *distances, QueryStats *stats,
 														 std::vector<label> search_filters) {
     _u32                     search_list_size = search_params.Get<_u32>("L");

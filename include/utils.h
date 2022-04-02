@@ -11,7 +11,6 @@
 #include <unistd.h>
 typedef int FileHandle;
 
-#include "logger.h"
 #include "cached_io.h"
 
 namespace grann {
@@ -80,7 +79,7 @@ namespace grann {
     npts = (unsigned) npts_i32;
     dim = (unsigned) dim_i32;
 
-    grann::cout << "Metadata: #pts = " << npts << ", #dims = " << dim << "."
+    std::cout << "Metadata: #pts = " << npts << ", #dims = " << dim << "."
                 << std::endl;
 
     _u64 expected_actual_file_size =
@@ -91,7 +90,7 @@ namespace grann {
              << " while expected size is  " << expected_actual_file_size
              << " npts = " << npts << " dim = " << dim
              << " size of <T>= " << sizeof(T) << std::endl;
-      grann::cout << stream.str();
+      std::cout << stream.str();
       throw grann::ANNException(stream.str(), -1, __FUNCSIG__, __FILE__,
                                 __LINE__);
     }
@@ -103,7 +102,7 @@ namespace grann {
   template<typename T>
   inline void load_bin(const std::string& bin_file, T*& data, _u64& npts,
                        _u64& dim) {
-    grann::cout << "Reading bin file " << bin_file.c_str() << " ..."
+    std::cout << "Reading bin file " << bin_file.c_str() << " ..."
                 << std::endl;
     std::ifstream reader(bin_file, std::ios::binary | std::ios::ate);
     uint64_t      fsize = reader.tellg();
@@ -125,18 +124,18 @@ namespace grann {
   inline void save_bin(const std::string& filename, T* data, _u64 npts,
                        _u64 ndims) {
     std::ofstream writer(filename, std::ios::binary | std::ios::out);
-    grann::cout << "Writing bin: " << filename.c_str() << std::endl;
+    std::cout << "Writing bin: " << filename.c_str() << std::endl;
     int npts_i32 = (int) npts, ndims_i32 = (int) ndims;
     writer.write((char*) &npts_i32, sizeof(int));
     writer.write((char*) &ndims_i32, sizeof(int));
-    grann::cout << "bin: #pts = " << npts << ", #dims = " << ndims
+    std::cout << "bin: #pts = " << npts << ", #dims = " << ndims
                 << ", size = " << npts * ndims * sizeof(T) + 2 * sizeof(int)
                 << "B" << std::endl;
 
     //    data = new T[npts_u64 * ndims_u64];
     writer.write((char*) data, npts * ndims * sizeof(T));
     writer.close();
-    grann::cout << "Finished writing bin." << std::endl;
+    std::cout << "Finished writing bin." << std::endl;
   }
 
   template<typename T>
@@ -145,18 +144,18 @@ namespace grann {
                                                _u64 aligned_dim,
                                                _u64 original_dim) {
     if (original_dim > aligned_dim) {
-      grann::cout << "Error, original_dim must be at most aligned_dimension; "
+      std::cout << "Error, original_dim must be at most aligned_dimension; "
                      "NOT SAVING FILE."
                   << std::endl;
       return;
     }
     std::ofstream writer(filename, std::ios::binary | std::ios::out);
-    grann::cout << "Writing bin: " << filename.c_str() << std::endl;
+    std::cout << "Writing bin: " << filename.c_str() << std::endl;
 
     int npts_i32 = (int) npts, ndims_i32 = (int) original_dim;
     writer.write((char*) &npts_i32, sizeof(int));
     writer.write((char*) &ndims_i32, sizeof(int));
-    grann::cout << "bin: #pts = " << npts_i32 << ", #dims = " << original_dim
+    std::cout << "bin: #pts = " << npts_i32 << ", #dims = " << original_dim
                 << ", size = "
                 << (npts) *original_dim * sizeof(T) + 2 * sizeof(int) << "B"
                 << std::endl;
@@ -166,7 +165,7 @@ namespace grann {
                    original_dim * sizeof(T));
     }
     writer.close();
-    grann::cout << "Finished writing bin." << std::endl;
+    std::cout << "Finished writing bin." << std::endl;
   }
 
   template<typename T>
@@ -174,7 +173,7 @@ namespace grann {
       const std::string& filename, T* base_data, _u64 npts, _u64 ndims,
       _u64 aligned_dim, std::vector<_u32>& list_of_tags) {
     if (ndims > aligned_dim) {
-      grann::cout << "Error, dimension > aligned_dimension. Not saving"
+      std::cout << "Error, dimension > aligned_dimension. Not saving"
                   << std::endl;
       return;
     }
@@ -190,18 +189,18 @@ namespace grann {
       valid = false;
 
     if (!valid) {
-      grann::cout
+      std::cout
           << "Invalid list of ids to save. All entries must be between 0 and "
           << npts << std::endl;
     }
 
     std::ofstream writer(filename, std::ios::binary | std::ios::out);
-    grann::cout << "Writing bin: " << filename.c_str() << std::endl;
+    std::cout << "Writing bin: " << filename.c_str() << std::endl;
 
     int npts_i32 = (int) list_of_tags.size(), ndims_i32 = (int) ndims;
     writer.write((char*) &npts_i32, sizeof(int));
     writer.write((char*) &ndims_i32, sizeof(int));
-    grann::cout << "bin: #pts = " << npts_i32 << ", #dims = " << ndims
+    std::cout << "bin: #pts = " << npts_i32 << ", #dims = " << ndims
                 << ", size = "
                 << (list_of_tags.size()) * ndims * sizeof(T) + 2 * sizeof(int)
                 << "B" << std::endl;
@@ -211,7 +210,7 @@ namespace grann {
                    ndims * sizeof(T));
     }
     writer.close();
-    grann::cout << "Finished writing bin." << std::endl;
+    std::cout << "Finished writing bin." << std::endl;
   }
 
   // load_aligned_bin functions START
@@ -234,12 +233,12 @@ namespace grann {
              << " while expected size is  " << expected_actual_file_size
              << " npts = " << npts << " dim = " << dim
              << " size of <T>= " << sizeof(T) << std::endl;
-      grann::cout << stream.str() << std::endl;
+      std::cout << stream.str() << std::endl;
       throw grann::ANNException(stream.str(), -1, __FUNCSIG__, __FILE__,
                                 __LINE__);
     }
     rounded_dim = ROUND_UP(dim, 8);
-    grann::cout << "Metadata: #pts = " << npts << ", #dims = " << dim
+    std::cout << "Metadata: #pts = " << npts << ", #dims = " << dim
                 << ", aligned_dim = " << rounded_dim << "..." << std::flush;
     _u64 allocSize = npts * rounded_dim * sizeof(T);
     alloc_aligned(((void**) &data), allocSize, 8 * sizeof(T));
@@ -248,13 +247,13 @@ namespace grann {
       reader.read((char*) (data + i * rounded_dim), dim * sizeof(T));
       memset(data + i * rounded_dim + dim, 0, (rounded_dim - dim) * sizeof(T));
     }
-    grann::cout << " done." << std::endl;
+    std::cout << " done." << std::endl;
   }
 
   template<typename T>
   inline void load_aligned_bin(const std::string& bin_file, T*& data,
                                _u64& npts, _u64& dim, _u64& rounded_dim) {
-    grann::cout << "Reading bin file " << bin_file << " ..." << std::flush;
+    std::cout << "Reading bin file " << bin_file << " ..." << std::flush;
 
     std::ifstream reader(bin_file, std::ios::binary | std::ios::ate);
     uint64_t      fsize = reader.tellg();
@@ -376,7 +375,7 @@ namespace grann {
 inline bool file_exists(const std::string& name) {
   struct stat buffer;
   auto        val = stat(name.c_str(), &buffer);
-  grann::cout << " Stat(" << name.c_str() << ") returned: " << val << std::endl;
+  std::cout << " Stat(" << name.c_str() << ") returned: " << val << std::endl;
   return (val == 0);
 }
 
@@ -384,12 +383,12 @@ inline _u64 get_file_size(const std::string& fname) {
   std::ifstream reader(fname, std::ios::binary | std::ios::ate);
   if (!reader.fail() && reader.is_open()) {
     _u64 end_pos = reader.tellg();
-    grann::cout << " Tellg: " << reader.tellg() << " as u64: " << end_pos
+    std::cout << " Tellg: " << reader.tellg() << " as u64: " << end_pos
                 << std::endl;
     reader.close();
     return end_pos;
   } else {
-    grann::cout << "Could not open file: " << fname << std::endl;
+    std::cout << "Could not open file: " << fname << std::endl;
     return 0;
   }
 }

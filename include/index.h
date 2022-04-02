@@ -6,12 +6,17 @@
 #include "utils.h"
 #include "distance.h"
 #include "percentile_stats.h"
+#include <shared_mutex>
 
 namespace grann {
 
-  typedef std::lock_guard<std::mutex>
-      LockGuard;  // Use this datastructure to create per vertex locks if we
-                  // want to update the graph during index build
+//  typedef std::lock_guard<std::mutex>
+//      LockGuard;  // Use this datastructure to create per vertex locks if we
+//                  // want to update the graph during index build
+  
+  typedef std::unique_lock<std::shared_timed_mutex>  WriteLock;
+  typedef std::shared_lock<std::shared_timed_mutex>  ReadLock;
+
   typedef std::string label;
 
   // Neighbor contains infromation of the name of the neighbor and associated
@@ -118,11 +123,11 @@ namespace grann {
 
     virtual void load(const char *filename) = 0;
 
-    virtual void build(Parameters &build_params) = 0;
+    virtual void build(const Parameters &build_params) = 0;
 
     // returns # results found (will be <= res_count)
     virtual _u32 search(const T *query, _u32 res_count,
-                        Parameters &search_params, _u32 *indices,
+                        const Parameters &search_params, _u32 *indices,
                         float *distances, QueryStats *stats = nullptr,
 												std::vector<label> search_filters = std::vector<label>()) = 0;
 

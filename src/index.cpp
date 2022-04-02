@@ -19,12 +19,12 @@ namespace {
   template<>
   grann::Distance<float> *get_distance_function(grann::Metric m) {
     if (m == grann::Metric::FAST_L2) {
-      grann::cout << "Using L2 Distance Function" << std::endl;
+      std::cout << "Using L2 Distance Function" << std::endl;
       return new grann::DistanceFastL2<float>();
     } else if (m == grann::Metric::L2) {
       return new grann::DistanceL2();
     } else if (m == grann::Metric::INNER_PRODUCT) {
-      grann::cout << "Using Inner Product Function" << std::endl;
+      std::cout << "Using Inner Product Function" << std::endl;
       return new grann::DistanceInnerProduct<float>();
     } else {
       std::stringstream stream;
@@ -154,7 +154,7 @@ namespace grann {
     std::cout << "Identified " << _labels.size() << " distinct label(s)"
               << std::endl;
     if (this->_pts_to_labels.size() != this->_num_points)  {
-      grann::cout<<"Error. Mismatch in size of labels file and data file. Exitting." << std::endl;
+      std::cout<<"Error. Mismatch in size of labels file and data file. Exitting." << std::endl;
       exit(-1);
     }
   }
@@ -211,7 +211,7 @@ namespace grann {
                                _aligned_dim);
     grann::load_bin<_u32>(tag_file, _tag_map, num_tags, tmp_dim);
     if (num_tags != _num_points) {
-      grann::cout << "Error! Mismatch between number of tags and number of "
+      std::cout << "Error! Mismatch between number of tags and number of "
                      "data points. Exitting."
                   << std::endl;
       exit(-1);

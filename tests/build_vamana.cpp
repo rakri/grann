@@ -28,6 +28,15 @@ int build_vamana_index(const std::string&   data_path, const std::string &labels
   paras.Set<float>("alpha", alpha);
   paras.Set<bool>("saturate_graph", 0);
   paras.Set<unsigned>("num_threads", num_threads);
+
+  _u32 C = paras.Get<unsigned>("C");
+  _u32 R1 = paras.Get<unsigned>("R");
+  _u32 L1 = paras.Get<unsigned>("L");    
+  float alpha1 = paras.Get<float>("alpha");
+  _u32 pr = paras.Get<uint32_t>("pruning_rule");
+
+  std::cout<<"Parameters set: C=" << C<<", L=" << L1 <<", R=" << R1 <<", alpha=" << alpha1 <<", pruning_rule=" << pr << std::endl;
+
   std::vector<_u32> idmap;
 
   grann::Vamana<T> vamana(metric, data_path.c_str(), idmap, labels_file);

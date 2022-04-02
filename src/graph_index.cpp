@@ -4,6 +4,7 @@
 #include "utils.h"
 #include "graph_index.h"
 #include <iomanip>
+#include <sstream>
 
 namespace grann {
 
@@ -85,7 +86,7 @@ namespace grann {
 
         std::vector<unsigned> des;
         if (_locks_enabled) {
-          LockGuard guard(_locks[n]);
+          ReadLock guard(_locks[n]);
           des = _out_nbrs[n];
         }
         unsigned best_inserted_index;
@@ -130,8 +131,8 @@ namespace grann {
   void GraphIndex<T>::prune_candidates_alpha_rng(
       const unsigned point_id, std::vector<Neighbor> &candidate_list,
       const Parameters &parameter, std::vector<unsigned> &pruned_list) {
-    unsigned degree_bound = parameter.Get<unsigned>("R");
-    unsigned maxc = parameter.Get<unsigned>("C");
+    unsigned degree_bound = parameter.Get<_u32>("R");
+    unsigned maxc = parameter.Get<_u32>("C");
     float    alpha = parameter.Get<float>("alpha");
 
     if (candidate_list.size() == 0)
@@ -245,11 +246,12 @@ namespace grann {
     for (auto des : src_pool) {
       /* des.id is the id of the neighbors of n */
       /* des_pool contains the neighbors of the neighbors of n */
-      auto &                des_pool = this->_out_nbrs[des];
+
       std::vector<unsigned> copy_of_neighbors;
       bool                  prune_needed = false;
       {
-        LockGuard guard(this->_locks[des]);
+        WriteLock guard(this->_locks[des]);
+      auto &                des_pool = this->_out_nbrs[des];
         if (std::find(des_pool.begin(), des_pool.end(), n) == des_pool.end()) {
           if (des_pool.size() < VAMANA_SLACK_FACTOR * degree_bound) {
             des_pool.emplace_back(n);
@@ -290,7 +292,7 @@ namespace grann {
           this->prune_candidates_top_K(des, dummy_pool, parameters,
                                        new_out_neighbors);
         {
-          LockGuard guard(this->_locks[des]);
+          WriteLock guard(this->_locks[des]);
           this->_out_nbrs[des].clear();
           for (auto new_nbr : new_out_neighbors) {
             this->_out_nbrs[des].emplace_back(new_nbr);
@@ -337,25 +339,25 @@ namespace grann {
       unreachable_count++;
     }
 
-    grann::cout << std::setw(16) << "Percentile" << std::setw(16)
+    std::cout << std::setw(16) << "Percentile" << std::setw(16)
                 << "Out Degree" << std::setw(16) << "In Degree" << std::endl;
-    grann::cout << "======================================================="
+    std::cout << "======================================================="
                 << std::endl;
     for (_u32 p = 0; p < 100; p += 10) {
-      grann::cout << std::setw(16) << p << std::setw(16)
+      std::cout << std::setw(16) << p << std::setw(16)
                   << out_degrees[(_u64)((p / 100.0) * this->_num_points)]
                   << std::setw(16)
                   << in_degrees[(_u64)((p / 100.0) * this->_num_points)].second
                   << std::endl;
     }
-    grann::cout << std::setw(16) << "100" << std::setw(16)
+    std::cout << std::setw(16) << "100" << std::setw(16)
                 << out_degrees[this->_num_points - 1] << std::setw(16)
                 << in_degrees[this->_num_points - 1].second << std::endl;
 
-    grann::cout << std::setprecision(3)
+    std::cout << std::setprecision(3)
                 << (100.0 * unreachable_count) / this->_num_points
                 << "\% points are unreachable and " << std::flush;
-    grann::cout << in_degrees[this->_num_points - 1].first
+    std::cout << in_degrees[this->_num_points - 1].first
                 << " is the most popular in-degree node." << std::endl;
   }
 
