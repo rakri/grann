@@ -32,6 +32,7 @@ int search_index(int argc, char** argv) {
 
   std::string index_file(argv[ctr++]);
   _u64        num_threads = std::atoi(argv[ctr++]);
+  _u32        num_nearby = std::atoi(argv[ctr++]);
   std::string query_bin(argv[ctr++]);
   std::string truthset_bin(argv[ctr++]);
   _u64        recall_at = std::atoi(argv[ctr++]);
@@ -73,7 +74,7 @@ int search_index(int argc, char** argv) {
   grann::IVFIndex<T> ivf_index(metric);
   ivf_index.load(index_file.c_str());  // to load Index
   std::cout << "IVF Index loaded" << std::endl;
-  grann::Parameters search_params;
+//  grann::Parameters search_params;
 
   std::string recall_string = "Recall@" + std::to_string(recall_at);
   std::cout << std::setw(4) << "Ls" << std::setw(12) << "QPS " << std::setw(22)
@@ -92,7 +93,7 @@ int search_index(int argc, char** argv) {
 
   for (uint32_t test_id = 0; test_id < Lvec.size(); test_id++) {
     _u64 L = Lvec[test_id];
-    search_params.Set<_u32>("probe_width", L);
+//    search_params.Set<_u32>("probe_width", L);
     query_result_ids[test_id].resize(recall_at * query_num);
     query_result_dists[test_id].resize(recall_at * query_num);
 
@@ -102,6 +103,10 @@ int search_index(int argc, char** argv) {
 //    query_num = 1;
 #pragma omp parallel for schedule(dynamic, 1)
     for (int64_t i = 0; i < (int64_t) query_num; i++) {
+      grann::Parameters search_params;      
+      search_params.Set<_u32>("probe_width", L);
+      search_params.Set<_u32>("idx", i);
+      search_params.Set<_u32>("num_nearby", num_nearby);      
       auto qs = std::chrono::high_resolution_clock::now();
       ivf_index.search(query + i * query_aligned_dim, recall_at, search_params,
                        query_result_ids[test_id].data() + i * recall_at,
@@ -172,7 +177,7 @@ int main(int argc, char** argv) {
     std::cout
         << "Usage: " << argv[0]
         << "  [data_type<float/int8/uint8>]  "
-           "[index_prefix]  [num_threads] "
+           "[index_prefix]  [num_threads] [num_nearby] "
            "[query_file.bin]  [truthset.bin (use \"null\" for none)] "
            " [K] [result_output_prefix] [filtered_search (0/1)] {filter_label (if filtered_search==1)} "
            " [P1]  [P2] etc. See README for more information on parameters. "

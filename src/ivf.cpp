@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 #include "utils.h"
+#include "recall_utils.h"
 #include "ivf.h"
 #include "partition_and_pq.h"
 #include "math_utils.h"
@@ -54,6 +55,8 @@ namespace grann {
 
     std::cout << "Written a total of " << total_count
                 << " points to inverted index file." << std::endl;
+    
+
   }
 
   template<typename T>
@@ -66,20 +69,62 @@ namespace grann {
     grann::load_aligned_bin<float>(centers_file, _cluster_centers,
                                    _num_clusters, tmp_dim1, tmp_dim2);
 
-    std::ifstream in(index_file, std::ios::binary | std::ios::in);
-    _u64          total_count = 0;
 
-    _inverted_index.resize(_num_clusters);
-    for (unsigned i = 0; i < this->_num_clusters; i++) {
-      unsigned GK;
-      in.read((char *) &GK, sizeof(unsigned));
-      _inverted_index[i].resize(GK);
-      in.read((char *) _inverted_index[i].data(), GK * sizeof(unsigned));
-      total_count += GK;
+    std::ifstream infile(filename);
+    std::string   line, token;
+    unsigned      line_cnt = 0;
+    _u32 total_pts = 0;
+    while (std::getline(infile, line)) {
+      std::istringstream       iss(line);
+      std::vector<_u32> lbls(0);
+
+      while (getline(iss, token, ',')) {
+        token.erase(std::remove(token.begin(), token.end(), '\n'), token.end());
+        token.erase(std::remove(token.begin(), token.end(), '\r'), token.end());
+        lbls.push_back(std::atoi(token.c_str()));
+        total_pts++;
+      }
+      if (lbls.size() <= 0) {
+        std::cout << "No label found";
+        exit(-1);
+      }
+//      std::sort(lbls.begin(), lbls.end()); // labels are sorted to do correct set_intersection (if needed)
+      _inverted_index.push_back(lbls);
+      line_cnt++;
     }
-    in.close();
-    std::cout << "Read a total of " << total_count
-                << " points from inverted index file." << std::endl;
+
+    std::cout<<"Read " << line_cnt << " clusters worth data from inverted index file." << std::endl;
+    std::cout<<"Read " << total_pts << " points (with possible multiplicity) across all clusters in inverted index file." << std::endl;
+
+    std::string truthfile (filename);
+    truthfile += "_gt.bin";
+    grann::load_truthset(truthfile, _gtids, _gtdists, _gtnum, _gtdim);
+
+    _u64 nr, nd;
+    std::string reorder_file;
+    reorder_file = std::string(filename) +  "_id_to_loc.bin";
+    if (file_exists(reorder_file)) {
+      grann::load_bin<_u32> (reorder_file, _id_to_location, nr, nd);
+    } else {
+      _id_to_location = new _u32[this->_num_clusters];
+      std::iota(_id_to_location, _id_to_location + this->_num_clusters, 0);
+    }
+
+    reorder_file = std::string(filename) +  "_loc_to_id.bin";
+    if (file_exists(reorder_file)) {
+      grann::load_bin<_u32> (reorder_file, _location_to_id, nr, nd);
+    } else {
+            _location_to_id = new _u32[this->_num_clusters];
+      std::iota(_location_to_id, _location_to_id + this->_num_clusters, 0);
+    }
+
+    for (_u32 i = 0; i < this->_num_clusters; i++) {
+      if (_location_to_id[_id_to_location[i]] != i) {
+        std::cout<<"Error! Exitting." << std::endl;
+        exit(-1);
+      }
+    }
+
   }
 
   template<typename T>
@@ -129,19 +174,50 @@ namespace grann {
 													 std::vector<label> search_filters) {
     _u32 res_cnt = 0;
     _u32 probe_width = search_params.Get<_u32>("probe_width");
+    _u32 idx = search_params.Get<_u32>("idx");
+    int32_t num_nearby = search_params.Get<_u32>("num_nearby");
+
+    probe_width = probe_width > _gtdim ? _gtdim : probe_width;
 
     float *query_float = new float[this->_aligned_dim];
     grann::convert_types(query, query_float, 1, this->_aligned_dim);
 
-    std::vector<_u32> closest_centers(probe_width, 0);
-    math_utils::compute_closest_centers(
+    std::vector<_u32> closest_centers(_gtdim, 0);
+
+    std::memcpy (closest_centers.data(), _gtids + idx*_gtdim, _gtdim * sizeof(_u32));
+/*    math_utils::compute_closest_centers(
         query_float, 1, this->_aligned_dim, _cluster_centers, _num_clusters,
         probe_width, closest_centers.data(), nullptr, nullptr);
-
+        */
+    
+    _u32 io_cnt = 0;
+    tsl::robin_set<_u32> seen_pages;
     std::vector<_u32> candidates;
     for (auto &x : closest_centers) {
-      candidates.insert(candidates.end(), _inverted_index[x].begin(),
-                        _inverted_index[x].end());
+      bool fetch_flag = false;
+//      candidates.insert(candidates.end(), _inverted_index[x].begin(),
+//                        _inverted_index[x].end());
+      if (_id_to_location != nullptr) {
+        auto y = _id_to_location[x];
+        for (int32_t nearby_ids = (int32_t)y - num_nearby; nearby_ids <= (int32_t)y + num_nearby; nearby_ids++) {
+            if (nearby_ids < 0)
+            continue;
+            if (nearby_ids >= this->_num_clusters)
+            break;
+            auto z = _location_to_id[nearby_ids];
+            if (seen_pages.find(z) == seen_pages.end()) {
+            if (fetch_flag == false) {
+              fetch_flag = true;
+              io_cnt++;
+            }
+            candidates.insert(candidates.end(), _inverted_index[z].begin(),
+                        _inverted_index[z].end());
+            seen_pages.insert(z);
+            }
+        }
+      }
+            if (io_cnt >= probe_width)
+            break;
     }
     std::vector<Neighbor> best_candidates(res_count + 1);
     _u32                  cur_size = 0;

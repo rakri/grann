@@ -75,7 +75,7 @@ int search_index(int argc, char** argv) {
   lsh_index.load(index_file.c_str());
 
   std::cout << "LSH Index loaded" << std::endl;
-  grann::Parameters search_params;
+//  grann::Parameters search_params;
 
   std::string recall_string = "Recall@" + std::to_string(recall_at);
   std::cout << std::setw(4) << "Ls" << std::setw(12) << "QPS " << std::setw(22)
@@ -93,7 +93,7 @@ int search_index(int argc, char** argv) {
 
   for (uint32_t test_id = 0; test_id < Lvec.size(); test_id++) {
     _u64 L = Lvec[test_id];
-    search_params.Set<_u32>("probe_width", L);
+//    search_params.Set<_u32>("probe_width", L);
     query_result_ids[test_id].resize(recall_at * query_num);
     query_result_dists[test_id].resize(recall_at * query_num);
 
@@ -103,6 +103,9 @@ int search_index(int argc, char** argv) {
     //    query_num = 1;
 #pragma omp parallel for schedule(static, 10)
     for (int64_t i = 0; i < (int64_t) query_num; i++) {
+      grann::Parameters search_params;      
+      search_params.Set<_u32>("probe_width", L);
+      search_params.Set<_u32>("idx", i);
       auto qs = std::chrono::high_resolution_clock::now();
       lsh_index.search(query + i * query_aligned_dim, recall_at, search_params,
                        query_result_ids[test_id].data() + i * recall_at,

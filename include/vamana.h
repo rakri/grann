@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <unordered_set>
 #include "graph_index.h"
 #include "utils.h"
 #include "distance.h"
@@ -22,6 +23,15 @@ namespace grann {
     void load(const char *filename);
 
     void build(const Parameters &parameters);
+
+    void partition_packing(
+      unsigned *p_order, const unsigned seed_node, const unsigned omega,
+      std::unordered_set<unsigned> &initial, boost::dynamic_bitset<> &deleted);
+
+    
+    void reorder(
+      const std::string filename, const unsigned           omega,
+      const unsigned threads);
 
     // returns # results found (will be <= res_count)
     _u32 search(const T *query, _u32 res_count, const Parameters &search_params,

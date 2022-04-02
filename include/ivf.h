@@ -34,5 +34,10 @@ namespace grann {
     float *                        _cluster_centers;
     std::string                    _base_file;
     std::vector<std::vector<_u32>> _inverted_index;
+    _u32* _gtids = nullptr;
+    float* _gtdists = nullptr;
+    _u64 _gtnum, _gtdim;
+    _u32* _id_to_location = nullptr;
+    _u32* _location_to_id = nullptr;    
   };
 }  // namespace grann
