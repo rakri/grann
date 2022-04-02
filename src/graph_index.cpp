@@ -4,6 +4,7 @@
 #include "utils.h"
 #include "graph_index.h"
 #include <iomanip>
+#include <sstream>
 
 namespace grann {
 
@@ -130,8 +131,8 @@ namespace grann {
   void GraphIndex<T>::prune_candidates_alpha_rng(
       const unsigned point_id, std::vector<Neighbor> &candidate_list,
       const Parameters &parameter, std::vector<unsigned> &pruned_list) {
-    unsigned degree_bound = parameter.Get<unsigned>("R");
-    unsigned maxc = parameter.Get<unsigned>("C");
+    unsigned degree_bound = parameter.Get<_u32>("R");
+    unsigned maxc = parameter.Get<_u32>("C");
     float    alpha = parameter.Get<float>("alpha");
 
     if (candidate_list.size() == 0)
@@ -245,11 +246,12 @@ namespace grann {
     for (auto des : src_pool) {
       /* des.id is the id of the neighbors of n */
       /* des_pool contains the neighbors of the neighbors of n */
-      auto &                des_pool = this->_out_nbrs[des];
+
       std::vector<unsigned> copy_of_neighbors;
       bool                  prune_needed = false;
       {
         WriteLock guard(this->_locks[des]);
+      auto &                des_pool = this->_out_nbrs[des];
         if (std::find(des_pool.begin(), des_pool.end(), n) == des_pool.end()) {
           if (des_pool.size() < VAMANA_SLACK_FACTOR * degree_bound) {
             des_pool.emplace_back(n);

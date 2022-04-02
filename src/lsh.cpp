@@ -126,7 +126,7 @@ namespace grann {
   }
 
   template<typename T>
-  void LSHIndex<T>::build(Parameters &params) {
+  void LSHIndex<T>::build(const Parameters &params) {
     num_tables = params.Get<_u32>("num_tables");
     table_size = params.Get<_u32>("table_size");
     tables.reserve(num_tables);
@@ -149,7 +149,7 @@ namespace grann {
 
   template<typename T>
   _u32 LSHIndex<T>::search(const T *query, _u32 res_count,
-                           Parameters &search_params, _u32 *indices,
+                           const Parameters &search_params, _u32 *indices,
                            float *distances, QueryStats *stats, std::vector<label> search_filters) {
     float *query_float = new float[this->_aligned_dim];
     grann::convert_types(query, query_float, 1, this->_aligned_dim);

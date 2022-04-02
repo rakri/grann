@@ -123,11 +123,11 @@ namespace grann {
 
     virtual void load(const char *filename) = 0;
 
-    virtual void build(Parameters &build_params) = 0;
+    virtual void build(const Parameters &build_params) = 0;
 
     // returns # results found (will be <= res_count)
     virtual _u32 search(const T *query, _u32 res_count,
-                        Parameters &search_params, _u32 *indices,
+                        const Parameters &search_params, _u32 *indices,
                         float *distances, QueryStats *stats = nullptr,
 												std::vector<label> search_filters = std::vector<label>()) = 0;
 

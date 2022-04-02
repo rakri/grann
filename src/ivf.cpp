@@ -83,7 +83,7 @@ namespace grann {
   }
 
   template<typename T>
-  void IVFIndex<T>::build(Parameters &build_params) {
+  void IVFIndex<T>::build(const Parameters &build_params) {
     _num_clusters = build_params.Get<_u32>("num_clusters");
     float training_prob = build_params.Get<float>("training_rate");
 
@@ -124,7 +124,7 @@ namespace grann {
   // returns # results found (will be <= res_count)
   template<typename T>
   _u32 IVFIndex<T>::search(const T *query, _u32 res_count,
-                           Parameters &search_params, _u32 *indices,
+                           const Parameters &search_params, _u32 *indices,
                            float *distances, QueryStats *stats,
 													 std::vector<label> search_filters) {
     _u32 res_cnt = 0;

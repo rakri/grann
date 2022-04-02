@@ -20,10 +20,10 @@ namespace grann {
     void save(const char *filename);
     void load(const char *filename);
 
-    void build(Parameters &parameters);
+    void build(const Parameters &parameters);
 
     // returns # results found (will be <= res_count)
-    _u32 search(const T *query, _u32 res_count, Parameters &search_params,
+    _u32 search(const T *query, _u32 res_count, const Parameters &search_params,
                 _u32 *indices, float *distances, QueryStats *stats = nullptr,
 								std::vector<label> search_filters = std::vector<label>());
 

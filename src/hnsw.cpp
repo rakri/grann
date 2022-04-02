@@ -119,7 +119,7 @@ namespace grann {
    */
 
   template<typename T>
-  void HNSW<T>::build(Parameters &build_parameters) {
+  void HNSW<T>::build(const Parameters &build_parameters) {
     grann::Timer build_timer;
 
     float sampling_prob = build_parameters.Get<float>("sampling_rate");
@@ -266,7 +266,7 @@ namespace grann {
 
   template<typename T>
   _u32 HNSW<T>::search(const T *query, _u32 res_count,
-                       Parameters &search_params, _u32 *indices,
+                       const Parameters &search_params, _u32 *indices,
                        float *distances, QueryStats *stats,
 											 std::vector<label> search_filters) {
     _u32                     search_list_size = search_params.Get<_u32>("L");

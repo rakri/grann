@@ -216,7 +216,7 @@ namespace grann {
   }
 
   template<typename T>
-  void Vamana<T>::build(Parameters &build_parameters) {
+  void Vamana<T>::build(const Parameters &build_parameters) {
     grann::Timer build_timer;
 
     if (this->_filtered_index) {
@@ -251,10 +251,11 @@ namespace grann {
 #pragma omp parallel for schedule(static, 64)
     for (_u32 location = 0; location < this->_num_points; location++) {
       if (location % progress_milestone == 0) {
-        ++milestone_marker;
 
         std::stringstream msg;
         msg << (milestone_marker * 10) << "\% of build completed \r";
+        ++milestone_marker;
+
         grann::cout << msg.str();
       }
 
@@ -337,7 +338,7 @@ namespace grann {
 
   template<typename T>
   _u32 Vamana<T>::search(const T *query, _u32 res_count,
-                         Parameters &search_params, _u32 *indices,
+                         const Parameters &search_params, _u32 *indices,
                          float *distances, QueryStats *stats,
 												 std::vector<label> search_filters) {
     _u32                     search_list_size = search_params.Get<_u32>("L");

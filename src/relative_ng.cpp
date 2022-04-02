@@ -133,10 +133,10 @@ namespace grann {
   }
 
   template<typename T>
-  void RelativeNG<T>::build(Parameters &build_parameters) {
+  void RelativeNG<T>::build(const Parameters &build_params) {
     grann::Timer build_timer;
 
-    unsigned num_threads = build_parameters.Get<unsigned>("num_threads");
+    unsigned num_threads = build_params.Get<unsigned>("num_threads");
 
     grann::cout << "Starting rng build." << std::endl;
 
@@ -155,10 +155,13 @@ namespace grann {
     _u32             progress_milestone = (_u32)(this->_num_points / 10);
     std::atomic<int> milestone_marker{0};
 
-    build_parameters.Set<_u32>("C", this->_num_points);
-    build_parameters.Set<_u32>("R", this->_num_points);
-    build_parameters.Set<float>("alpha", 1);
-    build_parameters.Set<_u32>("L", this->_num_points);
+    grann::Parameters aux_params;
+
+    aux_params.Set<_u32>("C", this->_num_points);
+    aux_params.Set<_u32>("R", this->_num_points);
+    aux_params.Set<float>("alpha", 1);
+    aux_params.Set<_u32>("L", this->_num_points);
+    aux_params.Set<_u32>("num_threads", num_threads);
 
 #pragma omp parallel for schedule(static, 64)
     for (_u32 location = 0; location < this->_num_points; location++) {
@@ -183,7 +186,7 @@ namespace grann {
         pool.emplace_back(Neighbor(j, dist, true));
       }
 
-      this->prune_candidates_alpha_rng(location, pool, build_parameters,
+      this->prune_candidates_alpha_rng(location, pool, aux_params,
                                        pruned_list);
 
       this->_out_nbrs[location].reserve(pruned_list.size());
@@ -202,7 +205,7 @@ namespace grann {
 
   template<typename T>
   _u32 RelativeNG<T>::search(const T *query, _u32 res_count,
-                             Parameters &search_params, _u32 *indices,
+                             const Parameters &search_params, _u32 *indices,
                              float *distances, QueryStats *stats,
 														 std::vector<label> search_filters) {
     _u32                     search_list_size = search_params.Get<_u32>("L");
