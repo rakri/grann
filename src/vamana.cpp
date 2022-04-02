@@ -15,13 +15,13 @@ namespace grann {
                     std::vector<_u32> &list_of_tags,
                         std::string        labels_fname)
       : GraphIndex<T>(m, filename, list_of_tags, labels_fname) {
-    grann::cout << "Initialized Vamana Object with " << this->_num_points
+    std::cout << "Initialized Vamana Object with " << this->_num_points
                 << " points, dim=" << this->_dim << "." << std::endl;
   }
 
   template<typename T>
   Vamana<T>::Vamana(Metric m) : GraphIndex<T>(m) {
-    grann::cout << "Initialized Empty Vamana Object." << std::endl;
+    std::cout << "Initialized Empty Vamana Object." << std::endl;
   }
 
   // save the graph vamana on a file as an adjacency list. For each point,
@@ -104,7 +104,7 @@ namespace grann {
     in.read((char *) &expected_file_size, sizeof(_u64));
     in.read((char *) &this->_max_degree, sizeof(unsigned));
     in.read((char *) &this->_start_node, sizeof(unsigned));
-    grann::cout << "Loading vamana index " << filename << "..." << std::flush;
+    std::cout << "Loading vamana index " << filename << "..." << std::flush;
 
     _u64     cc = 0;
     unsigned nodes = 0;
@@ -120,16 +120,16 @@ namespace grann {
 
       this->_out_nbrs.emplace_back(tmp);
       if (nodes % 10000000 == 0)
-        grann::cout << "." << std::flush;
+        std::cout << "." << std::flush;
     }
     if (this->_out_nbrs.size() != this->_num_points) {
-      grann::cout << "ERROR. mismatch in number of points. Graph has "
+      std::cout << "ERROR. mismatch in number of points. Graph has "
                   << this->_out_nbrs.size() << " points and loaded dataset has "
                   << this->_num_points << " points. " << std::endl;
       return;
     }
 
-    grann::cout << "..done. Vamana has " << nodes << " nodes and " << cc
+    std::cout << "..done. Vamana has " << nodes << " nodes and " << cc
                 << " out-edges" << std::endl;
   }
 
@@ -159,7 +159,7 @@ namespace grann {
     if (this->_filtered_index == false) {
       return;
     }
-    grann::cout<<"Processing label-specific medoids" << std::endl;
+    std::cout<<"Processing label-specific medoids" << std::endl;
    _u32 counter = 0;
 #pragma omp parallel for schedule(dynamic, 1)
     for (uint32_t lbl = 0; lbl < this->_labels.size(); lbl++) {
@@ -228,7 +228,7 @@ namespace grann {
     unsigned degree_bound = build_parameters.Get<unsigned>("R");
     float    alpha = build_parameters.Get<float>("alpha");
 
-    grann::cout << "Starting vamana build with listSize L=" << L
+    std::cout << "Starting vamana build with listSize L=" << L
                 << ", degree bound R=" << degree_bound
                 << ", and alpha=" << alpha << std::endl;
 
@@ -243,7 +243,7 @@ namespace grann {
       omp_set_num_threads(num_threads);
 
     this->_start_node = ANNIndex<T>::calculate_medoid_of_data();
-    grann::cout << "Medoid identified as " << this->_start_node << std::endl;
+    std::cout << "Medoid identified as " << this->_start_node << std::endl;
 
     _u32             progress_milestone = (_u32)(this->_num_points / 10);
     std::atomic<int> milestone_marker{0};
@@ -253,10 +253,10 @@ namespace grann {
       if (location % progress_milestone == 0) {
 
         std::stringstream msg;
-        msg << (milestone_marker * 10) << "\% of build completed \r";
+        _u32 a = milestone_marker;
+        msg << "\r" << (a * 10) << "\% of build completed...";
+        std::cout << msg.str();
         ++milestone_marker;
-
-        grann::cout << msg.str();
       }
 
       std::vector<Neighbor> pool;
@@ -299,7 +299,7 @@ namespace grann {
           location, pruned_list,
           build_parameters);  // add reverse edges
     }
-    grann::cout << "Starting final cleanup.." << std::flush;
+    std::cout << "\nStarting final cleanup.." << std::flush;
 #pragma omp parallel for schedule(dynamic, 65536)
     for (_u64 node = 0; node < this->_num_points; node++) {
       if (this->_out_nbrs[node].size() > degree_bound) {
@@ -327,11 +327,11 @@ namespace grann {
       }
     }
 
-    grann::cout << "done." << std::endl;
+    std::cout << "done." << std::endl;
     this->_has_built = true;
     this->update_degree_stats();
 
-    grann::cout << "Total build time: "
+    std::cout << "Total build time: "
                 << ((double) build_timer.elapsed() / (double) 1000000) << "s"
                 << std::endl;
   }

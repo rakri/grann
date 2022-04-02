@@ -1,12 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include "utils.h"
-
-#include "logger.h"
-#include "recall_utils.h"
 #include "cached_io.h"
 #include "percentile_stats.h"
+#include "recall_utils.h"
+#include "utils.h"
+
 
 namespace grann {
 

@@ -339,25 +339,25 @@ namespace grann {
       unreachable_count++;
     }
 
-    grann::cout << std::setw(16) << "Percentile" << std::setw(16)
+    std::cout << std::setw(16) << "Percentile" << std::setw(16)
                 << "Out Degree" << std::setw(16) << "In Degree" << std::endl;
-    grann::cout << "======================================================="
+    std::cout << "======================================================="
                 << std::endl;
     for (_u32 p = 0; p < 100; p += 10) {
-      grann::cout << std::setw(16) << p << std::setw(16)
+      std::cout << std::setw(16) << p << std::setw(16)
                   << out_degrees[(_u64)((p / 100.0) * this->_num_points)]
                   << std::setw(16)
                   << in_degrees[(_u64)((p / 100.0) * this->_num_points)].second
                   << std::endl;
     }
-    grann::cout << std::setw(16) << "100" << std::setw(16)
+    std::cout << std::setw(16) << "100" << std::setw(16)
                 << out_degrees[this->_num_points - 1] << std::setw(16)
                 << in_degrees[this->_num_points - 1].second << std::endl;
 
-    grann::cout << std::setprecision(3)
+    std::cout << std::setprecision(3)
                 << (100.0 * unreachable_count) / this->_num_points
                 << "\% points are unreachable and " << std::flush;
-    grann::cout << in_degrees[this->_num_points - 1].first
+    std::cout << in_degrees[this->_num_points - 1].first
                 << " is the most popular in-degree node." << std::endl;
   }
 

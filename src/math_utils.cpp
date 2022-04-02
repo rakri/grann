@@ -4,7 +4,6 @@
 #include <limits>
 #include <malloc.h>
 #include <math_utils.h>
-#include "logger.h"
 #include "utils.h"
 #include "index.h"
 
@@ -35,16 +34,16 @@ namespace math_utils {
                    float*& new_mat, bool transpose_rot) {
     CBLAS_TRANSPOSE transpose = CblasNoTrans;
     if (transpose_rot) {
-      grann::cout << "Transposing rotation matrix.." << std::flush;
+      std::cout << "Transposing rotation matrix.." << std::flush;
       transpose = CblasTrans;
     }
-    grann::cout << "Rotating data with given rotation matrix.." << std::flush;
+    std::cout << "Rotating data with given rotation matrix.." << std::flush;
 
     cblas_sgemm(CblasRowMajor, CblasNoTrans, transpose, (MKL_INT) num_points,
                 (MKL_INT) dim, (MKL_INT) dim, 1.0, data, (MKL_INT) dim, rot_mat,
                 (MKL_INT) dim, 0, new_mat, (MKL_INT) dim);
 
-    grann::cout << "done." << std::endl;
+    std::cout << "done." << std::endl;
   }
 
   // calculate k closest centers to data of num_points * dim (row major)
@@ -63,7 +62,7 @@ namespace math_utils {
       const float* const docs_l2sq, const float* const centers_l2sq,
       uint32_t* center_ids, float* const dist_matrix, _u64 k) {
     if (k > num_centers) {
-      grann::cout << "ERROR: k (" << k << ") > num_center(" << num_centers
+      std::cout << "ERROR: k (" << k << ") > num_center(" << num_centers
                   << ")" << std::endl;
       return;
     }
@@ -141,7 +140,7 @@ namespace math_utils {
                                std::vector<_u32>* inverted_index,
                                float*             pts_norms_squared) {
     if (k > num_centers) {
-      grann::cout << "ERROR: k (" << k << ") > num_center(" << num_centers
+      std::cout << "ERROR: k (" << k << ") > num_center(" << num_centers
                   << ")" << std::endl;
       return;
     }
@@ -202,7 +201,7 @@ namespace math_utils {
   void process_residuals(float* base_data, _u64 num_points, _u64 dim,
                          float* centers, _u64 num_centers,
                          uint32_t* closest_centers, bool to_subtract) {
-    grann::cout << "Processing residuals of " << num_points << " points in "
+    std::cout << "Processing residuals of " << num_points << " points in "
                 << dim << " dimensions using " << num_centers << " centers "
                 << std::endl;
 #pragma omp parallel for schedule(static, 8192)
@@ -247,7 +246,7 @@ namespace math_utils {
                                         num_centers, 1, closest_center,
                                         closest_docs, docs_l2sq);
 
-    //	grann::cout << "closest centerss calculation done " << std::endl;
+    //	std::cout << "closest centerss calculation done " << std::endl;
 
     memset(centers, 0, sizeof(float) * (_u64) num_centers * (_u64) dim);
 
@@ -327,12 +326,12 @@ namespace math_utils {
       residual = lloyds_iter(data, num_points, dim, centers, num_centers,
                              docs_l2sq, closest_docs, closest_center);
 
-      grann::cout << "Lloyd's iter " << i << "  dist_sq residual: " << residual
+      std::cout << "Lloyd's iter " << i << "  dist_sq residual: " << residual
                   << std::endl;
 
       if (((i != 0) && ((old_residual - residual) / residual) < 0.00001) ||
           (residual < std::numeric_limits<float>::epsilon())) {
-        grann::cout << "Residuals unchanged: " << old_residual << " becomes "
+        std::cout << "Residuals unchanged: " << old_residual << " becomes "
                     << residual << ". Early termination." << std::endl;
         break;
       }
@@ -353,11 +352,11 @@ namespace math_utils {
     //	centers = new float[num_centers * dim];
 
     std::vector<_u64> picked;
-    grann::cout << "Selecting " << num_centers << " centers from " << num_points
+    std::cout << "Selecting " << num_centers << " centers from " << num_points
                 << " points using ";
     std::random_device rd;
     auto               x = rd();
-    grann::cout << "random seed " << x << std::endl;
+    std::cout << "random seed " << x << std::endl;
     std::mt19937                        generator(x);
     std::uniform_int_distribution<_u64> distribution(0, num_points - 1);
 
@@ -375,7 +374,7 @@ namespace math_utils {
   void kmeans_plus_plus_centers(float* data, _u64 num_points, _u64 dim,
                                 float* centers, _u64 num_centers) {
     if (num_points > 1 << 23) {
-      grann::cout << "ERROR: n_pts " << num_points
+      std::cout << "ERROR: n_pts " << num_points
                   << " currently not supported for k-means++, maximum is "
                      "8388608. Falling back to random center "
                      "selection."
@@ -385,11 +384,11 @@ namespace math_utils {
     }
 
     std::vector<_u64> picked;
-    grann::cout << "Selecting " << num_centers << " centers from " << num_points
+    std::cout << "Selecting " << num_centers << " centers from " << num_points
                 << " points using ";
     std::random_device rd;
     auto               x = rd();
-    grann::cout << "random seed " << x << ": " << std::flush;
+    std::cout << "random seed " << x << ": " << std::flush;
     std::mt19937                        generator(x);
     std::uniform_real_distribution<>    distribution(0, 1);
     std::uniform_int_distribution<_u64> int_dist(0, num_points - 1);
@@ -449,9 +448,9 @@ namespace math_utils {
       }
       num_picked++;
       if (num_picked % 32 == 0)
-        grann::cout << "." << std::flush;
+        std::cout << "." << std::flush;
     }
-    grann::cout << "done." << std::endl;
+    std::cout << "done." << std::endl;
     delete[] dist;
   }
 

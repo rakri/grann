@@ -52,7 +52,7 @@ namespace grann {
     }
     out.close();
 
-    grann::cout << "Written a total of " << total_count
+    std::cout << "Written a total of " << total_count
                 << " points to inverted index file." << std::endl;
   }
 
@@ -66,7 +66,7 @@ namespace grann {
     grann::load_aligned_bin<float>(centers_file, _cluster_centers,
                                    _num_clusters, tmp_dim1, tmp_dim2);
 
-    std::ifstream in(index_file, std::ios::binary | std::ios::out);
+    std::ifstream in(index_file, std::ios::binary | std::ios::in);
     _u64          total_count = 0;
 
     _inverted_index.resize(_num_clusters);
@@ -78,7 +78,7 @@ namespace grann {
       total_count += GK;
     }
     in.close();
-    grann::cout << "Read a total of " << total_count
+    std::cout << "Read a total of " << total_count
                 << " points from inverted index file." << std::endl;
   }
 
@@ -95,7 +95,7 @@ namespace grann {
 
     gen_random_slice<T>(this->_data, this->_num_points, this->_aligned_dim,
                         training_prob, train_data_float, num_train);
-    grann::cout << "Going to train the cluster centers over " << num_train
+    std::cout << "Going to train the cluster centers over " << num_train
                 << " points " << std::endl;
 
     math_utils::kmeans_plus_plus_centers(train_data_float, num_train,
@@ -105,7 +105,7 @@ namespace grann {
     math_utils::run_lloyds(train_data_float, num_train, this->_aligned_dim,
                            _cluster_centers, _num_clusters, MAX_K_MEANS_REPS,
                            nullptr, nullptr);
-    grann::cout << "Done. Now going to build the index." << std::endl;
+    std::cout << "Done. Now going to build the index." << std::endl;
 
     std::vector<_u32> closest_centers(this->_num_points);
     float *data_float = new float[this->_num_points * this->_aligned_dim];

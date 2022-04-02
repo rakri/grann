@@ -15,7 +15,7 @@ namespace grann {
                 std::vector<_u32> &list_of_tags)
       : GraphIndex<T>(m, filename, list_of_tags) {
     _cur_level_number = level_number;
-    grann::cout << "Initialized HNSW Object with " << this->_num_points
+    std::cout << "Initialized HNSW Object with " << this->_num_points
                 << " points, dim=" << this->_dim << "." << std::endl;
   }
 
@@ -24,7 +24,7 @@ namespace grann {
     _cur_level_number = level_number;
     if (level_number > 0)
       _inner_index = new HNSW<T>(m, level_number - 1);
-    grann::cout << "Initialized Empty HNSW Object at level "
+    std::cout << "Initialized Empty HNSW Object at level "
                 << _cur_level_number << std::endl;
   }
 
@@ -80,7 +80,7 @@ namespace grann {
     in.read((char *) &expected_file_size, sizeof(_u64));
     in.read((char *) &this->_max_degree, sizeof(unsigned));
     in.read((char *) &this->_start_node, sizeof(unsigned));
-    grann::cout << "Loading hnsw index " << filename << "..." << std::flush;
+    std::cout << "Loading hnsw index " << filename << "..." << std::flush;
 
     _u64     cc = 0;
     unsigned nodes = 0;
@@ -96,16 +96,16 @@ namespace grann {
 
       this->_out_nbrs.emplace_back(tmp);
       if (nodes % 10000000 == 0)
-        grann::cout << "." << std::flush;
+        std::cout << "." << std::flush;
     }
     if (this->_out_nbrs.size() != this->_num_points) {
-      grann::cout << "ERROR. mismatch in number of points. Graph has "
+      std::cout << "ERROR. mismatch in number of points. Graph has "
                   << this->_out_nbrs.size() << " points and loaded dataset has "
                   << this->_num_points << " points. " << std::endl;
       return;
     }
 
-    grann::cout << "..done. HNSW has " << nodes << " nodes and " << cc
+    std::cout << "..done. HNSW has " << nodes << " nodes and " << cc
                 << " out-edges" << std::endl;
   }
 
@@ -148,7 +148,7 @@ namespace grann {
     unsigned degree_bound = build_parameters.Get<unsigned>("R");
     float    alpha = build_parameters.Get<float>("alpha");
 
-    grann::cout << "Starting hnsw build with listSize L=" << L
+    std::cout << "Starting hnsw build with listSize L=" << L
                 << ", degree bound R=" << degree_bound
                 << ", and alpha=" << alpha << " on HNSW level "
                 << _cur_level_number << std::endl;
@@ -164,7 +164,7 @@ namespace grann {
       omp_set_num_threads(num_threads);
 
     this->_start_node = ANNIndex<T>::calculate_medoid_of_data();
-    grann::cout << "Medoid identified as " << this->_start_node << std::endl;
+    std::cout << "Medoid identified as " << this->_start_node << std::endl;
 
     _u32             progress_milestone = (_u32)(this->_num_points / 10);
     std::atomic<int> milestone_marker{0};
@@ -176,7 +176,7 @@ namespace grann {
 
         std::stringstream msg;
         msg << (milestone_marker * 10) << "\% of build completed \r";
-        grann::cout << msg.str();
+        std::cout << msg.str();
       }
 
       std::vector<Neighbor> pool;
@@ -223,7 +223,7 @@ namespace grann {
           location, pruned_list,
           build_parameters);  // add reverse edges
     }
-    grann::cout << "Starting final cleanup.." << std::flush;
+    std::cout << "Starting final cleanup.." << std::flush;
 #pragma omp parallel for schedule(dynamic, 65536)
     for (_u64 node = 0; node < this->_num_points; node++) {
       if (this->_out_nbrs[node].size() > degree_bound) {
@@ -255,11 +255,11 @@ namespace grann {
       }
     }
 
-    grann::cout << "done." << std::endl;
+    std::cout << "done." << std::endl;
     this->_has_built = true;
     //    this->update_degree_stats();
 
-    grann::cout << "Total build time: "
+    std::cout << "Total build time: "
                 << ((double) build_timer.elapsed() / (double) 1000000) << "s"
                 << std::endl;
   }

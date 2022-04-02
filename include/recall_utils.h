@@ -46,7 +46,7 @@ namespace grann {
                             float*& dists, _u64& npts, _u64& dim) {
     _u64            read_blk_size = 64 * 1024 * 1024;
     cached_ifstream reader(bin_file, read_blk_size);
-    grann::cout << "Reading truthset file " << bin_file.c_str() << " ..."
+    std::cout << "Reading truthset file " << bin_file.c_str() << " ..."
                 << std::endl;
     _u64 actual_file_size = reader.get_file_size();
 
@@ -56,7 +56,7 @@ namespace grann {
     npts = (unsigned) npts_i32;
     dim = (unsigned) dim_i32;
 
-    grann::cout << "Metadata: #pts = " << npts << ", #dims = " << dim << "..."
+    std::cout << "Metadata: #pts = " << npts << ", #dims = " << dim << "..."
                 << std::endl;
 
     int truthset_type = -1;  // 1 means truthset has ids and distances, 2 means
@@ -81,7 +81,7 @@ namespace grann {
              << actual_file_size
              << ", expected: " << expected_file_size_with_dists << " or "
              << expected_file_size_just_ids;
-      grann::cout << stream.str();
+      std::cout << stream.str();
       throw grann::ANNException(stream.str(), -1, __FUNCSIG__, __FILE__,
                                 __LINE__);
     }
@@ -100,7 +100,7 @@ namespace grann {
       std::vector<std::vector<_u32>>& groundtruth, _u64& npts) {
     _u64            read_blk_size = 64 * 1024 * 1024;
     cached_ifstream reader(bin_file, read_blk_size);
-    grann::cout << "Reading truthset file " << bin_file.c_str() << " ..."
+    std::cout << "Reading truthset file " << bin_file.c_str() << " ..."
                 << std::endl;
     _u64 actual_file_size = reader.get_file_size();
 
@@ -112,7 +112,7 @@ namespace grann {
     _u32*  ids;
     float* dists;
 
-    grann::cout << "Metadata: #pts = " << npts << ", #dims = " << dim << "..."
+    std::cout << "Metadata: #pts = " << npts << ", #dims = " << dim << "..."
                 << std::endl;
 
     int truthset_type = -1;  // 1 means truthset has ids and distances, 2 means
@@ -130,7 +130,7 @@ namespace grann {
                 "followed by npts*ngt distance values; actual size: "
              << actual_file_size
              << ", expected: " << expected_file_size_with_dists;
-      grann::cout << stream.str();
+      std::cout << stream.str();
       throw grann::ANNException(stream.str(), -1, __FUNCSIG__, __FILE__,
                                 __LINE__);
     }
@@ -169,7 +169,7 @@ namespace grann {
                                   _u64&                           gt_num) {
     _u64            read_blk_size = 64 * 1024 * 1024;
     cached_ifstream reader(bin_file, read_blk_size);
-    grann::cout << "Reading truthset file " << bin_file.c_str() << " ..."
+    std::cout << "Reading truthset file " << bin_file.c_str() << " ..."
                 << std::endl;
     _u64 actual_file_size = reader.get_file_size();
 
@@ -180,7 +180,7 @@ namespace grann {
     gt_num = (_u64) npts_u32;
     _u64 total_res = (_u64) total_u32;
 
-    grann::cout << "Metadata: #pts = " << gt_num
+    std::cout << "Metadata: #pts = " << gt_num
                 << ", #total_results = " << total_res << "..." << std::endl;
 
     _u64 expected_file_size =
@@ -190,7 +190,7 @@ namespace grann {
       std::stringstream stream;
       stream << "Error. File size mismatch in range truthset. actual size: "
              << actual_file_size << ", expected: " << expected_file_size;
-      grann::cout << stream.str();
+      std::cout << stream.str();
       throw grann::ANNException(stream.str(), -1, __FUNCSIG__, __FILE__,
                                 __LINE__);
     }

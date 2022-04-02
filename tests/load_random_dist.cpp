@@ -15,9 +15,9 @@ int main(int argc, char* argv[]) {
     
         for(int i = 0; i < npts; i++) {
             for(int j = 0; j < ndim; j++) {
-                grann::cout << data[i * ndim + j] << " ";
+                std::cout << data[i * ndim + j] << " ";
             }
-            grann::cout << std::endl;
+            std::cout << std::endl;
         }
     }
 
