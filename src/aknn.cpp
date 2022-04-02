@@ -16,14 +16,14 @@ namespace grann {
                     std::vector<_u32> &list_of_tags,
                         std::string        labels_fname)
       : GraphIndex<T>(m, filename, list_of_tags, labels_fname) {
-    grann::cout << "Initialized ApproxKNN Object with " << this->_num_points
+    std::cout << "Initialized ApproxKNN Object with " << this->_num_points
                 << " points, dim=" << this->_dim << "." << std::endl;
     _data_file_path = std::string(filename);
   }
 
   template<typename T>
   ApproxKNN<T>::ApproxKNN(Metric m) : GraphIndex<T>(m) {
-    grann::cout << "Initialized Empty ApproxKNN Object." << std::endl;
+    std::cout << "Initialized Empty ApproxKNN Object." << std::endl;
   }
 
   // save the graph vamana on a file as an adjacency list. For each point,
@@ -106,7 +106,7 @@ namespace grann {
     in.read((char *) &expected_file_size, sizeof(_u64));
     in.read((char *) &this->_max_degree, sizeof(unsigned));
     in.read((char *) &this->_start_node, sizeof(unsigned));
-    grann::cout << "Loading vamana index " << filename << "..." << std::flush;
+    std::cout << "Loading vamana index " << filename << "..." << std::flush;
 
     _u64     cc = 0;
     unsigned nodes = 0;
@@ -122,16 +122,16 @@ namespace grann {
 
       this->_out_nbrs.emplace_back(tmp);
       if (nodes % 10000000 == 0)
-        grann::cout << "." << std::flush;
+        std::cout << "." << std::flush;
     }
     if (this->_out_nbrs.size() != this->_num_points) {
-      grann::cout << "ERROR. mismatch in number of points. Graph has "
+      std::cout << "ERROR. mismatch in number of points. Graph has "
                   << this->_out_nbrs.size() << " points and loaded dataset has "
                   << this->_num_points << " points. " << std::endl;
       return;
     }
 
-    grann::cout << "..done. ApproxKNN has " << nodes << " nodes and " << cc
+    std::cout << "..done. ApproxKNN has " << nodes << " nodes and " << cc
                 << " out-edges" << std::endl;
   }
 
@@ -142,7 +142,7 @@ namespace grann {
 
 
   template<typename T>
-  void ApproxKNN<T>::build(Parameters &build_parameters) {
+  void ApproxKNN<T>::build(const Parameters &build_parameters) {
     grann::Timer build_timer;
 
 
@@ -151,7 +151,7 @@ namespace grann {
     unsigned degree_bound = build_parameters.Get<unsigned>("R");
     float    alpha = build_parameters.Get<float>("alpha");
 
-    grann::cout << "Starting vamana build with listSize L=" << L
+    std::cout << "Starting vamana build with listSize L=" << L
                 << ", degree bound R=" << degree_bound
                 << ", and alpha=" << alpha << std::endl;
 
@@ -176,7 +176,7 @@ namespace grann {
 
         std::stringstream msg;
         msg << (milestone_marker * 10) << "\% of build completed \r";
-        grann::cout << msg.str();
+        std::cout << msg.str();
       }
 
       std::vector<_u32> res_ids;
@@ -193,19 +193,19 @@ namespace grann {
       
     }
 
-    grann::cout << "done." << std::endl;
+    std::cout << "done." << std::endl;
     this->_has_built = true;
     this->update_degree_stats();
 
    delete[] _vamana_for_build;
-    grann::cout << "Total build time: "
+    std::cout << "Total build time: "
                 << ((double) build_timer.elapsed() / (double) 1000000) << "s"
                 << std::endl;
   }
 
   template<typename T>
   _u32 ApproxKNN<T>::search(const T *query, _u32 res_count,
-                         Parameters &search_params, _u32 *indices,
+                         const Parameters &search_params, _u32 *indices,
                          float *distances, QueryStats *stats,
 												 std::vector<label> search_filters) {
     _u32                     search_list_size = search_params.Get<_u32>("L");
