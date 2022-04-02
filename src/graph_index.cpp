@@ -5,6 +5,7 @@
 #include "graph_index.h"
 #include <iomanip>
 #include <sstream>
+#include <unordered_set>
 
 namespace grann {
 
@@ -301,6 +302,173 @@ namespace grann {
       }
     }
   }
+
+
+  template<typename T>
+  void GraphIndex<T>::partition_packing(
+      unsigned *p_order, const unsigned seed_node, const unsigned omega,
+      std::unordered_set<unsigned> &initial, boost::dynamic_bitset<> &deleted) {
+    std::unordered_map<unsigned, unsigned> counts;
+
+    p_order[0] = seed_node;
+
+    for (unsigned i = 1; i < omega; i++) {
+      unsigned ve = p_order[i - 1];
+//      auto     visit_in = visit_counts_in.find(ve);
+//      auto     visit_out = visit_counts_out.find(ve);
+      for (unsigned j = 0; j < this->_out_nbrs[ve].size(); j++) {
+        if (deleted[this->_out_nbrs[ve][j]] == false) {
+          if (counts.find(this->_out_nbrs[ve][j]) == counts.end()) {
+            counts[this->_out_nbrs[ve][j]] = 0;
+          }
+          counts[this->_out_nbrs[ve][j]] += 1;
+//          if (visit_out != visit_counts_out.end()) {
+//            counts[this->_out_nbrs[ve][j]] += visit_out->second[j] * 3;
+//          }
+        }
+      }
+      for (unsigned j = 0; j < this->_in_nbrs[ve].size(); j++) {
+        if (deleted[this->_in_nbrs[ve][j]] == false) {
+          if (counts.find(this->_in_nbrs[ve][j]) == counts.end()) {
+            counts[this->_in_nbrs[ve][j]] = 0;
+          }
+          counts[this->_in_nbrs[ve][j]] += 1;
+//          if (visit_in != visit_counts_in.end()) {
+//            counts[this->_in_nbrs[ve][j]] += visit_in->second[j] * 3;
+//          }
+        }
+        for (unsigned k = 0; k < this->_out_nbrs[this->_in_nbrs[ve][j]].size(); k++) {
+          if (deleted[this->_out_nbrs[this->_in_nbrs[ve][j]][k]] == false) {
+            if (counts.find(this->_out_nbrs[this->_in_nbrs[ve][j]][k]) ==
+                counts.end()) {
+              counts[this->_out_nbrs[this->_in_nbrs[ve][j]][k]] = 0;
+            }
+            counts[this->_out_nbrs[this->_in_nbrs[ve][j]][k]] += 1;
+          }
+        }
+      }
+
+      bool found = false;
+      while (counts.size() > 0) {
+        auto     max_it = counts.begin();
+        unsigned max_val = max_it->second;
+        for (auto itr = counts.begin(); itr != counts.end(); itr++) {
+          if (itr->second > max_val) {
+            max_it = itr;
+            max_val = itr->second;
+          }
+        }
+#pragma omp critical
+        {
+          if (deleted[max_it->first] == false) {
+            deleted[max_it->first] = true;
+            initial.erase(max_it->first);
+            found = true;
+          } else {
+            counts.erase(max_it->first);
+          }
+        }
+        if (found) {
+          p_order[i] = max_it->first;
+          counts.erase(p_order[i]);
+          break;
+        }
+      }
+      while (!found) {
+        for (auto itr = initial.begin(); itr != initial.end(); itr++) {
+          if (deleted[*itr] == false) {
+            p_order[i] = *(itr);
+            break;
+          }
+        }
+#pragma omp critical
+        {
+          if (deleted[p_order[i]] == false) {
+            deleted[p_order[i]] = true;
+            initial.erase(p_order[i]);
+            found = true;
+          }
+        }
+
+        if (found) {
+          counts.erase(p_order[i]);
+          break;
+        }
+      }
+    }
+  }
+
+  template<typename T>
+  void GraphIndex<T>::reorder(
+      const std::string filename, const unsigned omega, const unsigned threads) {
+    std::vector<unsigned>        p_order(this->_num_points);
+    std::vector<unsigned>        o_order(this->_num_points);
+    std::unordered_set<unsigned> initial;
+    boost::dynamic_bitset<>      deleted{this->_num_points, 0};
+
+
+    this->_in_nbrs.reserve(this->_num_points);
+    this->_in_nbrs.resize(this->_num_points);
+    for (unsigned i = 0; i < this->_in_nbrs.size(); i++) {
+      this->_in_nbrs[i].clear();
+    }
+    for (unsigned i = 0; i < this->_out_nbrs.size(); i++) {
+      for (unsigned j = 0; j < this->_out_nbrs[i].size(); j++) {
+        this->_in_nbrs[this->_out_nbrs[i][j]].emplace_back(i);
+      }
+    }
+
+
+
+    for (unsigned i = 0; i < this->_num_points; i++) {
+      initial.insert(i);
+    }
+
+#pragma omp parallel for schedule(dynamic, 1) num_threads(threads)
+    for (unsigned i = 0; i < this->_num_points / omega; i++) {
+      unsigned seed_node;
+#pragma omp    critical
+      {
+        seed_node = *(initial.begin());
+        deleted[seed_node] = true;
+        initial.erase(initial.begin());
+      }
+      partition_packing(p_order.data() + i * omega, seed_node, omega, initial,
+                        deleted);
+    }
+
+    if (this->_num_points % omega != 0) {
+      for (unsigned i = (this->_num_points / omega) * omega; i < this->_num_points; i++) {
+        p_order[i] = *(initial.begin());
+        initial.erase(initial.begin());
+      }
+    }
+
+    std::ofstream out(filename + "_loc_to_id.bin",
+                      std::ios::binary | std::ios::out);
+    _u32 nr = this->_num_points;
+    _u32 nd = 1;
+    out.write((char *) &nr, sizeof(_u32));
+    out.write((char *) &nd, sizeof(_u32));    
+    out.write((char *) p_order.data(), this->_num_points * sizeof(unsigned));
+    out.close();
+
+    for (unsigned i = 0; i < this->_num_points; i++) {
+      o_order[p_order[i]] = i;
+    }
+
+    std::ofstream outer(filename + "_id_to_loc.bin",
+                        std::ios::binary | std::ios::out);
+    outer.write((char *) &nr, sizeof(_u32));
+    outer.write((char *) &nd, sizeof(_u32));    
+    outer.write((char *) o_order.data(), this->_num_points * sizeof(unsigned));
+    outer.close();
+  }
+
+
+
+
+
 
   template<typename T>
   void GraphIndex<T>::update_degree_stats() {

@@ -127,6 +127,16 @@ else()
 		target_link_libraries(search_ivf ${PROJECT_NAME} aio -ltcmalloc)
 endif()
 
+
+add_executable(reorder_graph reorder_graph.cpp )
+if(MSVC)
+	target_link_options(reorder_graph PRIVATE /MACHINE:x64 /DEBUG:FULL)
+	target_link_libraries(reorder_graph debug ${CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG}/grann_dll.lib)
+	target_link_libraries(reorder_graph optimized ${CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE}/grann_dll.lib)
+else() 
+		target_link_libraries(reorder_graph ${PROJECT_NAME} aio -ltcmalloc)
+endif()
+
 add_executable(build_random_dist build_random_dist.cpp )
 if(MSVC)
 	target_link_options(build_random_dist PRIVATE /MACHINE:x64 /DEBUG:FULL)

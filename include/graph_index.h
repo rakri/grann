@@ -7,6 +7,7 @@
 #include "distance.h"
 #include "percentile_stats.h"
 #include "index.h"
+#include <unordered_set>
 
 #include <shared_mutex>
 
@@ -19,6 +20,11 @@ namespace grann {
    public:
     GraphIndex(Metric m, const char *filename, std::vector<_u32> &list_of_tags, std::string labels_fname="");
     GraphIndex(Metric m);
+
+    void reorder(
+      const std::string filename, const unsigned           omega,
+      const unsigned threads);
+
 
     /*  Internals of the library */
    protected:
@@ -60,6 +66,11 @@ namespace grann {
         std::vector<Neighbor> &  expanded_nodes_info,
         tsl::robin_set<_u32> &   expanded_nodes_ids,
         std::vector<Neighbor> &best_L_nodes, const std::vector<label> &labels_to_filter_by, QueryStats *stats = nullptr);
+
+    void partition_packing(
+      unsigned *p_order, const unsigned seed_node, const unsigned omega,
+      std::unordered_set<unsigned> &initial, boost::dynamic_bitset<> &deleted);
+
 
 
     void update_degree_stats();
