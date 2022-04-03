@@ -24,6 +24,7 @@ int reorder_graph(int argc, char** argv) {
   grann::Metric metric = grann::Metric::L2;
   _u32          ctr = 2;
   std::string vamana_file(argv[ctr++]);
+  bool reorder_mode = std::atoi(argv[ctr++]);
   _u64        num_threads = std::atoi(argv[ctr++]);
   _u32 omega = std::atoi(argv[ctr++]);
   std::string output_prefix(argv[ctr++]);
@@ -31,17 +32,19 @@ int reorder_graph(int argc, char** argv) {
   grann::Vamana<T> vamana(metric);
   vamana.load(vamana_file.c_str());  // to load Vamana Index
   std::cout << "Vamana loaded" << std::endl;
-
-  vamana.reorder(output_prefix, omega, num_threads);
+  if (reorder_mode == 1)
+  vamana.sector_reordering(output_prefix, omega, num_threads);
+  if (reorder_mode == 0)
+  vamana.greedy_ordering(output_prefix, omega);  
   
   return 0;
 }
 
 int main(int argc, char** argv) {
-  if (argc != 6) {
+  if (argc != 7) {
     std::cout
         << "Usage: " << argv[0] <<
-              " [data_type (int8/uint8/float)] [input_graph_index_path]  [num_threads] "
+              " [data_type (int8/uint8/float)] [input_graph_index_path]  [reorder_mode (0 for greedy, 1 for sector)] [num_threads] "
            "[omega]  [output_prefix] "
         << std::endl;
     exit(-1);

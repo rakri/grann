@@ -21,10 +21,13 @@ namespace grann {
     GraphIndex(Metric m, const char *filename, std::vector<_u32> &list_of_tags, std::string labels_fname="");
     GraphIndex(Metric m);
 
-    void reorder(
+    void sector_reordering(
       const std::string filename, const unsigned           omega,
       const unsigned threads);
 
+
+  void greedy_ordering(const std::string filename,
+                                       const unsigned omega);
 
     /*  Internals of the library */
    protected:

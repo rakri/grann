@@ -398,8 +398,227 @@ namespace grann {
     }
   }
 
+
   template<typename T>
-  void GraphIndex<T>::reorder(
+  void GraphIndex<T>::greedy_ordering(const std::string filename,
+                                       const unsigned omega) {
+    std::vector<unsigned>        p_order(this->_num_points);
+    std::vector<unsigned>        o_order(this->_num_points);
+    std::vector<unsigned>        counts(this->_num_points, 0);
+    std::unordered_set<unsigned> deleted;
+    std::map<unsigned, std::unordered_set<unsigned>, std::greater<unsigned>>
+        value_keys;
+
+    _in_nbrs.reserve(this->_num_points);
+    _in_nbrs.resize(this->_num_points);
+    for (unsigned i = 0; i < _in_nbrs.size(); i++) {
+      _in_nbrs[i].clear();
+    }
+
+    std::vector<std::mutex> in_locks (this->_num_points);
+
+#pragma omp parallel for schedule(dynamic, 128)    
+    for (unsigned i = 0; i < _out_nbrs.size(); i++) {
+      for (unsigned j = 0; j < _out_nbrs[i].size(); j++) {
+/*        if (std::find(_in_nbrs[_out_nbrs[i][j]].begin(),
+                      _in_nbrs[_out_nbrs[i][j]].end(),
+                      i) != _in_nbrs[_out_nbrs[i][j]].end()) {
+          std::cout << "Duplicates found" << std::endl;
+        } */
+        {
+          grann::LockGuard lock(in_locks[_out_nbrs[i][j]]);
+        _in_nbrs[_out_nbrs[i][j]].emplace_back(i);
+        }
+      }
+    }
+    std::cout<<"In-graph computed. Now going to work on ordering.\n" << std::endl;
+    _u32 start_node = 0;
+    p_order[0] = start_node;
+    deleted.insert(start_node);
+    std::unordered_set<unsigned> initial;
+    for (unsigned i = 0; i < this->_num_points; i++) {
+      if (i != start_node) {
+        initial.insert(i);
+      }
+    }
+    value_keys.insert(
+        std::pair<unsigned, std::unordered_set<unsigned>>(0, initial));
+
+    grann::Timer reorder_timer;
+    for (unsigned i = 1; i < this->_num_points; i++) {
+      if (i % 100 == 0 && i>= 1) {
+      double elapsed_secs = (reorder_timer.elapsed())/(1000000);
+      double estimated_time_left = ((double)this->_num_points/ (double)i) * elapsed_secs;
+      std::stringstream a;
+      a << "\r" << ((100.0 * i) / this->_num_points) << "\% processed. Estimated time left: " << estimated_time_left - elapsed_secs<< "s";
+      std::cout << a.str() << std::flush;
+      }
+      unsigned ve = p_order[i - 1];
+      for (unsigned j = 0; j < _out_nbrs[ve].size(); j++) {
+        if (deleted.find(_out_nbrs[ve][j]) == deleted.end()) {
+          counts[_out_nbrs[ve][j]] += 1;
+          auto it = value_keys.find(counts[_out_nbrs[ve][j]]);
+          if (it == value_keys.end()) {
+            std::unordered_set<unsigned> local;
+            local.insert(_out_nbrs[ve][j]);
+            value_keys.insert(std::pair<unsigned, std::unordered_set<unsigned>>(
+                counts[_out_nbrs[ve][j]], local));
+          } else {
+            it->second.insert(_out_nbrs[ve][j]);
+          }
+          it = value_keys.find(counts[_out_nbrs[ve][j]] - 1);
+          if (it != value_keys.end()) {
+            it->second.erase(_out_nbrs[ve][j]);
+          }
+        }
+      }
+      for (unsigned j = 0; j < _in_nbrs[ve].size(); j++) {
+        if (deleted.find(_in_nbrs[ve][j]) == deleted.end()) {
+          counts[_in_nbrs[ve][j]] += 1;
+          auto it = value_keys.find(counts[_in_nbrs[ve][j]]);
+          if (it == value_keys.end()) {
+            std::unordered_set<unsigned> local;
+            local.insert(_in_nbrs[ve][j]);
+            value_keys.insert(std::pair<unsigned, std::unordered_set<unsigned>>(
+                counts[_in_nbrs[ve][j]], local));
+          } else {
+            it->second.insert(_in_nbrs[ve][j]);
+          }
+          it = value_keys.find(counts[_in_nbrs[ve][j]] - 1);
+          if (it != value_keys.end()) {
+            it->second.erase(_in_nbrs[ve][j]);
+          }
+        }
+/*        for (unsigned k = 0; k < _out_nbrs[_in_nbrs[ve][j]].size(); k++) {
+          if (deleted.find(_out_nbrs[_in_nbrs[ve][j]][k]) ==
+              deleted.end()) {
+            counts[_out_nbrs[_in_nbrs[ve][j]][k]] += 1;
+            auto it =
+                value_keys.find(counts[_out_nbrs[_in_nbrs[ve][j]][k]]);
+            if (it == value_keys.end()) {
+              std::unordered_set<unsigned> local;
+              local.insert(_out_nbrs[_in_nbrs[ve][j]][k]);
+              value_keys.insert(
+                  std::pair<unsigned, std::unordered_set<unsigned>>(
+                      counts[_out_nbrs[_in_nbrs[ve][j]][k]], local));
+            } else {
+              it->second.insert(_out_nbrs[_in_nbrs[ve][j]][k]);
+            }
+            it = value_keys.find(counts[_out_nbrs[_in_nbrs[ve][j]][k]] - 1);
+            if (it != value_keys.end()) {
+              it->second.erase(_out_nbrs[_in_nbrs[ve][j]][k]);
+            }
+          }
+        } */
+      }
+
+      if (i > omega) {
+        unsigned vb = p_order[i - omega - 1];
+        for (unsigned j = 0; j < _out_nbrs[vb].size(); j++) {
+          if (deleted.find(_out_nbrs[vb][j]) == deleted.end()) {
+            // assert(counts[_out_nbrs[vb][j]] > 0);
+            counts[_out_nbrs[vb][j]] -= 1;
+            auto it = value_keys.find(counts[_out_nbrs[vb][j]]);
+            if (it == value_keys.end()) {
+              std::unordered_set<unsigned> local;
+              local.insert(_out_nbrs[vb][j]);
+              value_keys.insert(
+                  std::pair<unsigned, std::unordered_set<unsigned>>(
+                      counts[_out_nbrs[vb][j]], local));
+            } else {
+              it->second.insert(_out_nbrs[vb][j]);
+            }
+            it = value_keys.find(counts[_out_nbrs[vb][j]] + 1);
+            if (it != value_keys.end()) {
+              it->second.erase(_out_nbrs[vb][j]);
+            }
+          }
+        }
+        for (unsigned j = 0; j < _in_nbrs[vb].size(); j++) {
+          if (deleted.find(_in_nbrs[vb][j]) == deleted.end()) {
+            // assert(counts[_in_nbrs[vb][j]] > 0);
+            counts[_in_nbrs[vb][j]] -= 1;
+            auto it = value_keys.find(counts[_in_nbrs[vb][j]]);
+            if (it == value_keys.end()) {
+              std::unordered_set<unsigned> local;
+              local.insert(_in_nbrs[vb][j]);
+              value_keys.insert(
+                  std::pair<unsigned, std::unordered_set<unsigned>>(
+                      counts[_in_nbrs[vb][j]], local));
+            } else {
+              it->second.insert(_in_nbrs[vb][j]);
+            }
+            it = value_keys.find(counts[_in_nbrs[vb][j]] + 1);
+            if (it != value_keys.end()) {
+              it->second.erase(_in_nbrs[vb][j]);
+            }
+          }
+          for (unsigned k = 0; k < _out_nbrs[_in_nbrs[vb][j]].size(); k++) {
+            if (deleted.find(_out_nbrs[_in_nbrs[vb][j]][k]) ==
+                deleted.end()) {
+              // assert(counts[_out_nbrs[_in_nbrs[vb][j]][k]] > 0);
+              counts[_out_nbrs[_in_nbrs[vb][j]][k]] -= 1;
+              auto it =
+                  value_keys.find(counts[_out_nbrs[_in_nbrs[vb][j]][k]]);
+              if (it == value_keys.end()) {
+                std::unordered_set<unsigned> local;
+                local.insert(_out_nbrs[_in_nbrs[vb][j]][k]);
+                value_keys.insert(
+                    std::pair<unsigned, std::unordered_set<unsigned>>(
+                        counts[_out_nbrs[_in_nbrs[vb][j]][k]], local));
+              } else {
+                it->second.insert(_out_nbrs[_in_nbrs[vb][j]][k]);
+              }
+              it = value_keys.find(counts[_out_nbrs[_in_nbrs[vb][j]][k]] +
+                                   1);
+              if (it != value_keys.end()) {
+                it->second.erase(_out_nbrs[_in_nbrs[vb][j]][k]);
+              }
+            }
+          }
+        }
+      }
+
+      while (true) {
+        auto it = value_keys.begin();
+        if (it->second.size() != 0) {
+          break;
+        }
+        value_keys.erase(it);
+      }
+      auto it = value_keys.begin();
+      auto itr = it->second.begin();
+      p_order[i] = *itr;
+      it->second.erase(itr);
+      counts[p_order[i]] = 0;
+      deleted.insert(p_order[i]);
+    }
+
+    std::ofstream out(filename + "_loc_to_id.bin",
+                      std::ios::binary | std::ios::out);
+    _u32 nr = this->_num_points;
+    _u32 nd = 1;
+    out.write((char *) &nr, sizeof(_u32));
+    out.write((char *) &nd, sizeof(_u32));    
+    out.write((char *) p_order.data(), this->_num_points * sizeof(unsigned));
+    out.close();
+
+    for (unsigned i = 0; i < this->_num_points; i++) {
+      o_order[p_order[i]] = i;
+    }
+
+    std::ofstream outer(filename + "_id_to_loc.bin",
+                        std::ios::binary | std::ios::out);
+    outer.write((char *) &nr, sizeof(_u32));
+    outer.write((char *) &nd, sizeof(_u32));    
+    outer.write((char *) o_order.data(), this->_num_points * sizeof(unsigned));
+    outer.close();
+  }
+
+
+
+  template<typename T>
+  void GraphIndex<T>::sector_reordering(
       const std::string filename, const unsigned omega, const unsigned threads) {
     std::vector<unsigned>        p_order(this->_num_points);
     std::vector<unsigned>        o_order(this->_num_points);
@@ -409,6 +628,30 @@ namespace grann {
 
     this->_in_nbrs.reserve(this->_num_points);
     this->_in_nbrs.resize(this->_num_points);
+
+
+
+    std::vector<std::mutex> in_locks (this->_num_points);
+
+#pragma omp parallel for schedule(dynamic, 128)    
+    for (unsigned i = 0; i < _out_nbrs.size(); i++) {
+      for (unsigned j = 0; j < _out_nbrs[i].size(); j++) {
+/*        if (std::find(_in_nbrs[_out_nbrs[i][j]].begin(),
+                      _in_nbrs[_out_nbrs[i][j]].end(),
+                      i) != _in_nbrs[_out_nbrs[i][j]].end()) {
+          std::cout << "Duplicates found" << std::endl;
+        } */
+        {
+          grann::LockGuard lock(in_locks[_out_nbrs[i][j]]);
+        _in_nbrs[_out_nbrs[i][j]].emplace_back(i);
+        }
+      }
+    }
+    std::cout<<"In-graph computed. Now going to work on ordering.\n" << std::endl;
+
+
+
+/*
     for (unsigned i = 0; i < this->_in_nbrs.size(); i++) {
       this->_in_nbrs[i].clear();
     }
@@ -417,7 +660,7 @@ namespace grann {
         this->_in_nbrs[this->_out_nbrs[i][j]].emplace_back(i);
       }
     }
-
+*/
 
 
     for (unsigned i = 0; i < this->_num_points; i++) {

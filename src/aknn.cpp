@@ -62,6 +62,7 @@ namespace grann {
     out.seekp(0, std::ios::beg);
     out.write((char *) &vamana_size, sizeof(uint64_t));
     out.close();
+    std::cout<<"Saved the Approx-KNN graph" << std::endl;
   }
 
   // load the vamana from file and update the width (max_degree), ep

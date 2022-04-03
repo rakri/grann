@@ -10,9 +10,9 @@
 
 namespace grann {
 
-//  typedef std::lock_guard<std::mutex>
-//      LockGuard;  // Use this datastructure to create per vertex locks if we
-//                  // want to update the graph during index build
+  typedef std::lock_guard<std::mutex>
+      LockGuard;  // Unique lock
+                  
   
   typedef std::unique_lock<std::shared_timed_mutex>  WriteLock;
   typedef std::shared_lock<std::shared_timed_mutex>  ReadLock;
