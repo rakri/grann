@@ -44,11 +44,11 @@ FILTER_CLASSES = [
                 ]
 '''
 FILTER_CLASSES = [
-                    FilterClass(50, Normal([25,8], 'filter_dist', 50), 'generic class',
-                                Uniform([1, 20], 'size_dist', 19), (1, 20))
+                    FilterClass(2000, Normal([1000,20], 'filter_dist', 2000), 'generic class',
+                                Uniform([5, 20], 'size_dist', 15), (5, 20))
                  ]
 
-_UNIVERSAL_LBL = 15
+_UNIVERSAL_LBL = -1
 
 # don't touch this
 def _get_total_num_filters() -> int:
@@ -132,10 +132,11 @@ def generate_label_set() -> List[int]:
     label_set = []
     for fc in FILTER_CLASSES:
         sampled_elements = fc.sample_elements()
-        if sampled_elements[0] == _UNIVERSAL_LBL:
-            sampled_elements = [sampled_elements[0]]
-        elif _UNIVERSAL_LBL in sampled_elements:
-            sampled_elements = np.setdiff1d(sampled_elements, [_UNIVERSAL_LBL])
+        if _UNIVERSAL_LBL > 0:
+            if sampled_elements[0] == _UNIVERSAL_LBL:
+                sampled_elements = [sampled_elements[0]]
+            elif _UNIVERSAL_LBL in sampled_elements:
+                sampled_elements = np.setdiff1d(sampled_elements, [_UNIVERSAL_LBL])
         label_set.extend(sampled_elements)
     return label_set
 
