@@ -44,8 +44,8 @@ FILTER_CLASSES = [
                 ]
 '''
 FILTER_CLASSES = [
-                    FilterClass(2000, Normal([1000,20], 'filter_dist', 2000), 'generic class',
-                                Uniform([5, 20], 'size_dist', 15), (5, 20))
+                    FilterClass(2000, Normal([1000,200], 'filter_dist', 2000), 'generic class',
+                                Constant(10, 'size_dist'), (10, 10))
                  ]
 
 _UNIVERSAL_LBL = -1

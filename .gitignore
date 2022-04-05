@@ -32,3 +32,5 @@
 *.app
 
 /build
+/label_gen/base*
+*.json
