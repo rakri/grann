@@ -471,7 +471,7 @@ namespace grann {
             it->second.erase(_out_nbrs[ve][j]);
           }
         }
-      }
+      } /*
       for (unsigned j = 0; j < _in_nbrs[ve].size(); j++) {
         if (deleted.find(_in_nbrs[ve][j]) == deleted.end()) {
           counts[_in_nbrs[ve][j]] += 1;
@@ -489,7 +489,7 @@ namespace grann {
             it->second.erase(_in_nbrs[ve][j]);
           }
         }
-/*        for (unsigned k = 0; k < _out_nbrs[_in_nbrs[ve][j]].size(); k++) {
+        for (unsigned k = 0; k < _out_nbrs[_in_nbrs[ve][j]].size(); k++) {
           if (deleted.find(_out_nbrs[_in_nbrs[ve][j]][k]) ==
               deleted.end()) {
             counts[_out_nbrs[_in_nbrs[ve][j]][k]] += 1;
@@ -509,8 +509,8 @@ namespace grann {
               it->second.erase(_out_nbrs[_in_nbrs[ve][j]][k]);
             }
           }
-        } */
-      }
+        } 
+      } */
 
       if (i > omega) {
         unsigned vb = p_order[i - omega - 1];
