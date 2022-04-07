@@ -44,7 +44,7 @@ FILTER_CLASSES = [
                 ]
 '''
 FILTER_CLASSES = [
-                    FilterClass(2000, Normal([1000,200], 'filter_dist', 2000), 'generic class',
+                    FilterClass(2000, Normal([1000,10], 'filter_dist', 2000), 'generic class',
                                 Constant(10, 'size_dist'), (10, 10))
                  ]
 
