@@ -3,6 +3,16 @@
 
 set(CMAKE_CXX_STANDARD 14)
 
+
+add_executable(compute_mf_groundtruth compute_mf_groundtruth.cpp)
+if(MSVC)
+	target_link_options(compute_mf_groundtruth PRIVATE /MACHINE:x64)
+	target_link_libraries(compute_mf_groundtruth debug ${CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG}/grann_dll.lib)
+	target_link_libraries(compute_mf_groundtruth optimized ${CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE}/grann_dll.lib)
+else() 
+	target_link_libraries(compute_mf_groundtruth ${PROJECT_NAME} aio -ltcmalloc)
+endif()
+
 add_executable(fvecs_to_bin fvecs_to_bin.cpp)
 if(MSVC)
 	target_link_options(fvecs_to_bin PRIVATE /MACHINE:x64)
