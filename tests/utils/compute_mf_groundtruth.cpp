@@ -142,12 +142,26 @@ void compute_filtered_gt(
     coord_stream.read((char *) pt.data(), sizeof(T) * num_dims);
 		std::vector<grann::label> line_labels;
 		parse_label_string(line, line_labels);
+		_u8 sq_check = 1;
+		for (auto i : parsed_filters) {
+			if (std::find(line_labels.begin(), line_labels.end(), i) == line_labels.end()) {
+				sq_check = 0;
+				break;
+			}
+		}
+		if (sq_check == 1) {
+			filtered_pts_index.push_back(line_cnt);
+      out_coord_stream.write((char *) pt.data(), sizeof(T) * num_dims);
+      num_filt_pts++;
+		}
+		/*
 		std::sort(line_labels.begin(), line_labels.end());
 		if (std::includes(line_labels.begin(), line_labels.end(), parsed_filters.begin(), parsed_filters.end())) {
 			filtered_pts_index.push_back(line_cnt);
       out_coord_stream.write((char *) pt.data(), sizeof(T) * num_dims);
       num_filt_pts++;
 		}
+		*/
     line_cnt++;
   }
   if (num_pts != line_cnt) {
