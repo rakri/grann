@@ -242,15 +242,18 @@ namespace grann {
     for (unsigned m = 0; m < cand_list.size(); ++m) {
       unsigned id = cand_list[m];
       if (!search_filters.empty()) {
-        _u8                sat_check = 0;
+        _u8                sat_check = 1;
         std::vector<label> &curr_labels = _pts_to_labels[id];
 
-        sat_check =
-            std::includes(curr_labels.begin(), curr_labels.end(),
-                            search_filters.begin(), search_filters.end());
+				for (auto i : search_filters) {
+					if (std::find(curr_labels.begin(), curr_labels.end(), i) == curr_labels.end()) {
+						sat_check = 0;
+						break;
+					}
+				}
 
-				if (sat_check == 1)
-					std::cout << "found matching point" << std::endl;
+//				sat_check = std::includes(curr_labels.begin(), curr_labels.end(),
+//                    			        search_filters.begin(), search_filters.end());
 
 				/*
         if (this->_use_universal_label) {
