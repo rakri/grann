@@ -6,15 +6,19 @@
 #include "partition_and_pq.h"
 #include "math_utils.h"
 #include <iomanip>
+#include <iostream>
+#include <set>
 
 namespace grann {
 
   // Initialize a generic graph-based index with metric m, load the data of type
   // T with filename (bin)
   template<typename T>
-  IVFIndex<T>::IVFIndex(Metric m, const char *filename, std::vector<_u32> &list_of_tags, std::string labels_fname)
-      : ANNIndex<T>(m, filename,
-                    list_of_tags, labels_fname) {  // Graph Index class constructor loads the
+  IVFIndex<T>::IVFIndex(Metric m, const char *filename,
+                        std::vector<_u32> &list_of_tags,
+                        std::string        labels_fname)
+      : ANNIndex<T>(m, filename, list_of_tags,
+                    labels_fname) {  // Graph Index class constructor loads the
                                      // data and sets num_points, dim, etc.
     _num_clusters = 0;
   }
@@ -53,7 +57,7 @@ namespace grann {
     out.close();
 
     std::cout << "Written a total of " << total_count
-                << " points to inverted index file." << std::endl;
+              << " points to inverted index file." << std::endl;
   }
 
   template<typename T>
@@ -79,7 +83,7 @@ namespace grann {
     }
     in.close();
     std::cout << "Read a total of " << total_count
-                << " points from inverted index file." << std::endl;
+              << " points from inverted index file." << std::endl;
   }
 
   template<typename T>
@@ -96,7 +100,7 @@ namespace grann {
     gen_random_slice<T>(this->_data, this->_num_points, this->_aligned_dim,
                         training_prob, train_data_float, num_train);
     std::cout << "Going to train the cluster centers over " << num_train
-                << " points " << std::endl;
+              << " points " << std::endl;
 
     math_utils::kmeans_plus_plus_centers(train_data_float, num_train,
                                          this->_aligned_dim, _cluster_centers,
@@ -116,7 +120,33 @@ namespace grann {
         data_float, this->_num_points, this->_aligned_dim, _cluster_centers,
         _num_clusters, 1, closest_centers.data(), _inverted_index.data(),
         nullptr);
-
+    // std::set<_u32> closest_c(closest_centers.begin(), closest_centers.end());
+    for (_u32 x = 0; x < _num_clusters; x++) {
+      /*std::cout << "size of inverted index of " << x << " is "
+                << _inverted_index[x].size() << std::endl;*/
+      for (auto &y : _inverted_index[x]) {
+        // std::cout << "size of pts_to_labels of " << y << " is "
+        //<< this->_pts_to_labels[y].size() << std::endl;
+        for (auto &z : this->_pts_to_labels[y]) {
+          /*if (z == "21")
+            std::cout << "before for " << x << "," << y << "," << z << " "
+                      << _frequency_table[x][z] << std::endl;*/
+          _frequency_table[x][z]++;
+          /*if (z == "21")
+            std::cout << "after for " << x << "," << y << "," << z << " "
+                      << _frequency_table[x][z] << std::endl;*/
+        }
+      }
+    }
+    std::ofstream myfile;
+    myfile.open("something_frequency_table.txt");
+    // myfile << "Writing the frequencies of labels in clusters.\n";
+    for (_u32 x = 0; x < _num_clusters; x++) {
+      myfile << "Center " << x << std::endl;
+      for (auto &z : _frequency_table[x]) {
+        myfile << z.first << ":" << z.second << std::endl;
+      }
+    }
     delete[] train_data_float;
     delete[] data_float;
   }
@@ -126,7 +156,7 @@ namespace grann {
   _u32 IVFIndex<T>::search(const T *query, _u32 res_count,
                            const Parameters &search_params, _u32 *indices,
                            float *distances, QueryStats *stats,
-													 std::vector<label> search_filters) {
+                           std::vector<label> search_filters) {
     _u32 res_cnt = 0;
     _u32 probe_width = search_params.Get<_u32>("probe_width");
 
@@ -149,8 +179,8 @@ namespace grann {
     _u32                  cmps = 0;
     tsl::robin_set<_u32>  inserted;
     ANNIndex<T>::process_candidates_into_best_candidates_pool(
-        query, candidates, best_candidates, max_size, 
-				cur_size, inserted, cmps, search_filters);
+        query, candidates, best_candidates, max_size, cur_size, inserted, cmps,
+        search_filters);
 
     res_cnt = cur_size < res_count ? cur_size : res_count;
 

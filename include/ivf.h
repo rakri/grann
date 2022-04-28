@@ -13,8 +13,8 @@ namespace grann {
   template<typename T>
   class IVFIndex : public ANNIndex<T> {
    public:
-    IVFIndex(Metric m, const char *filename,
-						 std::vector<_u32> &list_of_tags, std::string labels_fname="");
+    IVFIndex(Metric m, const char *filename, std::vector<_u32> &list_of_tags,
+             std::string labels_fname = "");
     IVFIndex(Metric m);
     ~IVFIndex();
 
@@ -26,13 +26,14 @@ namespace grann {
     // returns # results found (will be <= res_count)
     _u32 search(const T *query, _u32 res_count, const Parameters &search_params,
                 _u32 *indices, float *distances, QueryStats *stats = nullptr,
-								std::vector<label> search_filters = std::vector<label>());
+                std::vector<label> search_filters = std::vector<label>());
 
     /*  Internals of the library */
    protected:
-    _u64                           _num_clusters = 0;
-    float *                        _cluster_centers;
-    std::string                    _base_file;
-    std::vector<std::vector<_u32>> _inverted_index;
+    _u64                                        _num_clusters = 0;
+    float                                      *_cluster_centers;
+    std::string                                 _base_file;
+    std::vector<std::vector<_u32>>              _inverted_index;
+    std::map<_u32, std::map<std::string, _u32>> _frequency_table;
   };
 }  // namespace grann

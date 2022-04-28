@@ -10,12 +10,12 @@
 
 namespace grann {
 
-//  typedef std::lock_guard<std::mutex>
-//      LockGuard;  // Use this datastructure to create per vertex locks if we
-//                  // want to update the graph during index build
-  
-  typedef std::unique_lock<std::shared_timed_mutex>  WriteLock;
-  typedef std::shared_lock<std::shared_timed_mutex>  ReadLock;
+  //  typedef std::lock_guard<std::mutex>
+  //      LockGuard;  // Use this datastructure to create per vertex locks if we
+  //                  // want to update the graph during index build
+
+  typedef std::unique_lock<std::shared_timed_mutex> WriteLock;
+  typedef std::shared_lock<std::shared_timed_mutex> ReadLock;
 
   typedef std::string label;
 
@@ -126,31 +126,30 @@ namespace grann {
     virtual void build(const Parameters &build_params) = 0;
 
     // returns # results found (will be <= res_count)
-    virtual _u32 search(const T *query, _u32 res_count,
-                        const Parameters &search_params, _u32 *indices,
-                        float *distances, QueryStats *stats = nullptr,
-												std::vector<label> search_filters = std::vector<label>()) = 0;
+    virtual _u32 search(
+        const T *query, _u32 res_count, const Parameters &search_params,
+        _u32 *indices, float *distances, QueryStats *stats = nullptr,
+        std::vector<label> search_filters = std::vector<label>()) = 0;
 
     /*  Internals of the library */
    protected:
     void save_data_and_tags_and_labels(const std::string index_file);
     void save_labels(const std::string index_file);
 
-    void                parse_label_file(std::string map_file);
+    void parse_label_file(std::string map_file);
     void load_data_and_tags_and_labels(const std::string index_file);
-
 
     _u32 process_candidates_into_best_candidates_pool(
         const T *&node_coords, std::vector<_u32> &nbr_list,
         std::vector<Neighbor> &best_L_nodes, const _u32 maxListSize,
         _u32 &curListSize, tsl::robin_set<_u32> &inserted_into_pool,
-        _u32 &             total_comparisons,
-        const std::vector<label> & search_filters = std::vector<label>());
+        _u32                     &total_comparisons,
+        const std::vector<label> &search_filters = std::vector<label>());
 
     unsigned         calculate_medoid_of_data();
     unsigned         calculate_filtered_medoid();
     Metric           _metric = grann::L2;
-    Distance<T> *    _distance;
+    Distance<T>     *_distance;
     Distance<float> *_distance_float;
 
     _u32 *_tag_map = nullptr;
@@ -171,7 +170,7 @@ namespace grann {
     std::map<label, std::vector<_u32>> _labels_to_pts;
     tsl::robin_set<label>              _labels;
     std::string                        _labels_file;
-    bool _use_universal_label = true;
-    std::string _universal_label = "0";
+    bool                               _use_universal_label = true;
+    std::string                        _universal_label = "0";
   };
 }  // namespace grann
