@@ -5,8 +5,10 @@
 #include "ivf.h"
 #include "partition_and_pq.h"
 #include "math_utils.h"
+#include "boost/algorithm/string.hpp"
 #include <iomanip>
 #include <iostream>
+#include <string>
 #include <set>
 
 namespace grann {
@@ -84,6 +86,20 @@ namespace grann {
     in.close();
     std::cout << "Read a total of " << total_count
               << " points from inverted index file." << std::endl;
+
+		std::ifstream freq_in("something_frequency_table.txt");
+		std::string line;
+		std::getline(freq_in, line); //first line is center name
+		for (_u32 x = 0; x < _num_clusters; x++) {
+			while(getline(freq_in, line)) {
+				if (line[0] == 'C') {
+					break;
+				}
+				std::vector<label> results;
+				boost::algorithm::split(results, line, boost::is_any_of(":"));
+				_frequency_table[x][results[0]] = std::stoi(results[1]); 
+			}
+		}
   }
 
   template<typename T>
@@ -159,6 +175,7 @@ namespace grann {
                            std::vector<label> search_filters) {
     _u32 res_cnt = 0;
     _u32 probe_width = search_params.Get<_u32>("probe_width");
+		_u32 pw_hyperparam = 3;
 
     float *query_float = new float[this->_aligned_dim];
     grann::convert_types(query, query_float, 1, this->_aligned_dim);
@@ -166,10 +183,20 @@ namespace grann {
     std::vector<_u32> closest_centers(probe_width, 0);
     math_utils::compute_closest_centers(
         query_float, 1, this->_aligned_dim, _cluster_centers, _num_clusters,
-        probe_width, closest_centers.data(), nullptr, nullptr);
+      	probe_width, closest_centers.data(), nullptr, nullptr);
 
     std::vector<_u32> candidates;
     for (auto &x : closest_centers) {
+			_u8 skip = 0;
+			/*
+			for (auto const &y : search_filters) {
+				if (_frequency_table[x][y] == 0) {
+					skip = 1;
+					break;
+				}
+			}
+			*/
+			if (skip) continue;
       candidates.insert(candidates.end(), _inverted_index[x].begin(),
                         _inverted_index[x].end());
     }
