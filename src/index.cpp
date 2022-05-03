@@ -127,9 +127,25 @@ namespace grann {
     if (map_file == "")
       return;
 
+		std::ifstream label_hashes("/home/siddharth/Programming/scripts/label_hash.txt");
+		std::string line, token;
+		while (std::getline(label_hashes, line)) {
+			std::istringstream iss(line);
+			std::pair<label, std::string> label_hash;
+			int i = 0;
+			while (getline(iss, token, ' ')) {
+				if (i == 0) {
+					label_hash.first = token;
+					i++;
+				} else {
+					label_hash.second = token;
+				}
+			}
+			_labels_to_hash[label_hash.first] = label_hash.second;
+		}
+
     _filtered_index = true;
     std::ifstream infile(map_file);
-    std::string   line, token;
     unsigned      line_cnt = 0;
 
     while (std::getline(infile, line)) {
@@ -257,8 +273,23 @@ namespace grann {
             intersection_result.emplace_back(_universal_label);
         }
 
-        if (intersection_result.empty())
-          continue;
+        if (intersection_result.empty()) {
+					std::vector<label> hashed_curr_labels;
+					std::vector<label> hashed_search_labels;
+					intersection_result.clear();
+
+					for (auto const &i : curr_labels) 
+						hashed_curr_labels.push_back(_labels_to_hash[i]);
+					for (auto const &i : search_filters) 
+						hashed_search_labels.push_back(_labels_to_hash[i]);
+
+					std::set_intersection(search_filters.begin(), search_filters.end(),
+                              	curr_labels.begin(), curr_labels.end(),
+                              	std::back_inserter(intersection_result));
+
+					if (intersection_result.empty())
+						continue;
+				}
       }
       if (already_inserted.find(id) == already_inserted.end()) {
         already_inserted.insert(id);

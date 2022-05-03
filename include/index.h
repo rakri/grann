@@ -169,6 +169,7 @@ namespace grann {
     bool                               _filtered_index = false;
     std::vector<std::vector<label>>    _pts_to_labels;
     std::map<label, std::vector<_u32>> _labels_to_pts;
+		std::map<label, std::string>			 _labels_to_hash;
     tsl::robin_set<label>              _labels;
     std::string                        _labels_file;
     bool _use_universal_label = true;
