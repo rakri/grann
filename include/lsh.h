@@ -17,7 +17,8 @@ namespace grann {
     HashTable(_u32 table_size, _u32 vector_dim);
     ~HashTable();
 
-    void generate_hps();
+    template<typename T>
+    void generate_hps(const T* sample_data, const size_t ndata);
 
     std::vector<_u32> get_bucket(bitstring bucket_id);
 
@@ -25,7 +26,8 @@ namespace grann {
     bitstring get_hash(const T *input_vector);
 
     void add_vector(bitstring vector_hash, _u32 vector_id);
-    void add_hp(std::vector<float> hp);
+    void add_hp(std::vector<float>& hp);
+    void set_bias(std::vector<float>& bias);
 
     void write_to_file(std::ofstream &out);
     void read_from_file(std::ifstream &in);
@@ -41,6 +43,7 @@ namespace grann {
 
     std::vector<size_t> count_plus, count_minus;
 
+    std::vector<float>     bias;
   };
 
   template<typename T>
