@@ -14,6 +14,7 @@ int build_lsh_index(const std::string &data_path, const std::string &labels_file
 
   grann::LSHIndex<T> lsh(m, data_path.c_str(), idmap, labels_file);
   lsh.build(params);
+  lsh.print_balance();
   lsh.save(save_path.c_str());
 
   return 0;

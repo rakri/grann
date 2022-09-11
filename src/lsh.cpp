@@ -19,6 +19,11 @@ namespace grann {
 
     vector_dim = vector_d;
     table_size = table_s;
+
+    for (_u32 i=0; i<table_s; ++i) {
+      count_minus.push_back(0);
+      count_plus.push_back(0);
+    }
   }
 
   HashTable::~HashTable() {
@@ -55,12 +60,22 @@ namespace grann {
         dot_p += x;
       }
 
-      if (dot_p > 0)
+      if (dot_p > 0) {
         input_bits[i] = 1;
-      else
+        count_plus[i]++; 
+      }
+      else {
         input_bits[i] = 0;
+        count_minus[i]++;
+      }
     }
     return input_bits;
+  }
+
+  void HashTable::print_balance() {
+    for (_u32 i=0; i < table_size; ++i) {
+      std::cout << count_plus[i] << "|" << count_minus[i] << "   ";
+    }
   }
 
   void HashTable::add_vector(bitstring vector_hash, _u32 vector_id) {
@@ -145,6 +160,15 @@ namespace grann {
         table.add_vector(cur_vec_hash, this->_tag_map[i]);
       }
     }
+  }
+  
+  template<typename T>
+  void LSHIndex<T>::print_balance() {
+    for (auto &table : tables) {
+      std::cout << std::endl;    
+      table.print_balance();
+    }
+    std::cout << std::endl;
   }
 
   template<typename T>

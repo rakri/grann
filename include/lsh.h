@@ -30,12 +30,17 @@ namespace grann {
     void write_to_file(std::ofstream &out);
     void read_from_file(std::ifstream &in);
 
+    void print_balance();
+
    protected:
     _u32 vector_dim;  // dimension of points stored/each hp vector
     _u32 table_size;  // number of hyperplanes
     // float **random_hps;
     std::vector<std::vector<float>>     random_hps;
     std::map<size_t, std::vector<_u32>> hashed_vectors;
+
+    std::vector<size_t> count_plus, count_minus;
+
   };
 
   template<typename T>
@@ -53,6 +58,7 @@ namespace grann {
     _u32 search(const T *query, _u32 res_count, const Parameters &search_params,
                 _u32 *indices, float *distances, QueryStats *stats = nullptr,
 								std::vector<label> search_filters = std::vector<label>());
+    void print_balance();
 
    protected:
     _u32                   num_tables;
