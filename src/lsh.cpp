@@ -19,12 +19,18 @@ namespace grann {
 
     vector_dim = vector_d;
     table_size = table_s;
+
+    for (_u32 i=0; i<table_s; ++i) {
+      count_minus.push_back(0);
+      count_plus.push_back(0);
+    }
   }
 
   HashTable::~HashTable() {
   }
 
-  void HashTable::generate_hps() {
+  template<typename T>
+  void HashTable::generate_hps(const T* sample_data, const size_t nsample) {
     std::random_device              r;
     std::default_random_engine      rng{r()};
     std::normal_distribution<float> gaussian_dist;
@@ -36,6 +42,19 @@ namespace grann {
         random_hp.push_back(add);
       }
       add_hp(random_hp);
+      
+      std::vector<T> hash_values;
+      hash_values.reserve(nsample);
+#pragma omp parallel for
+      for (size_t i=0; i<nsample; ++i) {
+        float dot_p=0.0;
+        for (size_t j = 0; j < vector_dim; j++) {
+          dot_p += random_hp[j] * sample_data[i*vector_dim + j];
+        }
+        hash_values.push_back(dot_p);
+      }
+      std::sort(hash_values.begin(), hash_values.end());
+      bias.push_back(hash_values[hash_values.size()/2]);
     }
   }
 
@@ -45,30 +64,43 @@ namespace grann {
 
   template<typename T>
   bitstring HashTable::get_hash(const T *input_vector) {
-    bitstring input_bits;
+    bitstring bits;
     for (size_t i = 0; i < table_size; i++) {
       // float dot_p = std::inner_product(random_hps[i].begin(),
       // random_hps[i].end(), input_vector, 0.0);
       float dot_p = 0.0;
       for (size_t j = 0; j < vector_dim; j++) {
-        float x = random_hps[i][j] * input_vector[j];
-        dot_p += x;
+        dot_p += random_hps[i][j] * input_vector[j];
       }
 
-      if (dot_p > 0)
-        input_bits[i] = 1;
-      else
-        input_bits[i] = 0;
+      if (dot_p > bias[i]) {
+        bits[i] = 1;
+        count_plus[i]++; 
+      }
+      else {
+        bits[i] = 0;
+        count_minus[i]++;
+      }
     }
-    return input_bits;
+    return bits;
+  }
+
+  void HashTable::print_balance() {
+    for (_u32 i=0; i < table_size; ++i) {
+      std::cout << count_plus[i] << "|" << count_minus[i] << "   ";
+    }
   }
 
   void HashTable::add_vector(bitstring vector_hash, _u32 vector_id) {
     hashed_vectors[(size_t) vector_hash.to_ulong()].push_back(vector_id);
   }
 
-  void HashTable::add_hp(std::vector<float> hp) {
+  void HashTable::add_hp(std::vector<float>& hp) {
     random_hps.push_back(hp);
+  }
+
+  void HashTable::set_bias(std::vector<float>& bias) {
+    this->bias = bias;
   }
 
   void HashTable::write_to_file(std::ofstream &out) {
@@ -86,7 +118,14 @@ namespace grann {
 
     out.put('%');
 
-    // 2. write map
+    // 2. write hyperplane vectors
+    for (const auto &b : bias) {
+      out.write(reinterpret_cast<const char *>(&b), sizeof(float));
+    }
+
+    out.put('%');
+
+    // 3. write map
     _u32 num_buckets = hashed_vectors.size();
     out.write(reinterpret_cast<const char *>(&num_buckets), sizeof(_u32));
     for (const auto &bucket : hashed_vectors) {
@@ -134,7 +173,7 @@ namespace grann {
     // 1. generate hyperplanes for the table
     for (size_t i = 0; i < num_tables; i++) {
       HashTable table = HashTable(table_size, this->_aligned_dim);
-      table.generate_hps();
+      table.generate_hps(this->_data, this->_num_points);
       tables.push_back(table);
     }
 
@@ -145,6 +184,15 @@ namespace grann {
         table.add_vector(cur_vec_hash, this->_tag_map[i]);
       }
     }
+  }
+  
+  template<typename T>
+  void LSHIndex<T>::print_balance() {
+    for (auto &table : tables) {
+      std::cout << std::endl;    
+      table.print_balance();
+    }
+    std::cout << std::endl;
   }
 
   template<typename T>
@@ -265,6 +313,23 @@ namespace grann {
       }
 
       char mid;
+      in.get(mid);
+      if ((mid) != '%') {
+        printf("%d\n", mid);
+        perror(
+            "Mistake in file formation, missing null terminator at middle. "
+            "Exiting...");
+        exit(1);
+      }
+
+      std::vector<float> bias;
+      for (size_t j = 0; j < f_table_size; j++) {
+          float next_bias_element;
+          in.read(reinterpret_cast<char *>(&next_bias_element), sizeof(float));
+          bias.push_back(next_bias_element);
+      }
+      curr_table.set_bias(bias);
+
       in.get(mid);
       if ((mid) != '%') {
         printf("%d\n", mid);
