@@ -257,8 +257,12 @@ namespace grann {
             intersection_result.emplace_back(_universal_label);
         }
 
-        if (intersection_result.empty())
+//        if (intersection_result.empty())
+//          continue;
+
+        if (intersection_result.size() < search_filters.size())
           continue;
+
       }
       if (already_inserted.find(id) == already_inserted.end()) {
         already_inserted.insert(id);

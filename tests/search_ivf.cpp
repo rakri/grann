@@ -39,7 +39,15 @@ int search_index(int argc, char** argv) {
   bool filtered_search = (bool) std::atoi(argv[ctr++]);
   std::vector<grann::label> search_filters;
   if (filtered_search) {
-	search_filters = {argv[ctr++]};
+      std::istringstream       iss(argv[ctr++]);
+      std::string token;
+      while (getline(iss, token, ',')) {
+        token.erase(std::remove(token.begin(), token.end(), '\n'), token.end());
+        token.erase(std::remove(token.begin(), token.end(), '\r'), token.end());
+        search_filters.push_back(token);
+      }
+
+//	search_filters = {argv[ctr++]};
   }
 
   bool calc_recall_flag = false;
