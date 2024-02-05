@@ -154,6 +154,8 @@ namespace grann {
                                        best_L_nodes, labels_to_accept);
   }
 
+
+
   template<typename T>
   void Vamana<T>::calculate_label_specific_medoids() {
     if (this->_filtered_index == false) {
@@ -218,6 +220,9 @@ namespace grann {
   template<typename T>
   void Vamana<T>::build(const Parameters &build_parameters) {
     grann::Timer build_timer;
+    this->update_edge_counters = true;
+    this->ec_mtx = std::vector<std::mutex>(this->_num_points);
+    this->edge_counter = std::vector<std::map<std::pair<uint32_t, uint32_t>, uint32_t>>(this->_num_points);
 
     if (this->_filtered_index) {
       calculate_label_specific_medoids();
@@ -227,6 +232,7 @@ namespace grann {
     unsigned L = build_parameters.Get<unsigned>("L");
     unsigned degree_bound = build_parameters.Get<unsigned>("R");
     float    alpha = build_parameters.Get<float>("alpha");
+    unsigned maxc = build_parameters.Get<unsigned>("C");
 
     std::cout << "Starting vamana build with listSize L=" << L
                 << ", degree bound R=" << degree_bound
@@ -254,8 +260,8 @@ namespace grann {
 
         std::stringstream msg;
         _u32 a = milestone_marker;
-        msg << "\r" << (a * 10) << "\% of build completed...";
-        std::cout << msg.str();
+        msg << "\n" << (a * 10) << "\% of build completed...";
+        std::cout << msg.str() << std::flush;
         ++milestone_marker;
       }
 
@@ -285,7 +291,7 @@ namespace grann {
 
 //      get_expanded_nodes(location, L, init_ids, pool, visited);
 
-      this->prune_candidates_alpha_rng(location, pool, build_parameters,
+      this->prune_candidates_alpha_rng(location, pool, degree_bound, maxc, alpha, 
                                        pruned_list);
 
       this->_out_nbrs[location].reserve(
@@ -318,7 +324,7 @@ namespace grann {
             dummy_visited.insert(cur_nbr);
           }
         }
-        this->prune_candidates_alpha_rng(node, dummy_pool, build_parameters,
+        this->prune_candidates_alpha_rng(node, dummy_pool, degree_bound, alpha, maxc,
                                          new_out_neighbors);
 
         this->_out_nbrs[node].clear();
@@ -335,6 +341,7 @@ namespace grann {
                 << ((double) build_timer.elapsed() / (double) 1000000) << "s"
                 << std::endl;
   }
+
 
   template<typename T>
   _u32 Vamana<T>::search(const T *query, _u32 res_count,

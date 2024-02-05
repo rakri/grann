@@ -88,6 +88,11 @@ namespace grann {
         if (_locks_enabled) {
           ReadLock guard(_locks[n]);
           des = _out_nbrs[n];
+          if (this->update_edge_counters) {
+            for (auto &nbr: des) {
+              this->update_edge_counter(std::make_pair(n, nbr), 1);
+            }
+          }
         }
         unsigned best_inserted_index;
         if (_locks_enabled)
@@ -130,10 +135,10 @@ namespace grann {
   template<typename T>
   void GraphIndex<T>::prune_candidates_alpha_rng(
       const unsigned point_id, std::vector<Neighbor> &candidate_list,
-      const Parameters &parameter, std::vector<unsigned> &pruned_list) {
-    unsigned degree_bound = parameter.Get<_u32>("R");
-    unsigned maxc = parameter.Get<_u32>("C");
-    float    alpha = parameter.Get<float>("alpha");
+      unsigned degree_bound, unsigned maxc, float alpha, std::vector<unsigned> &pruned_list) {
+    //unsigned degree_bound = parameter.Get<_u32>("R");
+    //unsigned maxc = parameter.Get<_u32>("C");
+    //float    alpha = parameter.Get<float>("alpha");
 
     if (candidate_list.size() == 0)
       return;
@@ -207,8 +212,8 @@ namespace grann {
   template<typename T>
   void GraphIndex<T>::prune_candidates_top_K(
       const unsigned point_id, std::vector<Neighbor> &candidate_list,
-      const Parameters &parameter, std::vector<unsigned> &pruned_list) {
-    unsigned degree_bound = parameter.Get<unsigned>("R");
+      unsigned degree_bound, std::vector<unsigned> &pruned_list) {
+    //unsigned degree_bound = parameter.Get<unsigned>("R");
 
     if (candidate_list.size() == 0)
       return;
@@ -236,7 +241,8 @@ namespace grann {
                                            std::vector<unsigned> &pruned_list,
                                            const Parameters &     parameters) {
     const auto degree_bound = parameters.Get<unsigned>("R");
-
+    const auto alpha = parameters.Get<float>("alpha");
+    const auto maxc = parameters.Get<unsigned>("C");    
     const auto prune_rule = parameters.Get<unsigned>("pruning_rule");
 
     const auto &src_pool = pruned_list;
@@ -286,10 +292,10 @@ namespace grann {
         }
         std::vector<unsigned> new_out_neighbors;
         if (prune_rule == 0)
-          this->prune_candidates_alpha_rng(des, dummy_pool, parameters,
+          this->prune_candidates_alpha_rng(des, dummy_pool, degree_bound, alpha, maxc,
                                            new_out_neighbors);
         else
-          this->prune_candidates_top_K(des, dummy_pool, parameters,
+          this->prune_candidates_top_K(des, dummy_pool, degree_bound,
                                        new_out_neighbors);
         {
           WriteLock guard(this->_locks[des]);
@@ -303,27 +309,114 @@ namespace grann {
   }
 
   template<typename T>
+  void GraphIndex<T>::prune_all_nodes(std::vector<uint32_t> degree_bounds, float alpha, unsigned maxc) {
+        std::cout << "\nStarting final cleanup.." << std::flush;
+#pragma omp parallel for schedule(dynamic, 65536)
+    for (_u64 node = 0; node < this->_num_points; node++) {
+      if (this->_out_nbrs[node].size() > degree_bounds[node]) {
+        tsl::robin_set<unsigned> dummy_visited(0);
+        std::vector<Neighbor>    dummy_pool(0);
+        std::vector<unsigned>    new_out_neighbors;
+
+        for (auto cur_nbr : this->_out_nbrs[node]) {
+          if (dummy_visited.find(cur_nbr) == dummy_visited.end() &&
+              cur_nbr != node) {
+            float dist = this->_distance->compare(
+                this->_data + this->_aligned_dim * (_u64) node,
+                this->_data + this->_aligned_dim * (_u64) cur_nbr,
+                (unsigned) this->_aligned_dim);
+            dummy_pool.emplace_back(Neighbor(cur_nbr, dist, true));
+            dummy_visited.insert(cur_nbr);
+          }
+        }
+        this->prune_candidates_alpha_rng(node, dummy_pool, degree_bounds[node], maxc, alpha, 
+                                         new_out_neighbors);
+
+        this->_out_nbrs[node].clear();
+        for (auto id : new_out_neighbors)
+          this->_out_nbrs[node].emplace_back(id);
+      }
+    }
+
+    std::cout << "done." << std::endl;
+
+  }
+
+    template<typename T>
+  void GraphIndex<T>::update_edge_counter(std::pair<uint32_t, uint32_t> key, int value) 
+  {
+    std::lock_guard<std::mutex> lock(ec_mtx[key.first]);
+    edge_counter[key.first][key] += value;
+ }
+
+  template<typename T>
+  void GraphIndex<T>::sort_edge_counters(std::vector<std::pair<std::pair<uint32_t, uint32_t>, uint32_t>> &A) {
+    A.clear();
+    for (auto &it1 : edge_counter)
+    for (auto& it : it1) {
+        A.push_back(it);
+    }
+std::sort(A.begin(), A.end(),  [](const std::pair<std::pair<uint32_t,uint32_t>, uint32_t> &a, const std::pair<std::pair<uint32_t,uint32_t>, uint32_t> &b){
+        return a.second > b.second;
+    });
+//    int ctr = 0;
+/*        for (auto& it : A) {
+        std::cout << it.first.first << ',' << it.first.second <<" " << it.second << std::endl;
+        ctr++;
+        if (ctr > 50)
+        break;
+    } */
+  }
+
+  template<typename T>
+  void GraphIndex<T>::select_most_used_edges(uint32_t avg_degree, float alpha, uint32_t maxc) {
+    std::vector<std::pair<std::pair<uint32_t, uint32_t>, uint32_t>> A;
+    std::cout<<"avg degree selected = " << avg_degree <<std::endl;
+    this->sort_edge_counters(A);
+    _u32 edge_budget = (avg_degree * this->_num_points)/2;
+    std::vector<uint32_t> degree_bounds(this->_num_points,avg_degree/2);
+//    for (auto &x : _out_nbrs)
+//      x.clear();
+    _u32 ctr = 0;
+    for (auto &x : A) {
+      auto &y = x.first;
+      if (degree_bounds[y.first] < 8*avg_degree) {
+        degree_bounds[y.first]++;
+        ctr++;
+      }
+      if (ctr > edge_budget)
+      break;
+    }
+    prune_all_nodes(degree_bounds, alpha, maxc);
+    update_degree_stats();
+  }
+
+
+  template<typename T>
   void GraphIndex<T>::update_degree_stats() {
     if (!this->_has_built)
       return;
 
     this->_max_degree = 0;
+
     std::vector<_u32>                  out_degrees(this->_num_points, 0);
     std::vector<std::pair<_u32, _u32>> in_degrees(this->_num_points);
     for (_u32 i = 0; i < this->_num_points; i++) {
       in_degrees[i].first = i;
       in_degrees[i].second = 0;
     }
-
+    float avg_degree = 0;
     for (_u32 i = 0; i < this->_num_points; i++) {
       this->_max_degree = this->_max_degree > this->_out_nbrs[i].size()
                               ? this->_max_degree
                               : this->_out_nbrs[i].size();
       out_degrees[i] = this->_out_nbrs[i].size();
+      avg_degree += out_degrees[i];
       for (auto &x : this->_out_nbrs[i]) {
         in_degrees[x].second++;
       }
     }
+    avg_degree /= this->_num_points;
 
     std::sort(in_degrees.begin(), in_degrees.end(),
               [](const auto &lhs, const auto &rhs) {
@@ -333,6 +426,7 @@ namespace grann {
     // std::sort(in_degrees.begin(), in_degrees.end());
     std::sort(out_degrees.begin(), out_degrees.end());
 
+    std::cout<<"Avg. out degree=" << avg_degree << std::endl;
     _u32 unreachable_count = 0;
     while (unreachable_count < this->_num_points &&
            (in_degrees[unreachable_count].second == 0)) {

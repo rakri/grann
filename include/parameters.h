@@ -13,6 +13,7 @@ class Parameters {
   Parameters() {
     Set<uint32_t>("num_threads", 0);
     Set<float>("alpha",1);
+    Set<uint32_t>("avg_degree",0);
     Set<uint32_t>("pruning_rule", 0);
   }
 

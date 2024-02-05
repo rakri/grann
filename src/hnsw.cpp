@@ -147,6 +147,8 @@ namespace grann {
     unsigned L = build_parameters.Get<unsigned>("L");
     unsigned degree_bound = build_parameters.Get<unsigned>("R");
     float    alpha = build_parameters.Get<float>("alpha");
+    unsigned maxc = build_parameters.Get<unsigned>("C");
+
 
     std::cout << "Starting hnsw build with listSize L=" << L
                 << ", degree bound R=" << degree_bound
@@ -207,9 +209,9 @@ namespace grann {
 
       if (prune_rule == 0)
         this->prune_candidates_alpha_rng(location, best_L_nodes,
-                                         build_parameters, pruned_list);
+                                         degree_bound, maxc, alpha, pruned_list);
       else
-        this->prune_candidates_top_K(location, best_L_nodes, build_parameters,
+        this->prune_candidates_top_K(location, best_L_nodes, degree_bound,
                                      pruned_list);
 
       this->_out_nbrs[location].reserve(
@@ -243,10 +245,10 @@ namespace grann {
           }
         }
         if (prune_rule == 0)
-          this->prune_candidates_alpha_rng(node, dummy_pool, build_parameters,
+          this->prune_candidates_alpha_rng(node, dummy_pool, degree_bound, maxc, alpha,
                                            new_out_neighbors);
         else
-          this->prune_candidates_top_K(node, dummy_pool, build_parameters,
+          this->prune_candidates_top_K(node, dummy_pool, degree_bound,
                                        new_out_neighbors);
 
         this->_out_nbrs[node].clear();

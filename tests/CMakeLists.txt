@@ -23,6 +23,16 @@ else()
 endif()
 
 
+add_executable(build_var_degree_vamana build_var_degree_vamana.cpp )
+if(MSVC)
+	target_link_options(build_var_degree_vamana PRIVATE /MACHINE:x64 /DEBUG:FULL "/INCLUDE:_tcmalloc")
+	target_link_libraries(build_var_degree_vamana debug ${CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG}/grann_dll.lib ${PROJECT_SOURCE_DIR}/dependencies/windows/tcmalloc/libtcmalloc_minimal.lib)
+	target_link_libraries(build_var_degree_vamana optimized ${CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE}/grann_dll.lib ${PROJECT_SOURCE_DIR}/dependencies/windows/tcmalloc/libtcmalloc_minimal.lib)
+else() 
+	target_link_libraries(build_var_degree_vamana ${PROJECT_NAME} -ltcmalloc)
+endif()
+
+
 add_executable(build_hnsw build_hnsw.cpp )
 if(MSVC)
 	target_link_options(build_hnsw PRIVATE /MACHINE:x64 /DEBUG:FULL "/INCLUDE:_tcmalloc")

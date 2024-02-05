@@ -186,7 +186,7 @@ namespace grann {
         pool.emplace_back(Neighbor(j, dist, true));
       }
 
-      this->prune_candidates_alpha_rng(location, pool, aux_params,
+      this->prune_candidates_alpha_rng(location, pool, this->_num_points, this->_num_points, 1,
                                        pruned_list);
 
       this->_out_nbrs[location].reserve(pruned_list.size());

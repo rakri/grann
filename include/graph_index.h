@@ -19,6 +19,8 @@ namespace grann {
    public:
     GraphIndex(Metric m, const char *filename, std::vector<_u32> &list_of_tags, std::string labels_fname="");
     GraphIndex(Metric m);
+    void select_most_used_edges(uint32_t avg_degree, float alpha, uint32_t maxc);
+
 
     /*  Internals of the library */
    protected:
@@ -33,19 +35,27 @@ namespace grann {
         _locks;  // Per node lock to be initialized at build time, dont
                  // initialize in constructor to save memory for pure search
 
+    bool update_edge_counters = false;
+    std::vector<std::map<std::pair<uint32_t, uint32_t>, uint32_t>> edge_counter;
+    std::vector<std::mutex> ec_mtx;
+    void update_edge_counter(std::pair<uint32_t, uint32_t> key, int value); 
+    void sort_edge_counters(std::vector<std::pair<std::pair<uint32_t, uint32_t>, uint32_t>> &A);
+
 
     void prune_candidates_alpha_rng(const unsigned         location,
                                     std::vector<Neighbor> &pool,
-                                    const Parameters &     parameter,
+                                    unsigned degree_bound, unsigned maxc, float alpha, 
                                     std::vector<unsigned> &pruned_list);
 
     void prune_candidates_top_K(const unsigned         location,
                                 std::vector<Neighbor> &pool,
-                                const Parameters &     parameter,
+                                unsigned degree_bound, 
                                 std::vector<unsigned> &pruned_list);
 
     void add_reciprocal_edges(unsigned n, std::vector<unsigned> &pruned_list,
                               const Parameters &parameters);
+
+    void prune_all_nodes(std::vector<uint32_t> degree_bounds, float alpha, unsigned maxc);
 
     _u32 greedy_search_to_fixed_point(
         const T *node_coords, const _u32 list_size,

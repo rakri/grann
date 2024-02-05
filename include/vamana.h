@@ -34,7 +34,7 @@ namespace grann {
     unsigned _start_node;
     // for filtered indices
     std::unordered_map<label, _u32>    _filter_to_medoid_id;
-    std::unordered_map<_u32, _u32>     _medoid_counts;    
+    std::unordered_map<_u32, _u32>     _medoid_counts;   
 
     void calculate_label_specific_medoids();
 
