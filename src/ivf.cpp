@@ -108,17 +108,26 @@ namespace grann {
     std::cout << "Done. Now going to build the index." << std::endl;
 
     std::vector<_u32> closest_centers(this->_num_points);
-    float *data_float = new float[this->_num_points * this->_aligned_dim];
+    float *data_float;
+    bool local_data = false;
 
+    if (sizeof(T) == sizeof(float)) {
+      data_float = (float*) (this->_data);
+    } else
+    {
+    data_float = new float[this->_num_points * this->_aligned_dim];  
     grann::convert_types(this->_data, data_float, this->_num_points,
                          this->_aligned_dim);
+    local_data = true;
+    }
     math_utils::compute_closest_centers(
         data_float, this->_num_points, this->_aligned_dim, _cluster_centers,
         _num_clusters, 1, closest_centers.data(), _inverted_index.data(),
         nullptr);
 
     delete[] train_data_float;
-    delete[] data_float;
+    if (local_data)
+      delete[] data_float;
   }
 
   // returns # results found (will be <= res_count)
