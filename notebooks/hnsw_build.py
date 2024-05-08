@@ -9,35 +9,50 @@ import tempfile
 import time
 import struct
 import itertools
+import sys
+from core_utils import read_float_binary_file,read_i8_binary_file,read_u8_binary_file,write_float_binary_file,read_int32_binary_file,compute_recall,get_bin_metadata
 
-from core_utils import read_float_binary_file,read_i8_binary_file,read_u8_binary_file,write_float_binary_file,read_int32_binary_file,compute_recall
 
+# Check if the number of command line arguments is correct.
+if len(sys.argv) != 3:
+    print("Usage: python hnsw_build.py <M> <efC>")
+    sys.exit(1)
 
+# Use the command line arguments in your program.
+Mb = int(sys.argv[1])
+efb = int(sys.argv[2])
+#Mb = 64
+#efb = 800
+
+print("Going to build HNSW index with Mb = ", Mb, " and efb = ", efb)
 
 # %%
 
-[nqgt, nkgt, gt] = read_int32_binary_file('/home/rakri/datasets/wikipedia_large/wikipedia_gt_unfilt.bin')
-#[nqgt, nkgt, gt] = read_int32_binary_file('/home/rakri/wiki_rnd100k_gs')
-[nq, ndq, queries] = read_float_binary_file('/home/rakri/datasets/wikipedia_large/wikipedia_query.bin')
-[nb, nd, dataset] = read_float_binary_file('/home/rakri/datasets/wikipedia_large/wikipedia_base.bin')
-#[nb, nd, dataset] = read_float_binary_file('/home/rakri/wiki_rnd100k_data.bin')
+query_file = '/home/rakri/wiki_rnd1m/wikipedia_query.bin'
+gt_file = '/home/rakri/wikipedia_gt_unfilt.bin'
+base_file = '/home/rakri/wikipedia/mem_r64_l100.data'
+dataset_name='wiki_large'
 
-print ("data loaded")
+#gt_file = '/home/rakri/wiki_rnd1m_gt100.bin'
+#base_file = '/home/rakri/wiki_rnd1m_data.bin'
+#dataset_name='wiki_rnd1m'
+
+
+[nqgt, nkgt, gt] = read_int32_binary_file(gt_file)
+[nq, ndq, queries] = read_float_binary_file(query_file)
+[nb, nd] = get_bin_metadata(base_file)
+
+print ("queries,gt, and base metadata loaded")
 
 #names and parameters
-dataset_name='wiki_large'
-Mb = 48
-efb = 400
-index_name = '/home/rakri/indices/hnsw_'+dataset_name+'M='+str(Mb)+'_efC='+str(efb) 
+index_name = '/home/rakri/hnsw_'+dataset_name+'M='+str(Mb)+'_efC='+str(efb) 
 
 # for hnsw, it is only ef_search
-search_params = [(10), (20), (30), (40), (50), (60), (70), (80), (90), (100)]
+search_params = [(10), (20), (30), (40), (50), (60), (70), (80), (90), (100), (150), (200), (250), (300)]
 
 # %%
 # Create an HNSW index
 index = hnswlib.Index(space='l2', dim=nd)
-
-
 
 index.init_index(max_elements=nb, M = Mb, ef_construction = efb, random_seed = 100)
 
@@ -47,8 +62,9 @@ if os.path.isfile(index_name):
     index = hnswlib.Index(space='l2', dim=nd)
     index.load_index(index_name, max_elements = nb)
 else:
-    index.set_num_threads(48)
+    #index.set_num_threads()
     start = time.time()
+    [nb, nd, dataset] = read_float_binary_file(base_file)
     index.add_items(dataset)
     end = time.time()
     print("Index built in", end-start, " seconds.")
@@ -58,7 +74,7 @@ else:
 # Search for the nearest neighbor of a query vector
 
 index.set_num_threads(1)
-nk=1
+nk=10
 print("ef\tRecall\t\ttime")
 for param in search_params:
     (ef_search) = param

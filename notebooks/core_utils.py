@@ -5,6 +5,17 @@ from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import min_weight_full_bipartite_matching
 
 
+def get_bin_metadata(filename):
+    try:
+        with open(filename, 'rb') as f:
+            # Read the first 8 bytes (number of rows and columns)
+            num_rows, num_columns = struct.unpack('ii', f.read(8))         
+            return num_rows, num_columns
+    except FileNotFoundError:
+        print(f"File '{filename}' not found.")
+        return None
+
+
 def read_float_binary_file(filename):
     try:
         with open(filename, 'rb') as f:
