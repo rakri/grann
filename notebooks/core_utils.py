@@ -3,7 +3,39 @@ import numpy as np
 import numpy as np
 from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import min_weight_full_bipartite_matching
+import pyomp
 
+
+import numpy as np
+from numpy import linalg as LA
+from scipy import sparse
+from scipy.sparse import linalg
+import time
+
+def omp_sum_of_squares(A):
+  """Calculates the sum of squares of each row in a NumPy array using OpenMP parallel processing.
+
+  Args:
+    A: A NumPy array.
+
+  Returns:
+    A NumPy array containing the sum of squares of each row in A.
+  """
+
+  # Get the number of rows in A.
+  n = A.shape[0]
+
+  # Create a shared memory array to store the results.
+  results = np.zeros(n, dtype=np.float64)
+
+  # Start the parallel region.
+  #pragma omp parallel for
+  for i in range(n):
+    # Calculate the sum of squares of the elements in row i of A.
+    results[i] = np.sum(A[i]**5)
+
+  # Return the results.
+  return results
 
 def get_bin_metadata(filename):
     try:
